@@ -228,14 +228,14 @@ npm install lucide-react
 
 You've successfully tested the Galaxy Dashboard when:
 
-- [ ] Dashboard loads without errors
-- [ ] Galaxy Chart displays bubbles with colors
-- [ ] Hovering shows cluster details in tooltip
-- [ ] Impact slider filters clusters
-- [ ] Pillar dropdown filters by category
-- [ ] Priority list shows top 10 clusters
-- [ ] Real-time refresh works (30s interval)
-- [ ] Navigation bar switches between pages
+- [ x] Dashboard loads without errors
+- [ x] Galaxy Chart displays bubbles with colors
+- [ x] Hovering shows cluster details in tooltip
+- [x ] Impact slider filters clusters
+- [ x] Pillar dropdown filters by category
+- [ x] Priority list shows top 10 clusters
+- [ x] Real-time refresh works (30s interval)
+- [ x] Navigation bar switches between pages
 
 ---
 

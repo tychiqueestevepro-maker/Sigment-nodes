@@ -71,30 +71,30 @@ Vous venez de recevoir un projet SIGMENT **complètement structuré** et **prêt
 Cochez au fur et à mesure :
 
 ### Configuration
-- [ ] J'ai créé un projet Supabase
-- [ ] J'ai obtenu mes clés Supabase (URL, anon, service_role)
-- [ ] J'ai une clé API OpenAI
-- [ ] J'ai rempli le fichier `.env`
-- [ ] J'ai appliqué `database/schema.sql` dans Supabase
+- [ x] J'ai créé un projet Supabase
+- [ x] J'ai obtenu mes clés Supabase (URL, anon, service_role)
+- [ x] J'ai une clé API OpenAI
+- [ x] J'ai rempli le fichier `.env`
+- [ x] J'ai appliqué `database/schema.sql` dans Supabase
 
 ### Installation
-- [ ] J'ai Python 3.10+ installé
-- [ ] J'ai Node.js 18+ installé
-- [ ] J'ai Docker Desktop installé
-- [ ] J'ai créé le venv Python et installé les dépendances
-- [ ] J'ai installé les dépendances npm du frontend
+- [ x] J'ai Python 3.10+ installé
+- [ x] J'ai Node.js 18+ installé
+- [ x] J'ai Docker Desktop installé
+- [ x] J'ai créé le venv Python et installé les dépendances
+- [ x] J'ai installé les dépendances npm du frontend
 
 ### Démarrage
-- [ ] Redis démarre sans erreur
-- [ ] Backend API répond sur http://localhost:8000/health
-- [ ] Celery worker affiche "ready"
-- [ ] Frontend s'ouvre sur http://localhost:3000
+- [ x] Redis démarre sans erreur
+- [ x] Backend API répond sur http://localhost:8000/health
+- [ x] Celery worker affiche "ready"
+- [ x] Frontend s'ouvre sur http://localhost:3000
 
 ### Test
-- [ ] Je peux créer une note
-- [ ] Je vois le toast "Note saved! 🚀"
-- [ ] Je vois les logs AI dans Celery
-- [ ] Ma note apparaît dans "My Notes"
+- [ x] Je peux créer une note
+- [ x] Je vois le toast "Note saved! 🚀"
+- [x ] Je vois les logs AI dans Celery
+- [ x] Ma note apparaît dans "My Notes"
 
 ---
 

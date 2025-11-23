@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { TrendingUp, Users } from "lucide-react";
 import { ClusterData } from "@/app/dashboard/page";
 import { formatDistanceToNow } from "date-fns";
@@ -77,48 +78,51 @@ export function PriorityList({ clusters, isLoading }: PriorityListProps) {
 
       <div className="space-y-3">
         {topClusters.map((cluster, index) => (
-          <div
+          <Link
             key={cluster.id}
-            className="group relative rounded-lg border border-white/10 bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-4 hover:border-purple-500/50 transition-all cursor-pointer"
+            href={`/dashboard/cluster/${cluster.id}`}
+            className="block"
           >
-            {/* Rank Badge */}
-            <div className="absolute -top-2 -left-2 flex items-center justify-center w-6 h-6 rounded-full bg-purple-500 text-white text-xs font-bold">
-              {index + 1}
-            </div>
-
-            {/* Cluster Info */}
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-white line-clamp-2 pr-2">
-                {cluster.title}
-              </h3>
-
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-400">{cluster.pillar}</span>
-                <span className={`font-medium ${getImpactColor(cluster.impact_score)}`}>
-                  {getImpactLabel(cluster.impact_score)}
-                </span>
+            <div className="group relative rounded-lg border border-white/10 bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-4 hover:border-purple-500/50 transition-all cursor-pointer">
+              {/* Rank Badge */}
+              <div className="absolute -top-2 -left-2 flex items-center justify-center w-6 h-6 rounded-full bg-purple-500 text-white text-xs font-bold z-10">
+                {index + 1}
               </div>
 
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-1 text-gray-400">
-                  <Users className="w-3 h-3" />
-                  <span>{cluster.volume} notes</span>
+              {/* Cluster Info */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold text-white line-clamp-2 pr-2 group-hover:text-purple-300 transition-colors">
+                  {cluster.title}
+                </h3>
+
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-400">{cluster.pillar}</span>
+                  <span className={`font-medium ${getImpactColor(cluster.impact_score)}`}>
+                    {getImpactLabel(cluster.impact_score)}
+                  </span>
                 </div>
-                <div className={`font-bold ${getImpactColor(cluster.impact_score)}`}>
-                  {cluster.impact_score}/10
+
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1 text-gray-400">
+                    <Users className="w-3 h-3" />
+                    <span>{cluster.volume} notes</span>
+                  </div>
+                  <div className={`font-bold ${getImpactColor(cluster.impact_score)}`}>
+                    {cluster.impact_score}/10
+                  </div>
                 </div>
+
+                {cluster.last_updated && (
+                  <div className="text-xs text-gray-500">
+                    Updated {formatDistanceToNow(new Date(cluster.last_updated))} ago
+                  </div>
+                )}
               </div>
 
-              {cluster.last_updated && (
-                <div className="text-xs text-gray-500">
-                  Updated {formatDistanceToNow(new Date(cluster.last_updated))} ago
-                </div>
-              )}
+              {/* Hover Effect */}
+              <div className="absolute inset-0 rounded-lg bg-purple-500/0 group-hover:bg-purple-500/5 transition-all pointer-events-none" />
             </div>
-
-            {/* Hover Effect */}
-            <div className="absolute inset-0 rounded-lg bg-purple-500/0 group-hover:bg-purple-500/5 transition-all pointer-events-none" />
-          </div>
+          </Link>
         ))}
       </div>
 

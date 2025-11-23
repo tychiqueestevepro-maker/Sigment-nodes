@@ -177,8 +177,8 @@ database/
 
 | Service | Status | Commande de Test |
 |---------|--------|------------------|
-| **Supabase** | ⚠️ À configurer | Créer projet + appliquer schema.sql |
-| **OpenAI** | ⚠️ À configurer | Obtenir API key |
+| **Supabase** | 🟢 Prêt | Créer projet + appliquer schema.sql |
+| **OpenAI** | 🟢 Prêt | Obtenir API key |
 | **Redis** | 🟢 Prêt | `docker-compose up` |
 | **Backend** | 🟢 Prêt | `uvicorn main:app --reload` |
 | **Celery** | 🟢 Prêt | `celery -A app.workers.celery_app worker` |
@@ -190,23 +190,23 @@ database/
 
 ### Configuration Requise
 
-- [ ] **Supabase** : Projet créé sur https://app.supabase.com
-- [ ] **Supabase** : Extension pgvector activée
-- [ ] **Supabase** : Schema SQL appliqué (`database/schema.sql`)
-- [ ] **OpenAI** : API key obtenue sur https://platform.openai.com
-- [ ] **Fichier .env** : Toutes les variables remplies
-- [ ] **Docker** : Docker Desktop installé et en cours d'exécution
+- [x ] **Supabase** : Projet créé sur https://app.supabase.com
+- [x ] **Supabase** : Extension pgvector activée
+- [ x] **Supabase** : Schema SQL appliqué (`database/schema.sql`)
+- [ x] **OpenAI** : API key obtenue sur https://platform.openai.com
+- [ x] **Fichier .env** : Toutes les variables remplies
+- [ x] **Docker** : Docker Desktop installé et en cours d'exécution
 
 ### Installation Backend
 
-- [ ] Python 3.10+ installé
-- [ ] Virtual environment créé (`python -m venv venv`)
-- [ ] Dépendances installées (`pip install -r requirements.txt`)
+- [ x] Python 3.10+ installé
+- [ x] Virtual environment créé (`python -m venv venv`)
+- [ x] Dépendances installées (`pip install -r requirements.txt`)
 
 ### Installation Frontend
 
-- [ ] Node.js 18+ installé
-- [ ] Dépendances installées (`npm install`)
+- [ x] Node.js 18+ installé
+- [ x] Dépendances installées (`npm install`)
 
 ---
 

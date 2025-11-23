@@ -174,15 +174,15 @@ npm run dev
 
 Avant de continuer, vérifiez que tout fonctionne :
 
-- [ ] `.env` rempli avec toutes les clés
-- [ ] Supabase database contient les tables
-- [ ] `docker ps` montre Redis en cours d'exécution
-- [ ] Backend répond sur http://localhost:8000/health
-- [ ] Celery worker affiche "ready"
-- [ ] Frontend affiche la page sur http://localhost:3000
-- [ ] Création d'une note fonctionne
-- [ ] Logs Celery montrent le traitement AI
-- [ ] Note apparaît dans "My Notes" avec statut "synced"
+- [x ] `.env` rempli avec toutes les clés
+- [x ] Supabase database contient les tables
+- [x ] `docker ps` montre Redis en cours d'exécution
+- [x ] Backend répond sur http://localhost:8000/health
+- [x ] Celery worker affiche "ready"
+- [ x] Frontend affiche la page sur http://localhost:3000
+- [x ] Création d'une note fonctionne
+- [ x] Logs Celery montrent le traitement AI
+- [ x] Note apparaît dans "My Notes" avec statut "synced"
 
 ---
 
@@ -238,8 +238,8 @@ Une fois que tout fonctionne, vous pouvez développer :
 **Fichier** : `frontend/app/dashboard/page.tsx`
 
 Créer :
-- [ ] Vue Galaxy (bulles de clusters)
-- [ ] Filtres par Pillar
+- [ x] Vue Galaxy (bulles de clusters)
+- [ x] Filtres par Pillar
 - [ ] Détail d'un cluster au clic
 - [ ] Time-lapse slider
 
@@ -304,9 +304,9 @@ Créer :
 ## 🎯 Objectifs Cette Semaine
 
 ### Jour 1-2 : Setup & Test
-- [ ] Configurer tous les services
-- [ ] Tester le flow complet
-- [ ] Créer 10-20 notes de test
+- [ x] Configurer tous les services
+- [x ] Tester le flow complet
+- [ x] Créer 10-20 notes de test
 
 ### Jour 3-4 : Dashboard
 - [ ] Créer la page dashboard
