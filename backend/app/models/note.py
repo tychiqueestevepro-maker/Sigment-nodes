@@ -44,3 +44,13 @@ class UserContext(BaseModel):
     department: str
     seniority_level: int
 
+
+class NoteEvent(BaseModel):
+    """Note event model for timeline"""
+    id: UUID
+    note_id: UUID
+    event_type: str
+    title: str
+    description: Optional[str] = None
+    created_at: datetime
+

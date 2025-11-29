@@ -18,7 +18,7 @@ import {
     CheckCircle,
     XCircle
 } from 'lucide-react';
-import { api } from '@/lib/api';
+import { api, apiClient } from '@/lib/api';
 
 // Helper function to get color for pillar category
 function getColorForCategory(category: string): string {
@@ -54,14 +54,18 @@ function formatDate(dateString: string): string {
         const date = new Date(dateString);
         if (isNaN(date.getTime())) return 'Invalid Date';
 
-        const now = new Date();
-        const diffMs = now.getTime() - date.getTime();
-        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-        if (diffDays === 0) return 'Today';
-        if (diffDays === 1) return 'Yesterday';
-        if (diffDays < 7) return `${diffDays} days ago`;
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        // Format: DD MMM YYYY, HH:mm
+        const dateStr = date.toLocaleDateString('en-US', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        });
+        const timeStr = date.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+        return `${dateStr}, ${timeStr}`;
     } catch (e) {
         return 'Date error';
     }
@@ -69,65 +73,43 @@ function formatDate(dateString: string): string {
 
 export default function TrackPage() {
     const [selectedNote, setSelectedNote] = useState<any>(null);
+    const [userId, setUserId] = useState<string | null>(null);
 
-    // Get user ID from localStorage
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('sigment_user_id') : null;
+    // Get user ID from localStorage on client side only
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const storedUserId = localStorage.getItem('sigment_user_id');
+            setUserId(storedUserId);
+        }
+    }, []);
 
     // Fetch user's notes from API
     const { data: notesList = [], isLoading, error, refetch } = useQuery<any[]>({
-        queryKey: ['user-notes', userId],
+        queryKey: ['all-notes'],
         queryFn: async () => {
-            if (!userId) {
-                return [];
-            }
-            const url = `${api.baseURL}/notes/user/${userId}`;
-            if (!userId) return [];
-            const response = await fetch(`${api.baseURL}/notes/user/${userId}`);
-            if (!response.ok) throw new Error('Failed to fetch user notes');
+            const response = await fetch(`${api.baseURL}/notes/all`);
+            if (!response.ok) throw new Error('Failed to fetch notes');
             const data = await response.json();
 
-            // Transform raw Supabase data into display format
-            return data.map((note: any) => {
-                // Use content_clarified as title, fallback to content_raw excerpt
-                const title = note.content_clarified ||
-                    (note.content_raw ? note.content_raw.substring(0, 50) + "..." : "Untitled Note");
-
-                // Extract category from clusters.pillars.name if available
-                const category = note.clusters?.pillars?.name || "PENDING";
-
-                // Use created_at for date
-                const date = note.created_at ? formatDate(note.created_at) : "Date unknown";
-
-                // Map status to display format
-                const statusMap: Record<string, string> = {
-                    'draft': 'Draft',
-                    'processing': 'Processing',
-                    'processed': 'Processed',
-                    'review': 'In Review',
-                    'approved': 'Approved',
-                    'refused': 'Refused'
-                };
-                const statusDisplay = statusMap[note.status] || note.status;
-
-                return {
-                    id: note.id,
-                    title: title,
-                    content: note.content_raw || "",
-                    category: category,
-                    color: getColorForCategory(category),
-                    status: statusDisplay,
-                    status_raw: note.status,
-                    date: date,
-                    created_at: note.created_at,
-                    processed_date: note.processed_at,
-                    relevance_score: note.ai_relevance_score || 0,
-                    cluster_id: note.cluster_id,
-                    cluster_title: note.clusters?.title || null,
-                    statusConfig: getStatusConfig(statusDisplay),
-                };
-            });
+            // Backend already provides correctly formatted data, just add color and statusConfig
+            // AND format the date for display
+            return data.map((note: any) => ({
+                ...note,
+                date: formatDate(note.date), // Format the date here
+                color: getColorForCategory(note.category),
+                statusConfig: getStatusConfig(note.status),
+            }));
         },
-        enabled: !!userId,
+    });
+
+    // Fetch timeline events for selected note
+    const { data: timelineEvents = [] } = useQuery<any[]>({
+        queryKey: ['note-timeline', selectedNote?.id],
+        queryFn: async () => {
+            if (!selectedNote?.id) return [];
+            return apiClient.getNoteTimeline(selectedNote.id);
+        },
+        enabled: !!selectedNote?.id,
     });
 
     // Compute note data from selected note (real data)
@@ -139,12 +121,58 @@ export default function TrackPage() {
         const relevanceScore = selectedNote.relevance_score || 0;
         const createdDate = formatDate(selectedNote.date);
         const processedDate = selectedNote.processed_date ? formatDate(selectedNote.processed_date) : "Pending";
+        // Fusion only if 2 or more notes are in the cluster
+        const hasFusion = selectedNote.cluster_note_count >= 2;
 
         // Determine current stage based on status
         let currentStageId = 'submission';
-        if (selectedNote.status_raw === 'processing' || selectedNote.status_raw === 'processed') currentStageId = 'fusion';
-        if (selectedNote.status_raw === 'review' || selectedNote.status_raw === 'approved' || selectedNote.status_raw === 'refused') currentStageId = 'validation';
-        if (selectedNote.status_raw === 'approved') currentStageId = 'deployment';
+        if (hasFusion && (selectedNote.status_raw === 'processing' || selectedNote.status_raw === 'processed')) {
+            currentStageId = 'fusion';
+        }
+        if (selectedNote.status_raw === 'review' || selectedNote.status_raw === 'approved' || selectedNote.status_raw === 'refused') {
+            currentStageId = 'validation';
+        }
+        if (selectedNote.status_raw === 'approved') {
+            currentStageId = 'deployment';
+        }
+
+        // Validation Board label changes based on status
+        const validationLabel = selectedNote.status_raw === 'refused' ? 'Idea Closed' : 'Validation Board';
+        const validationDate = ['review', 'approved', 'refused'].includes(selectedNote.status_raw)
+            ? (selectedNote.status_raw === 'refused' ? 'Closed' : 'In Progress')
+            : 'Pending';
+
+        // Build stages array - conditionally include Fusion only if 2+ notes are fused
+        const allStages = [
+            {
+                id: 'submission',
+                label: 'Submission',
+                date: createdDate,
+                status: 'completed',
+                icon: FileText
+            },
+            ...(hasFusion ? [{
+                id: 'fusion',
+                label: 'Fusion',
+                date: selectedNote.processed_date ? processedDate : 'Pending',
+                status: ['processing', 'processed', 'review', 'approved', 'refused'].includes(selectedNote.status_raw) ? 'completed' : 'pending',
+                icon: Users
+            }] : []),
+            {
+                id: 'validation',
+                label: validationLabel,
+                date: validationDate,
+                status: ['review', 'approved', 'refused'].includes(selectedNote.status_raw) ? 'current' : 'pending',
+                icon: CheckCircle2
+            },
+            {
+                id: 'deployment',
+                label: 'Implementation',
+                date: 'Future',
+                status: selectedNote.status_raw === 'approved' ? 'pending' : 'locked',
+                icon: ArrowUpRight
+            },
+        ];
 
         return {
             title: selectedNote.title,
@@ -156,15 +184,10 @@ export default function TrackPage() {
             status: selectedNote.status,
             status_raw: selectedNote.status_raw,
             cluster_title: selectedNote.cluster_title,
+            cluster_id: selectedNote.cluster_id,
+            cluster_note_count: selectedNote.cluster_note_count || 0,
             statusConfig: getStatusConfig(selectedNote.status),
-
-            // Stages configuration
-            stages: [
-                { id: 'submission', label: 'Submission', date: createdDate, status: 'completed', icon: FileText },
-                { id: 'fusion', label: 'Fusion', date: selectedNote.processed_date ? processedDate : 'Pending', status: ['processing', 'processed', 'review', 'approved', 'refused'].includes(selectedNote.status_raw) ? 'completed' : 'pending', icon: Users },
-                { id: 'validation', label: 'Validation Board', date: ['review', 'approved', 'refused'].includes(selectedNote.status_raw) ? 'In Progress' : 'Pending', status: ['review', 'approved', 'refused'].includes(selectedNote.status_raw) ? 'current' : 'pending', icon: CheckCircle2 },
-                { id: 'deployment', label: 'Implementation', date: 'Future', status: selectedNote.status_raw === 'approved' ? 'pending' : 'locked', icon: ArrowUpRight }, // Changed Rocket to ArrowUpRight as Rocket might not be imported
-            ],
+            stages: allStages,
 
             // Mocked data for UI demonstration (derived from real context where possible)
             fusion: [
@@ -189,8 +212,9 @@ export default function TrackPage() {
     // Update active stage when note changes
     useEffect(() => {
         if (noteData) {
-            if (noteData.status_raw === 'review') setActiveStage('validation');
-            else if (noteData.status_raw === 'processed') setActiveStage('fusion');
+            const hasFusion = noteData.cluster_note_count >= 2;
+            if (noteData.status_raw === 'review' || noteData.status_raw === 'refused') setActiveStage('validation');
+            else if (hasFusion && noteData.status_raw === 'processed') setActiveStage('fusion');
             else setActiveStage('submission');
         }
     }, [noteData]);
@@ -218,8 +242,11 @@ export default function TrackPage() {
                         <p className="text-gray-500">Notes you submit will appear here for tracking.</p>
                     </div>
                 ) : (
-                    <div className="grid gap-4">
+                    <div className="grid gap-4 max-h-[calc(100vh-140px)] overflow-y-auto pr-2 pb-8">
                         {notesList.map(note => {
+                            // Use cluster title if available (it's usually cleaner), otherwise note title
+                            const displayTitle = note.cluster_title || note.title;
+
                             return (
                                 <div key={note.id} onClick={() => setSelectedNote(note)} className="p-6 rounded-2xl border border-gray-100 hover:border-black hover:shadow-md cursor-pointer transition-all bg-gray-50 hover:bg-white group">
                                     <div className="flex justify-between items-center">
@@ -227,7 +254,7 @@ export default function TrackPage() {
                                             <div className="flex items-center gap-2 mb-2">
                                                 <span className={`text-xs font-bold px-2 py-1 rounded-full ${note.color}`}>{note.category}</span>
                                             </div>
-                                            <h3 className="text-xl font-bold text-gray-900">{note.title}</h3>
+                                            <h3 className="text-xl font-bold text-gray-900 leading-tight">{displayTitle}</h3>
                                             <p className="text-sm text-gray-500 mt-1">{note.date}</p>
                                         </div>
                                         <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-gray-200 group-hover:bg-black group-hover:text-white transition-colors">
@@ -266,36 +293,59 @@ export default function TrackPage() {
             case 'fusion':
                 return (
                     <div className="animate-in slide-in-from-bottom-4 duration-300">
-                        <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm space-y-8">
-                            <div className="flex items-center justify-between mb-2">
-                                <h3 className="text-lg font-bold text-gray-900">Fusion Points</h3>
-                                <span className="bg-black text-white text-xs font-bold px-2.5 py-1 rounded-full">{noteData.fusion.length} steps</span>
-                            </div>
-                            <p className="text-gray-500 text-sm mb-6">Timeline of AI processing and data integration.</p>
+                        {/* Fusion Details Section */}
+                        {noteData.cluster_id ? (
+                            <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+                                <div className="flex items-center justify-between mb-2">
+                                    <h3 className="text-lg font-bold text-gray-900">Fusion Details</h3>
+                                    <span className="bg-blue-600 text-white text-xs font-bold px-2.5 py-1 rounded-full">
+                                        Clustered
+                                    </span>
+                                </div>
+                                <p className="text-gray-500 text-sm mb-6">
+                                    Your idea's evolution within its strategic cluster.
+                                </p>
 
-                            <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:h-full before:w-0.5 before:bg-gray-200 before:translate-x-[0.5px]">
-                                {noteData.fusion.map((item, idx) => (
-                                    <div key={item.id} className="relative flex gap-4 items-start group">
-                                        {/* Timeline dot */}
-                                        <div className="absolute top-0 left-2 -ml-[9px] h-4 w-4 rounded-full border-2 border-white bg-gray-400 shadow-sm z-10 group-hover:bg-blue-500 transition-colors"></div>
-
-                                        <div className="pl-6 flex-1">
-                                            <div className="flex items-center justify-between mb-1">
-                                                <h4 className="text-base font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{item.title}</h4>
-                                                <span className="text-xs text-gray-400 font-medium flex items-center gap-1"><Clock size={12} /> {item.time}</span>
-                                            </div>
-                                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">{item.date}</span>
-                                            <p className="text-sm text-gray-600 leading-relaxed p-3 bg-gray-50 rounded-lg border border-gray-100 group-hover:border-blue-100 transition-colors">
-                                                {item.desc}
-                                            </p>
+                                {noteData.cluster_title && (
+                                    <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <Users size={16} className="text-blue-600" />
+                                            <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">Cluster</span>
                                         </div>
+                                        <h4 className="text-base font-bold text-gray-900">{noteData.cluster_title}</h4>
+                                        <p className="text-sm text-gray-600 mt-1">
+                                            Relevance Score: {noteData.relevance}%
+                                        </p>
                                     </div>
-                                ))}
+                                )}
                             </div>
-                        </div>
+                        ) : (
+                            <div className="bg-gray-50 rounded-2xl border border-dashed border-gray-300 p-12 flex flex-col items-center justify-center text-center">
+                                <div className="p-4 bg-white rounded-full shadow-sm mb-4">
+                                    <Users size={32} className="text-gray-400" />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-900 mb-2">No Cluster Yet</h3>
+                                <p className="text-gray-500 max-w-md">
+                                    This idea hasn't been grouped with similar ideas yet. Clustering happens during AI processing.
+                                </p>
+                            </div>
+                        )}
                     </div>
                 );
             case 'validation':
+                // Format latest event time
+                const latestEvent = timelineEvents && timelineEvents.length > 0
+                    ? timelineEvents[timelineEvents.length - 1]
+                    : null;
+                const lastUpdated = latestEvent
+                    ? new Date(latestEvent.created_at).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    })
+                    : 'Unknown';
+
                 return (
                     <div className="animate-in slide-in-from-bottom-4 duration-300 space-y-6">
                         <div className="bg-white rounded-2xl border border-gray-200 p-0 shadow-sm overflow-hidden">
@@ -305,50 +355,62 @@ export default function TrackPage() {
                                 </div>
                                 <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full px-3 py-1">
                                     <span className="text-xs font-medium text-gray-500">Last Updated:</span>
-                                    <span className="text-sm font-bold text-black">{noteData.validation[0].date}</span>
+                                    <span className="text-sm font-bold text-black">{lastUpdated}</span>
                                 </div>
                             </div>
 
-                            <div className="p-6 space-y-8">
-                                {noteData.validation.map((version, i) => (
-                                    <div key={version.id} className="relative pl-8 border-l-2 border-gray-100 space-y-2">
-                                        {/* Version Indicator */}
-                                        <div className="absolute top-0 -left-[9px] h-4 w-4 rounded-full bg-white border-4 border-gray-200 z-10">
-                                            {i === 0 && <div className="absolute inset-0 m-auto h-2 w-2 rounded-full bg-blue-500 animate-pulse"></div>}
-                                        </div>
-
-                                        <div className="flex items-start justify-between">
-                                            <div>
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <h4 className="text-xl font-extrabold text-gray-900">{version.title}</h4>
-                                                    <span className="px-2 py-0.5 text-[10px] font-bold text-gray-500 bg-gray-100 rounded-full border border-gray-200">{version.id}</span>
-                                                </div>
-                                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{version.date} • {version.status}</span>
-                                            </div>
-                                            <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full border ${version.impact === 'High Impact' ? 'text-green-600 bg-green-50 border-green-200' : 'text-orange-600 bg-orange-50 border-orange-200'}`}>
-                                                {version.impact}
-                                            </span>
-                                        </div>
-
-                                        <p className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                            {version.description}
-                                        </p>
-
-                                        <div className="pl-4 pt-2">
-                                            <h5 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
-                                                <CheckCircle size={14} /> Key Status Points
-                                            </h5>
-                                            <ul className="space-y-1.5">
-                                                {version.changes.map((change, j) => (
-                                                    <li key={j} className="text-sm text-gray-600 flex items-start gap-2">
-                                                        <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-gray-400 shrink-0"></div>
-                                                        <span>{change}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
+                            <div className="p-6">
+                                <div className="mb-4">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <h3 className="text-xl font-extrabold text-gray-900">Current Review Status</h3>
+                                        <span className={`text-xs font-bold uppercase px-2 py-1 rounded-full border ${noteData.status_raw === 'refused'
+                                            ? 'text-red-600 bg-red-50 border-red-200'
+                                            : noteData.status_raw === 'approved'
+                                                ? 'text-green-600 bg-green-50 border-green-200'
+                                                : 'text-orange-600 bg-orange-50 border-orange-200'
+                                            }`}>
+                                            {noteData.status_raw === 'refused' ? 'Refused' : noteData.status_raw === 'approved' ? 'Approved' : 'In Review'}
+                                        </span>
                                     </div>
-                                ))}
+                                    <p className="text-sm text-gray-700 leading-relaxed">
+                                        {noteData.status_raw === 'refused'
+                                            ? 'This idea was not selected for implementation at this time.'
+                                            : noteData.status_raw === 'approved'
+                                                ? 'Your idea has been approved and is moving forward!'
+                                                : 'The note is currently being reviewed by the executive team.'}
+                                    </p>
+                                </div>
+
+                                <div className="mt-6">
+                                    <h5 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-1">
+                                        <CheckCircle size={14} /> Key Status Points
+                                    </h5>
+                                    <ul className="space-y-2">
+                                        {timelineEvents.slice().reverse().map((event: any, idx: number) => {
+                                            const eventTime = new Date(event.created_at).toLocaleDateString('en-US', {
+                                                month: 'short',
+                                                day: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            });
+
+                                            return (
+                                                <li key={event.id} className="text-sm text-gray-600 flex items-start gap-2 border-l-2 border-gray-200 pl-4 py-2">
+                                                    <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-blue-500 shrink-0"></div>
+                                                    <div className="flex-1">
+                                                        <div className="flex items-baseline justify-between gap-2">
+                                                            <span className="font-medium text-gray-900">{event.title}</span>
+                                                            <span className="text-xs text-gray-400 whitespace-nowrap">{eventTime}</span>
+                                                        </div>
+                                                        {event.description && (
+                                                            <p className="text-xs text-gray-500 mt-0.5">{event.description}</p>
+                                                        )}
+                                                    </div>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -374,9 +436,11 @@ export default function TrackPage() {
                     <div>
                         <div className="flex items-center gap-3 mb-2">
                             <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-600 text-xs font-bold tracking-wider uppercase">{noteData.category}</span>
-                            <span className="flex items-center gap-1 text-blue-600 text-xs font-bold bg-blue-50 px-2 py-1 rounded-full"><Target size={12} /> Tracking Mode</span>
+                            <span className="text-xs font-bold text-blue-600 uppercase tracking-wider bg-blue-50 px-2 py-1 rounded">Tracking Mode</span>
                         </div>
-                        <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight mb-2">{noteData.title}</h1>
+                        <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight mb-2 leading-tight">
+                            {noteData.cluster_title || noteData.title}
+                        </h1>
                         <p className="text-lg text-gray-500 max-w-2xl">Project Lifecycle & Status</p>
                     </div>
                     <div className="flex gap-2">
@@ -398,19 +462,36 @@ export default function TrackPage() {
                                 const isCurrent = stage.status === 'current';
                                 const Icon = stage.icon;
 
+                                // Determine color based on status for Validation/Idea Closed stage
+                                let stageColor = 'bg-gray-100 text-gray-400';
+                                if (stage.id === 'validation') {
+                                    if (noteData.status_raw === 'approved' || noteData.status_raw === 'validated') {
+                                        stageColor = 'bg-green-500 text-white';
+                                    } else if (noteData.status_raw === 'refused') {
+                                        stageColor = 'bg-red-500 text-white';
+                                    } else if (noteData.status_raw === 'archived') {
+                                        stageColor = 'bg-gray-400 text-white';
+                                    } else if (isCurrent) {
+                                        stageColor = 'bg-black text-white';
+                                    }
+                                } else if (isActive || isCurrent) {
+                                    stageColor = 'bg-black text-white';
+                                } else if (isCompleted) {
+                                    stageColor = 'bg-green-500 text-white';
+                                }
+
                                 return (
                                     <div
                                         key={stage.id}
                                         onClick={() => setActiveStage(stage.id)}
                                         className={`relative pl-6 cursor-pointer transition-all duration-300 group ${isActive ? 'scale-105' : 'opacity-70 hover:opacity-100'}`}
                                     >
-                                        <div className={`absolute -left-[21px] top-0 w-10 h-10 rounded-full border-4 border-white shadow-sm flex items-center justify-center transition-colors ${isActive || isCurrent ? 'bg-black text-white' : isCompleted ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                                        <div className={`absolute -left-[21px] top-0 w-10 h-10 rounded-full border-4 border-white shadow-sm flex items-center justify-center transition-colors ${stageColor}`}>
                                             <Icon size={16} />
                                         </div>
                                         <div>
                                             <span className={`text-xs font-bold uppercase tracking-wider mb-1 block ${isActive ? 'text-blue-600' : 'text-gray-400'}`}>{stage.date}</span>
                                             <h3 className={`text-lg font-bold ${isActive ? 'text-black' : 'text-gray-600'}`}>{stage.label}</h3>
-                                            {isCurrent && <div className="mt-2 inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 text-[10px] font-bold rounded uppercase tracking-wide animate-pulse">Current Step</div>}
                                         </div>
                                     </div>
                                 );

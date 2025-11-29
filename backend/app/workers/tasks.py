@@ -8,6 +8,7 @@ from loguru import logger
 from app.workers.celery_app import celery_app
 from app.services.supabase_client import supabase
 from app.services.ai_service import ai_service
+from app.services.event_logger import log_note_event
 from app.models.note import UserContext
 
 
@@ -47,6 +48,14 @@ def process_note_task(self, note_id: str):
         # Update status to processing
         supabase.table("notes").update({"status": "processing"}).eq("id", note_id).execute()
         
+        # Log submission event
+        log_note_event(
+            note_id=note_id,
+            event_type="submission",
+            title="Note Submitted",
+            description="Your idea has been received and is being processed by our AI system"
+        )
+        
         # ============================================
         # STEP 2: Get Available Pillars
         # ============================================
@@ -66,6 +75,14 @@ def process_note_task(self, note_id: str):
         pillar = next((p for p in available_pillars if p["name"] == analysis["pillar_name"]), None)
         if not pillar:
             raise ValueError(f"Pillar not found: {analysis['pillar_name']}")
+        
+        # Log AI analysis completion
+        log_note_event(
+            note_id=note_id,
+            event_type="ai_analysis",
+            title="AI Analysis Complete",
+            description=f"Relevance Score: {analysis['relevance_score']}/10 | Category: {analysis['pillar_name']}"
+        )
         
         # ============================================
         # STEP 4: Generate Embedding
@@ -94,6 +111,18 @@ def process_note_task(self, note_id: str):
             "status": "processed",
             "processed_at": "now()"
         }).eq("id", note_id).execute()
+        
+        # Log cluster fusion event
+        # Get cluster title for the event description
+        cluster_response = supabase.table("clusters").select("title").eq("id", cluster_id).single().execute()
+        cluster_title = cluster_response.data.get("title", "Unknown Cluster") if cluster_response.data else "Unknown Cluster"
+        
+        log_note_event(
+            note_id=note_id,
+            event_type="fusion",
+            title="Cluster Assignment",
+            description=f"Your idea has been grouped with similar ideas: '{cluster_title}'"
+        )
         
         logger.info(f"✅ Note {note_id} processed successfully")
         

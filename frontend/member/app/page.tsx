@@ -60,6 +60,19 @@ interface GalaxyFolder {
 export default function MemberHomePage() {
     const [noteContent, setNoteContent] = useState('');
 
+    // Initialize userId in localStorage if not present
+    React.useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const existingUserId = localStorage.getItem('sigment_user_id');
+            if (!existingUserId) {
+                // Use 'all' to fetch all notes (no user system yet)
+                const defaultUserId = 'all';
+                localStorage.setItem('sigment_user_id', defaultUserId);
+                console.log('✅ User ID initialized to fetch all notes');
+            }
+        }
+    }, []);
+
     // Fetch galaxy data (ideas from all pillars)
     const { data: clusters = [], isLoading } = useQuery({
         queryKey: ['galaxy'],
