@@ -2,15 +2,15 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
-import { Navigation } from '@/components/Navigation'
+import { Sidebar } from '@/components/shared/Sidebar'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'SIGMENT - AI Smart Notes',
-  description: 'Fire & Forget Idea Capture for Strategic Decision Making',
+  title: 'SIGMENT - Strategic Idea Management',
+  description: 'Board View - Consult and manage strategic ideas organized by pillars',
   manifest: '/manifest.json',
-  themeColor: '#3b82f6',
+  themeColor: '#000000',
 }
 
 export default function RootLayout({
@@ -22,13 +22,14 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <Providers>
-          <Navigation />
-          <div className="pt-16">
-            {children}
+          <div className="flex h-screen w-full bg-white font-sans text-gray-900 overflow-hidden">
+            <Sidebar />
+            <main className="flex-1 bg-white h-full relative flex flex-col overflow-hidden">
+              {children}
+            </main>
           </div>
         </Providers>
       </body>
     </html>
   )
 }
-

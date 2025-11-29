@@ -240,8 +240,8 @@ Une fois que tout fonctionne, vous pouvez développer :
 Créer :
 - [ x] Vue Galaxy (bulles de clusters)
 - [ x] Filtres par Pillar
-- [ ] Détail d'un cluster au clic
-- [ ] Time-lapse slider
+- [ x] Détail d'un cluster au clic
+- [ x] Time-lapse slider
 
 **Composants** :
 - `components/GalaxyView.tsx`
@@ -309,9 +309,9 @@ Créer :
 - [ x] Créer 10-20 notes de test
 
 ### Jour 3-4 : Dashboard
-- [ ] Créer la page dashboard
-- [ ] Afficher les clusters
-- [ ] Ajouter les filtres
+- [ x] Créer la page dashboard
+- [ x] Afficher les clusters
+- [x ] Ajouter les filtres
 
 ### Jour 5 : Polish & Deploy
 - [ ] Corriger les bugs

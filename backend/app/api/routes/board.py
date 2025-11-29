@@ -69,6 +69,9 @@ async def get_galaxy_view(
             
             pillar_info = cluster.get("pillars", {})
             
+            # Extract note IDs for moderation actions
+            note_ids = [note.get("id") for note in notes if note.get("id")]
+            
             galaxy_item = {
                 "id": cluster["id"],
                 "title": cluster.get("title", "Untitled Cluster"),
@@ -77,6 +80,7 @@ async def get_galaxy_view(
                 "impact_score": round(avg_score, 2),
                 "volume": len(notes),
                 "last_updated": cluster.get("last_updated_at"),
+                "note_ids": note_ids,  # Add note IDs for moderation
             }
             
             galaxy_data.append(galaxy_item)
@@ -226,5 +230,66 @@ async def get_cluster_history(cluster_id: str):
         
     except Exception as e:
         logger.error(f"❌ Error fetching cluster history: {e}")
+        raise
+
+
+@router.get("/review-notes")
+async def get_review_notes():
+    """
+    Get all notes with 'review' status for the Review Queue page.
+    
+    Returns notes that have been marked for review by executives.
+    """
+    try:
+        supabase = get_supabase()
+        
+        # Query notes with review status, including cluster info
+        response = supabase.table("notes").select(
+            """
+            id,
+            content_raw,
+            content_clarified,
+            created_at,
+            processed_at,
+            ai_relevance_score,
+            cluster_id,
+            user_id,
+            clusters(id, title, pillar_id, pillars(id, name))
+            """
+        ).eq("status", "review").order("created_at", desc=True).execute()
+        
+        if not response.data:
+            return []
+        
+        # Transform data for frontend
+        review_notes = []
+        for note in response.data:
+            cluster_info = note.get("clusters", {})
+            pillar_info = cluster_info.get("pillars", {}) if cluster_info else {}
+            
+            # Truncate title if needed
+            raw_content = note.get("content_raw", "")
+            clarified = note.get("content_clarified", "")
+            title = clarified if clarified else (raw_content[:100] + "..." if len(raw_content) > 100 else raw_content)
+            
+            review_notes.append({
+                "id": note["id"],
+                "title": title,
+                "content": raw_content,
+                "category": pillar_info.get("name", "UNCATEGORIZED") if pillar_info else "UNCATEGORIZED",
+                "status": "Ready",
+                "author": "User",  # We'll enhance this later with proper user data
+                "date": note.get("created_at", ""),
+                "relevance_score": note.get("ai_relevance_score", 0),
+                "cluster_id": note.get("cluster_id"),
+                "cluster_title": cluster_info.get("title") if cluster_info else None,
+            })
+        
+        logger.info(f"✅ Retrieved {len(review_notes)} notes for review")
+        
+        return review_notes
+        
+    except Exception as e:
+        logger.error(f"❌ Error fetching review notes: {e}")
         raise
 
