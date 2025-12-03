@@ -4,7 +4,7 @@ from typing import Literal
 from datetime import datetime, timedelta
 import secrets
 import uuid
-from app.services.supabase_client import supabase
+from app.services.supabase_client import get_fresh_supabase_client
 
 router = APIRouter()
 
@@ -23,6 +23,8 @@ class InvitationResponse(BaseModel):
 async def create_invitations(
     request: InvitationRequest,
 ):
+    supabase = get_fresh_supabase_client()
+    
     # 1. Verify requester is OWNER or BOARD in this organization
     try:
         # Check membership in the specific organization
@@ -157,6 +159,7 @@ async def create_invitations(
 
 @router.get("/invitations")
 async def get_invitations(organization_id: str):
+    supabase = get_fresh_supabase_client()
     try:
         # Verify permissions (optional but recommended, for now just fetch)
         # In a real app, we should check if the requester is a member of the org
@@ -194,11 +197,67 @@ async def get_invitations(organization_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Helper for robust ISO parsing
+def parse_iso_datetime(date_str: str) -> datetime:
+    """
+    Parse ISO 8601 string robustly, handling variable microsecond precision
+    and 'Z' timezone suffix.
+    """
+    try:
+        # Try standard parsing first (works for 0, 3, 6 digit microseconds in Python < 3.11)
+        return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+    except ValueError:
+        try:
+            # Handle cases like 5-digit microseconds which Python < 3.11 dislikes
+            # Example: 2025-12-03T19:15:03.01738+00:00
+            
+            # Normalize 'Z' to '+00:00'
+            s = date_str.replace('Z', '+00:00')
+            
+            # Find timezone part
+            if '+' in s:
+                dt_part, tz_part = s.rsplit('+', 1)
+                sign = '+'
+            elif '-' in s[-6:]: # Simple check for -HH:MM
+                dt_part, tz_part = s.rsplit('-', 1)
+                sign = '-'
+            else:
+                dt_part = s
+                tz_part = None
+                sign = ''
+                
+            # Fix microseconds
+            if '.' in dt_part:
+                main_dt, us = dt_part.split('.')
+                # Pad to 6 digits or truncate
+                us = (us + '000000')[:6]
+                dt_part = f"{main_dt}.{us}"
+            
+            # Reassemble
+            if tz_part:
+                final_str = f"{dt_part}{sign}{tz_part}"
+            else:
+                final_str = dt_part
+                
+            return datetime.fromisoformat(final_str)
+        except Exception as e:
+            print(f"Failed to parse date {date_str}: {e}")
+            # Fallback: Strip time and use today? No, that's dangerous for expiry.
+            # Fallback: Strip microseconds completely
+            try:
+                simple_str = date_str.split('.')[0]
+                if '+' in date_str:
+                     simple_str += '+' + date_str.split('+')[-1]
+                return datetime.fromisoformat(simple_str)
+            except:
+                raise ValueError(f"Could not parse date: {date_str}")
+
 @router.get("/invitations/{token}")
 async def validate_invitation(token: str):
     """
     Validate invitation token and return details
     """
+    supabase = get_fresh_supabase_client()
     try:
         # 1. Get invitation (use execute() instead of single() to avoid crash on empty)
         response = supabase.table("invitations").select("*").eq("token", token).execute()
@@ -209,9 +268,7 @@ async def validate_invitation(token: str):
         invitation = response.data[0]
         
         # 2. Check expiry
-        # Handle 'Z' which might not be supported in older python fromisoformat
-        expires_at_str = invitation["expires_at"].replace('Z', '+00:00')
-        expires_at = datetime.fromisoformat(expires_at_str)
+        expires_at = parse_iso_datetime(invitation["expires_at"])
         
         # Ensure we compare timezone-aware with timezone-aware, or naive with naive
         now = datetime.utcnow()
@@ -264,8 +321,11 @@ async def accept_invitation(data: AcceptInvitationRequest):
     """
     Accept invitation and create user account
     """
+    # Use fresh client for auth operations
+    supabase = get_fresh_supabase_client()
+    
     try:
-        # 1. Validate token again (use execute() instead of single())
+        # 1. Validate token again
         invite_response = supabase.table("invitations").select("*").eq("token", data.token).execute()
         
         if not invite_response.data or len(invite_response.data) == 0:
@@ -277,8 +337,7 @@ async def accept_invitation(data: AcceptInvitationRequest):
             raise HTTPException(status_code=400, detail="Invitation already used")
             
         # Handle 'Z' and timezone comparison
-        expires_at_str = invitation["expires_at"].replace('Z', '+00:00')
-        expires_at = datetime.fromisoformat(expires_at_str)
+        expires_at = parse_iso_datetime(invitation["expires_at"])
         
         now = datetime.utcnow()
         if expires_at.tzinfo:
@@ -287,7 +346,25 @@ async def accept_invitation(data: AcceptInvitationRequest):
         if expires_at < now:
             raise HTTPException(status_code=400, detail="Invitation expired")
 
-        # 2. Map seniority to integer
+        # 2. Create User via Supabase Auth (CRITICAL FIX)
+        # This handles password hashing and creates the auth.users record
+        auth_response = supabase.auth.sign_up({
+            "email": invitation["email"],
+            "password": data.password,
+            "options": {
+                "data": {
+                    "first_name": data.first_name,
+                    "last_name": data.last_name
+                }
+            }
+        })
+        
+        if not auth_response.user:
+            raise HTTPException(status_code=500, detail="Failed to create auth user")
+            
+        user_id = auth_response.user.id
+        
+        # 3. Map seniority to integer
         seniority_map = {
             "junior": 1,
             "intermediate": 2,
@@ -296,26 +373,27 @@ async def accept_invitation(data: AcceptInvitationRequest):
             "executive": 5
         }
         seniority_level = seniority_map.get(data.seniority.lower(), 1)
-
-        # 3. Create User
-        user_id = str(uuid.uuid4())
+        
+        # 4. Insert/Update public.users
+        # Map invitation role to public.users role
+        public_role = "board" if invitation["role"] == "BOARD" else "employee"
+        
         user_data = {
             "id": user_id,
             "email": invitation["email"],
-            "password": data.password, # TODO: Hash password
-            "first_name": data.first_name,
+            "role": public_role,
+            "first_name": data.first_name, # Assuming schema supports these, otherwise they are in auth metadata
             "last_name": data.last_name,
-            "role": "employee", # Default system role, org role is in membership
             "job_title": data.job_title,
             "department": data.department,
             "seniority_level": seniority_level
         }
         
-        user_response = supabase.table("users").insert(user_data).execute()
-        if not user_response.data:
-            raise HTTPException(status_code=500, detail="Failed to create user")
-            
-        # 4. Create Membership
+        # Check if user already exists in public.users (might be triggered by auth.users insert)
+        # We use upsert to be safe
+        user_response = supabase.table("users").upsert(user_data).execute()
+        
+        # 5. Create Membership
         membership_data = {
             "user_id": user_id,
             "organization_id": invitation["organization_id"],
@@ -324,13 +402,21 @@ async def accept_invitation(data: AcceptInvitationRequest):
         }
         supabase.table("memberships").insert(membership_data).execute()
         
-        # 5. Update Invitation Status
+        # 6. Update Invitation Status
         supabase.table("invitations").update({"status": "accepted"}).eq("id", invitation["id"]).execute()
         
-        return {"success": True, "user_id": user_id}
+        # 7. Return success with access token if available
+        access_token = auth_response.session.access_token if auth_response.session else None
+        
+        return {
+            "success": True, 
+            "user_id": user_id,
+            "access_token": access_token
+        }
 
     except HTTPException:
         raise
     except Exception as e:
         print(f"Error accepting invitation: {e}")
         raise HTTPException(status_code=400, detail=f"Acceptance failed: {str(e)}")
+

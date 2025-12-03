@@ -235,4 +235,3 @@ async def get_optional_user(
         return await get_current_user(request, authorization)
     except HTTPException:
         return None
-

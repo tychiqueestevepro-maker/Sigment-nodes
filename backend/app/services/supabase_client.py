@@ -25,8 +25,21 @@ class SupabaseClient:
 supabase = SupabaseClient.get_client()
 
 
+
 # Helper function for routes
 def get_supabase() -> Client:
     """Get Supabase client instance"""
     return SupabaseClient.get_client()
+
+
+def get_fresh_supabase_client() -> Client:
+    """
+    Create a new Supabase client instance.
+    Use this for auth operations (signup/login) to avoid polluting the global client state.
+    """
+    return create_client(
+        settings.SUPABASE_URL,
+        settings.SUPABASE_SERVICE_ROLE_KEY
+    )
+
 

@@ -13,6 +13,7 @@ export default function SignupPage() {
         firstName: '',
         lastName: '',
         orgName: '',
+        orgSlug: '',
         jobTitle: 'CEO'
     });
     const [isLoading, setIsLoading] = useState(false);
@@ -26,7 +27,7 @@ export default function SignupPage() {
             .replace(/^-|-$/g, '');
     };
 
-    const orgSlug = generateSlug(formData.orgName);
+    // const orgSlug = generateSlug(formData.orgName); // Removed derived state
 
     const handleStep1Submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -65,7 +66,7 @@ export default function SignupPage() {
                     first_name: formData.firstName,
                     last_name: formData.lastName,
                     organization_name: formData.orgName,
-                    organization_slug: orgSlug,
+                    organization_slug: formData.orgSlug || generateSlug(formData.orgName),
                     job_title: formData.jobTitle
                 })
             });
@@ -234,11 +235,24 @@ export default function SignupPage() {
                                         placeholder="Acme Corp"
                                         required
                                     />
-                                    {formData.orgName && (
-                                        <div className="mt-2 text-xs text-gray-500">
-                                            Your workspace URL: <span className="text-white font-mono">sigment.com/{orgSlug}</span>
-                                        </div>
-                                    )}
+                                </div>
+
+                                <div className="mb-4">
+                                    <label className="block text-sm font-medium text-gray-400 mb-2">Workspace URL (Slug)</label>
+                                    <div className="flex items-center bg-gray-900 border border-white/10 rounded-lg px-3 focus-within:border-white focus-within:ring-1 focus-within:ring-white transition-all">
+                                        <span className="text-gray-500 font-mono text-sm mr-1">sigment.com/</span>
+                                        <input
+                                            type="text"
+                                            value={formData.orgSlug || generateSlug(formData.orgName)}
+                                            onChange={(e) => updateField('orgSlug', e.target.value)}
+                                            className="flex-1 py-3 bg-transparent text-white placeholder-gray-600 focus:outline-none font-mono text-sm"
+                                            placeholder="acme-corp"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="mt-2 text-xs text-gray-500">
+                                        This must be unique. You can change it if the default is taken.
+                                    </div>
                                 </div>
 
                                 <div className="mb-6">

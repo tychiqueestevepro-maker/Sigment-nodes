@@ -8,7 +8,7 @@ from loguru import logger
 from typing import Optional
 import uuid
 
-from app.services.supabase_client import supabase
+from app.services.supabase_client import get_fresh_supabase_client
 
 router = APIRouter()
 
@@ -49,6 +49,9 @@ async def signup(data: SignupRequest):
     3. Create OWNER membership linking auth user to org
     4. Return user + org data + real JWT token
     """
+    # Use a fresh client to avoid polluting global state
+    supabase = get_fresh_supabase_client()
+    
     try:
         # 1. Check if org slug is available first
         existing_org = supabase.table("organizations").select("id").eq("slug", data.organization_slug).execute()
@@ -186,6 +189,9 @@ async def login(data: LoginRequest):
     Uses Supabase Auth Service for password verification and JWT generation.
     No manual password checking or token generation.
     """
+    # Use a fresh client to avoid polluting global state
+    supabase = get_fresh_supabase_client()
+    
     try:
         # 1. Authenticate with Supabase Auth
         auth_response = supabase.auth.sign_in_with_password({
