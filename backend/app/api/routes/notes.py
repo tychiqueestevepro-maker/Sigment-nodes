@@ -157,6 +157,7 @@ async def get_note(
 async def update_note(
     note_id: UUID, 
     update: NoteUpdate,
+    background_tasks: BackgroundTasks,
     current_user: CurrentUser = Depends(require_board_or_owner)
 ):
     """
@@ -196,7 +197,8 @@ async def update_note(
         
         # Log board moderation events
         if update.status == "processed":
-            log_note_event(
+            background_tasks.add_task(
+                log_note_event,
                 note_id=str(note_id),
                 event_type="reviewing",
                 title="Under Board Review",
@@ -205,7 +207,8 @@ async def update_note(
                 organization_id=str(current_user.organization_id)
             )
         elif update.status == "refused":
-            log_note_event(
+            background_tasks.add_task(
+                log_note_event,
                 note_id=str(note_id),
                 event_type="refusal",
                 title="Idea Closed",
@@ -214,7 +217,8 @@ async def update_note(
                 organization_id=str(current_user.organization_id)
             )
         elif update.status == "approved": # Handle approved status if added
-             log_note_event(
+             background_tasks.add_task(
+                log_note_event,
                 note_id=str(note_id),
                 event_type="approval",
                 title="Idea Approved",
