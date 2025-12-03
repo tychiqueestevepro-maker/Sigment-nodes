@@ -8,7 +8,7 @@ import bcrypt
 from app.core.config import settings
 
 # JWT Configuration
-SECRET_KEY = settings.SUPABASE_SERVICE_ROLE_KEY  # Use Supabase key as secret
+SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 

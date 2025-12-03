@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     # Environment
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
+    SECRET_KEY: str
     
     # API
     API_V1_PREFIX: str = "/api/v1"
