@@ -5,6 +5,16 @@ from pydantic import BaseModel, Field
 from typing import Optional, Literal
 from datetime import datetime
 
+class OrganizationSettings(BaseModel):
+    """
+    Flexible settings for an organization
+    Allows extra fields for rapid iteration
+    """
+    primary_color: str = "#000000"
+    notifications_enabled: bool = True
+    
+    model_config = {"extra": "allow"}
+
 class Organization(BaseModel):
     """Organization/Company entity"""
     id: str
@@ -12,7 +22,7 @@ class Organization(BaseModel):
     name: str
     description: Optional[str] = None
     logo_url: Optional[str] = None
-    settings: dict = Field(default_factory=dict)
+    settings: OrganizationSettings = Field(default_factory=OrganizationSettings)
     created_at: datetime
     updated_at: datetime
 
