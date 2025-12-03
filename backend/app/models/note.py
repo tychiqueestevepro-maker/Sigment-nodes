@@ -11,6 +11,7 @@ class NoteCreate(BaseModel):
     """Note creation payload from frontend"""
     content_raw: str = Field(..., min_length=10, max_length=5000)
     user_id: UUID
+    organization_id: Optional[UUID] = None
 
 
 class NoteSync(BaseModel):
@@ -36,6 +37,7 @@ class NoteUpdate(BaseModel):
     """Admin note update (for moderation)"""
     status: Optional[str] = None
     cluster_id: Optional[UUID] = None
+    actor_id: Optional[UUID] = None  # ID of the user performing the moderation
 
 
 class UserContext(BaseModel):

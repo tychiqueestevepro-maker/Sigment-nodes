@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
 from app.core.config import settings
-from app.api.routes import notes, clusters, pillars, users, board
+from app.api.routes import notes, clusters, pillars, users, board, organizations, auth, invitations, social_feed, unified_feed
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -27,11 +27,16 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(notes.router, prefix="/api/v1/notes", tags=["Notes"])
 app.include_router(clusters.router, prefix="/api/v1/clusters", tags=["Clusters"])
 app.include_router(pillars.router, prefix="/api/v1/pillars", tags=["Pillars"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
 app.include_router(board.router, prefix="/api/v1/board", tags=["Board"])
+app.include_router(organizations.router, prefix="/api/v1/organizations", tags=["organizations"])
+app.include_router(invitations.router, prefix="/api", tags=["invitations"])
+app.include_router(social_feed.router, prefix="/api/v1")
+app.include_router(unified_feed.router, prefix="/api/v1")
 
 
 @app.on_event("startup")

@@ -65,10 +65,12 @@ export default function MemberHomePage() {
         if (typeof window !== 'undefined') {
             const existingUserId = localStorage.getItem('sigment_user_id');
             if (!existingUserId) {
-                // Use 'all' to fetch all notes (no user system yet)
-                const defaultUserId = 'all';
-                localStorage.setItem('sigment_user_id', defaultUserId);
-                console.log('✅ User ID initialized to fetch all notes');
+                // Generate a UUID v4 for this user
+                const newUserId = crypto.randomUUID();
+                localStorage.setItem('sigment_user_id', newUserId);
+                console.log('✅ User ID initialized:', newUserId);
+            } else {
+                console.log('✅ Using existing User ID:', existingUserId);
             }
         }
     }, []);

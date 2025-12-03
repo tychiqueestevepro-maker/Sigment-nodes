@@ -85,9 +85,10 @@ export default function TrackPage() {
 
     // Fetch user's notes from API
     const { data: notesList = [], isLoading, error, refetch } = useQuery<any[]>({
-        queryKey: ['all-notes'],
+        queryKey: ['user-notes', userId],
         queryFn: async () => {
-            const response = await fetch(`${api.baseURL}/notes/all`);
+            if (!userId) return [];
+            const response = await fetch(`${api.baseURL}/notes/user/${userId}`);
             if (!response.ok) throw new Error('Failed to fetch notes');
             const data = await response.json();
 
@@ -100,6 +101,7 @@ export default function TrackPage() {
                 statusConfig: getStatusConfig(note.status),
             }));
         },
+        enabled: !!userId,
     });
 
     // Fetch timeline events for selected note

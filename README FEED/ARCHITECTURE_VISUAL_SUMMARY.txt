@@ -1,0 +1,80 @@
+
+╔════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║                                                                                                    ║
+║                       🧠 SIGMENT SOCIAL INTELLIGENCE - ARCHITECTURE                                ║
+║                                                                                                    ║
+╚════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+┌──────────────────────┐       ┌──────────────────────────────────────────────────────────────────┐
+│  1. INPUT LAYER      │       │  2. AI PROCESSING LAYER (Celery Workers)                         │
+└──────────────────────┘       └──────────────────────────────────────────────────────────────────┘
+
+   👤 USER                                   ⚙️  PROCESS_NOTE_TASK
+      │                                     ┌───────────────────────────┐
+      │ (POST /api/notes)                   │ 1. Clarification (LLM)    │
+      ▼                                     │ 2. Categorization (Pillar)│
+      📝 NOTE (Pending) ──────────────────► │ 3. Clustering (Vector DB) │
+                                            │ 4. 📢 PUBLISH TO FEED     │──┐
+                                            └───────────────────────────┘  │
+                                                                           │
+                                                                           │
+┌──────────────────────────────────────────────────────────────────────┐   │
+│  3. DATA & OPTIMIZATION LAYER (PostgreSQL)                           │   │
+└──────────────────────────────────────────────────────────────────────┘   │
+                                                                           │
+   ┌────────────────────────┐      ┌────────────────────────────────────┐  │
+   │  🗄️ CLUSTERS           │◄─────│  🗄️ POSTS (Social Feed)            │◄─┘
+   │                        │      │                                    │
+   │  - Title               │      │  - Type: 'linked_idea'             │
+   │  - Velocity Score      │      │  - Score: 50 (Cold Start 🚀)       │
+   │  - Last Updated        │      │  - Content: AI Clarified           │
+   └───────────┬────────────┘      └─────────────────┬──────────────────┘
+               │                                     │
+               │                                     │
+   ┌───────────▼────────────┐      ┌─────────────────▼──────────────────┐
+   │  🛡️ ANTI-NOISE FILTER  │      │  ⏰ TIME DECAY ENGINE              │
+   │                        │      │                                    │
+   │  ✅ Active < 48h       │      │  ✅ Window: < 30 Days              │
+   │  ❌ Old Clusters       │      │  ✅ Early Exit: > 7 Days           │
+   │                        │      │  🧟 Necromancy: Re-buzz < 24h      │
+   └───────────┬────────────┘      └─────────────────┬──────────────────┘
+               │                                     │
+               │                                     │
+┌──────────────▼─────────────────────────────────────▼─────────────────┐
+│  4. UNIFIED FEED LAYER (Polymorphic Union)                           │
+└──────────────────────────────────────────────────────────────────────┘
+
+   🔍 GET /api/feed/unified
+   │
+   ├─ 🔒 SECURITY: Strict Organization Isolation (WHERE org_id = :me)
+   │
+   ▼
+   UNION ALL
+   ┌───────────────────────────────┐    ┌───────────────────────────────┐    ┌───────────────────────────────┐
+   │ 📦 CLUSTERS (Gros Contenu)    │    │ 📝 NOTES (Contenu Individuel) │    │ 💬 POSTS (Home Feed)          │
+   │                               │    │                               │    │                               │
+   │ - Tri: Last Activity          │    │ - Tri: Processed Date         │    │ - Tri: Created Date           │
+   │ - Filtre: Active 48h          │    │ - Filtre: Orphelines + Mes    │    │ - Filtre: Standard Only       │
+   └───────────────┬───────────────┘    └───────────────┬───────────────┘    └───────────────┬───────────────┘
+                   │                                    │                                    │
+                   ▼                                    ▼                                    ▼
+   ┌───────────────────────────────────────────────────────────────────────────────────────────────────┐
+   │                                   ✨ THE UNIFIED FEED ✨                                          │
+   │                          (Trié par "Dernière Activité" Descendante)                               │
+   └───────────────────────────────────────────────────────────────────────────────────────────────────┘
+                   │
+                   ▼
+   [ 💬 POST: "What's your next big idea?" (10m ago) ]
+   [ 📦 CLUSTER: UX Improvements (2h ago) ]
+   [ 📝 NOTE: Dark Mode Request (3h ago) ]
+   [ 📦 CLUSTER: API Performance (5h ago) ]
+
+╔════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║                                                                                                    ║
+║  🔑 CLÉS DU SYSTÈME :                                                                              ║
+║  1. COLD START: Les nouvelles idées ont 2h de visibilité garantie (Score 50).                      ║
+║  2. TIME DECAY: Les vieux posts ne surchargent pas la DB (Stop the Math).                          ║
+║  3. ANTI-BRUIT: Seuls les clusters actifs et notes orphelines apparaissent.                        ║
+║  4. ISOLATION:  Chaque organisation est un silo hermétique.                                        ║
+║                                                                                                    ║
+╚════════════════════════════════════════════════════════════════════════════════════════════════════╝

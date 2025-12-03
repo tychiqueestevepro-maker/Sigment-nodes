@@ -75,44 +75,22 @@ osascript -e 'tell app "Terminal"
     do script "cd '"$SCRIPT_DIR"'/backend && source venv/bin/activate && echo \"⚙️  Celery Worker Starting...\" && celery -A app.workers.celery_app worker --loglevel=info"
 end tell' > /dev/null
 
-# Check if node_modules exists for Member
-if [ ! -d "frontend/member/node_modules" ]; then
+# Check if node_modules exists for Frontend
+if [ ! -d "frontend/node_modules" ]; then
     echo ""
-    echo "📦 Installing Member frontend dependencies..."
-    cd frontend/member
+    echo "📦 Installing frontend dependencies..."
+    cd frontend
     npm install
-    cd ../..
+    cd ..
 else
-    echo "✅ Member frontend dependencies installed"
+    echo "✅ Frontend dependencies installed"
 fi
 
-# Check if node_modules exists for Board
-if [ ! -d "frontend/board/node_modules" ]; then
-    echo ""
-    echo "📦 Installing Board frontend dependencies..."
-    cd frontend/board
-    npm install
-    cd ../..
-else
-    echo "✅ Board frontend dependencies installed"
-fi
-
-sleep 2
-
-# Start Member Frontend
+# Start Frontend
 echo ""
-echo "⚛️  Starting Member frontend (port 3000)..."
+echo "⚛️  Starting SIGMENT Frontend (port 3000)..."
 osascript -e 'tell app "Terminal" 
-    do script "cd '"$SCRIPT_DIR"'/frontend/member && echo \"⚛️  Member App Starting on port 3000...\" && npm run dev"
-end tell' > /dev/null
-
-sleep 2
-
-# Start Board Frontend
-echo ""
-echo "🎯 Starting Board frontend (port 8001)..."
-osascript -e 'tell app "Terminal" 
-    do script "cd '"$SCRIPT_DIR"'/frontend/board && echo \"🎯 Board App Starting on port 8001...\" && npm run dev"
+    do script "cd '"$SCRIPT_DIR"'/frontend && echo \"⚛️  SIGMENT Frontend Starting on port 3000...\" && npm run dev"
 end tell' > /dev/null
 
 echo ""
@@ -121,8 +99,7 @@ echo "✅ SIGMENT is starting in separate terminal windows!"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo "📍 Access points:"
-echo "   👤 Member App:  http://localhost:3000"
-echo "   🎯 Board App:   http://localhost:8001"
+echo "   🌐 Frontend:    http://localhost:3000"
 echo "   🔧 Backend:     http://localhost:8000"
 echo "   📚 API Docs:    http://localhost:8000/api/docs"
 echo "   📖 ReDoc:       http://localhost:8000/api/redoc"

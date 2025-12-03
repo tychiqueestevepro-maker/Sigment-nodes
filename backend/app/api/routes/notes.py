@@ -1,29 +1,73 @@
 """
 Notes API endpoints
 """
-from typing import List
+from typing import List, Optional
 from uuid import UUID
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from loguru import logger
 
 from app.models.note import NoteCreate, NoteSync, NoteResponse, NoteUpdate, NoteEvent
 from app.services.supabase_client import supabase
 from app.services.event_logger import log_note_event
 from app.workers.tasks import process_note_task, reprocess_cluster_on_moderation_task
+from app.api.dependencies import CurrentUser, get_current_user, require_board_or_owner, get_optional_user
 
 router = APIRouter()
 
+@router.get("/", response_model=List[NoteResponse])
+async def get_notes(
+    current_user: CurrentUser = Depends(get_current_user),
+    limit: int = 50,
+    offset: int = 0
+):
+    """
+    Get all notes for the current user's organization (Feed)
+    Strictly filtered by organization_id
+    """
+    try:
+        # Query notes filtered by organization_id
+        response = supabase.table("notes").select("*")\
+            .eq("organization_id", str(current_user.organization_id))\
+            .order("created_at", desc=True)\
+            .range(offset, offset + limit - 1)\
+            .execute()
+            
+        return response.data if response.data else []
+        
+    except Exception as e:
+        logger.error(f"Error fetching notes feed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
 
 @router.post("/", response_model=NoteResponse)
-async def create_note(note: NoteCreate):
+async def create_note(
+    note: NoteCreate,
+    current_user: Optional[CurrentUser] = Depends(get_optional_user)
+):
     """
     Create a single note (online mode)
     Returns immediately with "draft" status
     """
     try:
-        # Insert note
+        # Determine user_id and organization_id
+        user_id = str(current_user.id) if current_user else str(note.user_id)
+        
+        # Priority: Header (current_user) > Body (note.organization_id)
+        org_id = None
+        if current_user:
+            org_id = str(current_user.organization_id)
+        elif note.organization_id:
+            org_id = str(note.organization_id)
+            
+        if not org_id:
+             raise HTTPException(status_code=400, detail="Missing organization_id. Please provide X-Organization-Id header or organization_id in body.")
+
+        # Insert note with organization_id
         response = supabase.table("notes").insert({
-            "user_id": str(note.user_id),
+            "user_id": user_id,
+            "organization_id": org_id,
             "content_raw": note.content_raw,
             "status": "draft"
         }).execute()
@@ -34,7 +78,7 @@ async def create_note(note: NoteCreate):
         # Trigger async processing
         process_note_task.delay(note_id)
         
-        logger.info(f"Note created: {note_id}")
+        logger.info(f"Note created: {note_id} in org {org_id}")
         
         return created_note
         
@@ -44,7 +88,10 @@ async def create_note(note: NoteCreate):
 
 
 @router.post("/sync", response_model=List[NoteResponse])
-async def sync_notes(payload: NoteSync):
+async def sync_notes(
+    payload: NoteSync,
+    current_user: CurrentUser = Depends(get_current_user)
+):
     """
     Batch sync notes from offline-first frontend
     """
@@ -52,8 +99,10 @@ async def sync_notes(payload: NoteSync):
         created_notes = []
         
         for note in payload.notes:
+            # Insert note with organization_id
             response = supabase.table("notes").insert({
-                "user_id": str(note.user_id),
+                "user_id": str(current_user.id), # Use authenticated user ID
+                "organization_id": str(current_user.organization_id),
                 "content_raw": note.content_raw,
                 "status": "draft"
             }).execute()
@@ -64,7 +113,7 @@ async def sync_notes(payload: NoteSync):
             # Trigger async processing
             process_note_task.delay(created_note["id"])
         
-        logger.info(f"Synced {len(created_notes)} notes")
+        logger.info(f"Synced {len(created_notes)} notes for user {current_user.id} in org {current_user.organization_id}")
         
         return created_notes
         
@@ -73,125 +122,60 @@ async def sync_notes(payload: NoteSync):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/user/{user_id}", response_model=List[NoteResponse])
-async def get_user_notes(user_id: UUID, status: str = None):
-    """
-    Get all notes for a user, optionally filtered by status
-    """
-    try:
-        query = supabase.table("notes").select("*").eq("user_id", str(user_id))
-        
-        if status:
-            query = query.eq("status", status)
-        
-        response = query.order("created_at", desc=True).execute()
-        
-        return response.data
-        
-    except Exception as e:
-        logger.error(f"Error fetching user notes: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/all")
-async def get_all_notes():
-    """
-    Get all notes (for systems without user authentication)
-    Returns all notes regardless of user
-    """
-    try:
-        response = supabase.table("notes").select(
-            """
-            id,
-            content_raw,
-            content_clarified,
-            status,
-            created_at,
-            processed_at,
-            ai_relevance_score,
-            cluster_id,
-            clusters(id, title, pillar_id, note_count, pillars(id, name))
-            """
-        ).order("created_at", desc=True).execute()
-        
-        if not response.data:
-            return []
-        
-        # Transform data for frontend
-        user_notes = []
-        for note in response.data:
-            cluster_info = note.get("clusters", {})
-            pillar_info = cluster_info.get("pillars", {}) if cluster_info else {}
-            
-            # Determine status display
-            status = note.get("status", "draft")
-            status_display = {
-                "draft": "Draft",
-                "processing": "Processing",
-                "processed": "Processed",
-                "review": "In Review",
-                "approved": "Approved",
-                "refused": "Refused"
-            }.get(status, status.capitalize())
-            
-            # Create title from clarified content or raw content
-            raw_content = note.get("content_raw", "")
-            clarified = note.get("content_clarified", "")
-            title = clarified if clarified else (raw_content[:100] + "..." if len(raw_content) > 100 else raw_content)
-            
-            user_notes.append({
-                "id": note["id"],
-                "title": title,
-                "content": raw_content,
-                "category": pillar_info.get("name", "PENDING") if pillar_info else "PENDING",
-                "status": status_display,
-                "status_raw": status,
-                "date": note.get("created_at", ""),
-                "processed_date": note.get("processed_at"),
-                "relevance_score": note.get("ai_relevance_score", 0),
-                "cluster_id": note.get("cluster_id"),
-                "cluster_title": cluster_info.get("title") if cluster_info else None,
-                "cluster_note_count": cluster_info.get("note_count", 0) if cluster_info else 0,
-            })
-        
-        logger.info(f"✅ Retrieved {len(user_notes)} total notes")
-        
-        return user_notes
-        
-    except Exception as e:
-        logger.error(f"Error fetching all notes: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @router.get("/{note_id}", response_model=NoteResponse)
-async def get_note(note_id: UUID):
+async def get_note(
+    note_id: UUID,
+    current_user: CurrentUser = Depends(get_current_user)
+):
     """
     Get a single note by ID
+    Enforces organization boundaries
     """
     try:
         response = supabase.table("notes").select("*").eq("id", str(note_id)).single().execute()
         
         if not response.data:
             raise HTTPException(status_code=404, detail="Note not found")
+            
+        note = response.data
         
-        return response.data
+        # Verify organization match
+        if note.get("organization_id") and str(note["organization_id"]) != str(current_user.organization_id):
+            logger.warning(f"User {current_user.id} attempted to access note {note_id} from different org")
+            raise HTTPException(status_code=404, detail="Note not found")
         
+        return note
+        
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error fetching note: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.patch("/{note_id}", response_model=NoteResponse)
-async def update_note(note_id: UUID, update: NoteUpdate):
+async def update_note(
+    note_id: UUID, 
+    update: NoteUpdate,
+    current_user: CurrentUser = Depends(require_board_or_owner)
+):
     """
-    Update note (Admin only - for moderation)
+    Update note (Board/Owner only - for moderation)
+    Enforces organization boundaries
     """
     try:
-        # Get current note
+        # Get current note to verify organization
         current = supabase.table("notes").select("*").eq("id", str(note_id)).single().execute()
         
         if not current.data:
             raise HTTPException(status_code=404, detail="Note not found")
+            
+        note_data = current.data
+        
+        # Verify organization match
+        if note_data.get("organization_id") and str(note_data["organization_id"]) != str(current_user.organization_id):
+            logger.warning(f"User {current_user.id} attempted to update note {note_id} from different org")
+            raise HTTPException(status_code=404, detail="Note not found") # Hide cross-org resources
         
         # Prepare update
         update_data = {}
@@ -216,24 +200,37 @@ async def update_note(note_id: UUID, update: NoteUpdate):
                 note_id=str(note_id),
                 event_type="reviewing",
                 title="Under Board Review",
-                description="Your idea is being reviewed by the executive team"
+                description="Your idea is being reviewed by the executive team",
+                actor_id=str(current_user.id),
+                organization_id=str(current_user.organization_id)
             )
         elif update.status == "refused":
             log_note_event(
                 note_id=str(note_id),
                 event_type="refusal",
                 title="Idea Closed",
-                description="This idea was not selected for implementation at this time"
+                description="This idea was not selected for implementation at this time",
+                actor_id=str(current_user.id),
+                organization_id=str(current_user.organization_id)
+            )
+        elif update.status == "approved": # Handle approved status if added
+             log_note_event(
+                note_id=str(note_id),
+                event_type="approval",
+                title="Idea Approved",
+                description="This idea has been approved for implementation",
+                actor_id=str(current_user.id),
+                organization_id=str(current_user.organization_id)
             )
         
         # If note was refused, trigger cluster reprocessing
-        if update.status == "refused" and current.data.get("cluster_id"):
+        if update.status == "refused" and note_data.get("cluster_id"):
             reprocess_cluster_on_moderation_task.delay(
                 note_id=str(note_id),
-                cluster_id=current.data["cluster_id"]
+                cluster_id=note_data["cluster_id"]
             )
         
-        logger.info(f"Note updated: {note_id} - status: {update.status}")
+        logger.info(f"Note updated: {note_id} - status: {update.status} by {current_user.id}")
         
         return updated_note
         
@@ -245,16 +242,24 @@ async def update_note(note_id: UUID, update: NoteUpdate):
 
 
 @router.get("/{note_id}/timeline", response_model=List[NoteEvent])
-async def get_note_timeline(note_id: UUID):
+async def get_note_timeline(
+    note_id: UUID,
+    current_user: CurrentUser = Depends(get_current_user)
+):
     """
     Get complete event timeline for a note
     Returns all events ordered chronologically
+    Enforces organization boundaries
     """
     try:
-        # Verify note exists
-        note_check = supabase.table("notes").select("id").eq("id", str(note_id)).execute()
+        # Verify note exists and belongs to org
+        note_check = supabase.table("notes").select("id, organization_id").eq("id", str(note_id)).single().execute()
         
         if not note_check.data:
+            raise HTTPException(status_code=404, detail="Note not found")
+            
+        note = note_check.data
+        if note.get("organization_id") and str(note["organization_id"]) != str(current_user.organization_id):
             raise HTTPException(status_code=404, detail="Note not found")
         
         # Fetch all events for this note
@@ -275,31 +280,50 @@ async def get_note_timeline(note_id: UUID):
 
 
 @router.delete("/{note_id}")
-async def delete_note(note_id: UUID):
+async def delete_note(
+    note_id: UUID,
+    current_user: CurrentUser = Depends(require_board_or_owner)
+):
     """
-    Delete a note (Admin only)
+    Delete a note (Board/Owner only)
+    Enforces organization boundaries
     """
     try:
+        # Verify note exists and belongs to org
+        note_check = supabase.table("notes").select("id, organization_id").eq("id", str(note_id)).single().execute()
+        
+        if not note_check.data:
+            raise HTTPException(status_code=404, detail="Note not found")
+            
+        note = note_check.data
+        if note.get("organization_id") and str(note["organization_id"]) != str(current_user.organization_id):
+            raise HTTPException(status_code=404, detail="Note not found")
+            
         supabase.table("notes").delete().eq("id", str(note_id)).execute()
         
-        logger.info(f"Note deleted: {note_id}")
+        logger.info(f"Note deleted: {note_id} by {current_user.id}")
         
         return {"status": "deleted", "note_id": str(note_id)}
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error deleting note: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/user/{user_id}")
-async def get_user_notes(user_id: str):
+async def get_user_notes(
+    user_id: str,
+    current_user: CurrentUser = Depends(get_current_user)
+):
     """
     Get all notes for a specific user (for Track Queue page)
-    If user_id is 'all', returns all notes regardless of user
-    Returns all notes regardless of status with their current processing state
+    Returns all notes for the given user regardless of status with their current processing state
+    Enforces organization boundaries
     """
     try:
-        # Query notes - filter by user_id unless it's 'all'
+        # Query notes filtered by user_id AND organization_id
         query = supabase.table("notes").select(
             """
             id,
@@ -312,11 +336,7 @@ async def get_user_notes(user_id: str):
             cluster_id,
             clusters(id, title, pillar_id, note_count, pillars(id, name))
             """
-        )
-        
-        # Only filter by user_id if it's not 'all'
-        if user_id != "all":
-            query = query.eq("user_id", user_id)
+        ).eq("user_id", user_id).eq("organization_id", str(current_user.organization_id))
             
         response = query.order("created_at", desc=True).execute()
         

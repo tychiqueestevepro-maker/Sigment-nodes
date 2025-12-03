@@ -101,9 +101,9 @@ export default function ReviewPage() {
         const relevanceScore = selectedReview.relevance_score || 0;
 
         return {
-            title: selectedReview.title,
+            title: selectedReview.cluster_title || selectedReview.title,
             category: selectedReview.category,
-            description: selectedReview.content || "No description available.",
+            description: selectedReview.content_clarified || selectedReview.content || "No description available.",
             relevance: Math.round(relevanceScore),
             lastReview: formatDate(selectedReview.date),
             createdDate: formatDate(selectedReview.date),
@@ -155,8 +155,8 @@ export default function ReviewPage() {
                     color: "bg-blue-100 text-blue-700",
                     idea: selectedReview.title.substring(0, 50),
                     date: formatDate(selectedReview.date),
-                    x: 50,
-                    y: 50
+                    x: 25,
+                    y: 30
                 }
             ]
         };
@@ -209,7 +209,7 @@ export default function ReviewPage() {
                                 <div className="flex justify-between items-center">
                                     <div>
                                         <span className={`text-xs font-bold px-2 py-1 rounded-full mb-2 inline-block ${review.color}`}>{review.category}</span>
-                                        <h3 className="text-xl font-bold text-gray-900">{review.title}</h3>
+                                        <h3 className="text-xl font-bold text-gray-900">{review.cluster_title || review.title}</h3>
                                         <p className="text-sm text-gray-500 mt-1">Submitted by {review.author} • {review.date}</p>
                                     </div>
                                     <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-gray-200 group-hover:bg-black group-hover:text-white transition-colors">

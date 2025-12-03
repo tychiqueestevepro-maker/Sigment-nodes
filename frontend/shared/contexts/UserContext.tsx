@@ -1,0 +1,158 @@
+'use client'
+
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { useRouter } from 'next/navigation'
+import { User, UserContextType } from '@/types/user'
+
+const UserContext = createContext<UserContextType | undefined>(undefined)
+
+export function UserProvider({ children }: { children: ReactNode }) {
+    const [user, setUser] = useState<User | null>(null)
+    const [isLoading, setIsLoading] = useState(true)
+    const router = useRouter()
+
+    useEffect(() => {
+        // Check if user is authenticated
+        checkAuth()
+    }, [])
+
+    async function checkAuth() {
+        try {
+            // Read user data from localStorage (saved during signup)
+            const userId = localStorage.getItem('sigment_user_id')
+            const userEmail = localStorage.getItem('sigment_user_email')
+            const userDataStr = localStorage.getItem('sigment_user')
+
+            if (userId && userDataStr) {
+                try {
+                    const userData = JSON.parse(userDataStr)
+                    setUser({
+                        ...userData,
+                        id: userId,
+                        email: userEmail || userData.email || 'unknown@example.com',
+                        name: `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || userData.name || 'User',
+                        created_at: userData.created_at || new Date().toISOString()
+                    })
+                } catch (e) {
+                    console.error('Failed to parse user data:', e)
+                    // Fallback to minimal user object
+                    setUser({
+                        id: userId,
+                        email: userEmail || 'user@example.com',
+                        name: 'User',
+                        created_at: new Date().toISOString()
+                    })
+                }
+            }
+        } catch (error) {
+            console.error('Auth check failed:', error)
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    async function login(email: string, password: string) {
+        setIsLoading(true)
+        try {
+            const response = await fetch('/api/v1/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json()
+                throw new Error(errorData.detail || 'Login failed')
+            }
+
+            const data = await response.json()
+            const { user, organization, redirect_target } = data
+
+            // Update State
+            setUser(user)
+
+            // Update LocalStorage (Critical for persistence)
+            localStorage.setItem('sigment_user_id', user.id)
+            localStorage.setItem('sigment_user_email', user.email)
+            localStorage.setItem('sigment_user', JSON.stringify(user))
+            if (organization && organization.id) {
+                localStorage.setItem('sigment_org_id', organization.id)
+            }
+
+            // Handle Redirection based on user role
+            if (organization && organization.slug) {
+                let redirectPath;
+
+                if (user.role === 'OWNER') {
+                    redirectPath = 'owner';
+                } else if (user.role === 'BOARD') {
+                    redirectPath = 'board';
+                } else {
+                    redirectPath = 'member';
+                }
+
+                // Force a hard navigation to ensure contexts are refreshed
+                window.location.href = `/${organization.slug}/${redirectPath}`;
+            } else {
+                // Fallback if no org data
+                router.push('/');
+            }
+
+        } catch (error: any) {
+            console.error('Login error:', error)
+            throw error
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    async function logout() {
+        try {
+            await fetch('/api/v1/auth/logout', { method: 'POST' })
+            setUser(null)
+            localStorage.removeItem('sigment_user_id')
+            router.push('/login')
+        } catch (error) {
+            console.error('Logout error:', error)
+        }
+    }
+
+    async function updateUser(updates: Partial<User>) {
+        if (!user) return
+
+        try {
+            const response = await fetch(`/api/v1/users/${user.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updates)
+            })
+
+            if (!response.ok) throw new Error('Update failed')
+
+            const updatedUser = await response.json()
+            setUser(updatedUser)
+        } catch (error) {
+            console.error('Update user error:', error)
+            throw error
+        }
+    }
+
+    const value: UserContextType = {
+        user,
+        isLoading,
+        isAuthenticated: !!user,
+        login,
+        logout,
+        updateUser
+    }
+
+    return <UserContext.Provider value={value}>{children}</UserContext.Provider>
+}
+
+export function useUser() {
+    const context = useContext(UserContext)
+    if (!context) {
+        throw new Error('useUser must be used within UserProvider')
+    }
+    return context
+}

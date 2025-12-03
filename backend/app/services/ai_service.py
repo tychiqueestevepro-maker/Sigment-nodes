@@ -27,10 +27,16 @@ class AIService:
         """
         Analyze note and return:
         - Clarified content
-        - Assigned pillar
+        - Assigned pillar (from existing pillars ONLY)
         - Relevance score (1-10)
+        
+        STRICT CONSTRAINT: Never create new pillars, only assign to existing ones
         """
-        pillars_list = "\n".join([f"- {p['name']}: {p['description']}" for p in available_pillars])
+        # Format pillars with ID for strict matching
+        pillars_list = "\n".join([
+            f"- ID: {p['id']} | Name: {p['name']} | Description: {p['description']}" 
+            for p in available_pillars
+        ])
         
         system_prompt = f"""You are a Strategic Analyst for a B2B company.
 
@@ -39,23 +45,31 @@ AUTHOR CONTEXT:
 - Department: {user_context.department}
 - Seniority Level: {user_context.seniority_level}/5
 
-AVAILABLE PILLARS:
+AVAILABLE PILLARS (FIXED LIST - YOU CANNOT CREATE NEW ONES):
 {pillars_list}
+
+🔒 CRITICAL CONSTRAINT:
+You MUST assign the note to ONE of the pillars listed above. 
+You are FORBIDDEN from inventing or suggesting new pillars.
+If the note doesn't fit well in any pillar, choose the one with the highest relevance and give it a low score.
 
 YOUR TASK:
 1. Rewrite the note for clarity and executive comprehension (keep it concise)
-2. Assign the most appropriate Pillar
+2. Assign to the EXISTING pillar with the HIGHEST relevance score
 3. Calculate a Relevance Score (1-10) based on:
-   - HIGH SCORE (8-10): Topic matches author's expertise domain
-   - MEDIUM SCORE (5-7): Topic is adjacent to author's domain
-   - LOW SCORE (1-4): Topic is outside author's expertise
+   - HIGH SCORE (8-10): Topic strongly matches the pillar AND author's expertise
+   - MEDIUM SCORE (5-7): Topic partially matches the pillar OR author's domain
+   - LOW SCORE (1-4): Topic weakly matches the pillar (but it's still the best fit)
+   
+   ⚠️ SPECIAL RULE: If ALL pillars score < 4/10, return pillar_id as null and pillar_name as "Uncategorized"
 
 RESPONSE FORMAT (JSON):
 {{
   "clarified_content": "Clear, executive-friendly version",
-  "pillar_name": "The pillar name exactly as listed",
+  "pillar_id": "The exact UUID from the list above (or null if score < 4)",
+  "pillar_name": "The exact pillar name from the list above (or 'Uncategorized' if score < 4)",
   "relevance_score": 8.5,
-  "reasoning": "Brief explanation of score"
+  "reasoning": "Brief explanation: why this pillar? why this score?"
 }}
 """
         
@@ -71,6 +85,20 @@ RESPONSE FORMAT (JSON):
             )
             
             result = json.loads(response.choices[0].message.content)
+            
+            # Validation: Ensure pillar_id matches an existing pillar
+            if result.get("pillar_id") and result["pillar_id"] != "null":
+                pillar_exists = any(p["id"] == result["pillar_id"] for p in available_pillars)
+                if not pillar_exists:
+                    logger.warning(f"AI returned invalid pillar_id: {result['pillar_id']}, falling back to name matching")
+                    # Fallback: find by name
+                    pillar = next((p for p in available_pillars if p["name"] == result["pillar_name"]), None)
+                    if pillar:
+                        result["pillar_id"] = pillar["id"]
+                    else:
+                        result["pillar_id"] = None
+                        result["pillar_name"] = "Uncategorized"
+            
             logger.info(f"AI Analysis: Pillar={result['pillar_name']}, Score={result['relevance_score']}")
             
             return result

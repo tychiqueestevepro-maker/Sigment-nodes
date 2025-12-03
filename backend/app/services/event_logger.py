@@ -10,24 +10,36 @@ def log_note_event(
     note_id: str,
     event_type: str,
     title: str,
-    description: Optional[str] = None
+    description: Optional[str] = None,
+    actor_id: Optional[str] = None,
+    organization_id: Optional[str] = None
 ) -> None:
     """
     Log a note lifecycle event to the note_events table
     
     Args:
         note_id: UUID of the note
-        event_type: Type of event (submission, ai_analysis, fusion, validation, refusal)
+        event_type: Type of event (submission, ai_analysis, fusion, reviewing, refusal)
         title: User-friendly title for the event
         description: Optional detailed description
+        actor_id: UUID of the user who triggered the event
+        organization_id: UUID of the organization (for multi-tenancy context)
     """
     try:
-        supabase.table("note_events").insert({
+        payload = {
             "note_id": note_id,
             "event_type": event_type,
             "title": title,
             "description": description
-        }).execute()
+        }
+        
+        if actor_id:
+            payload["actor_id"] = actor_id
+            
+        if organization_id:
+            payload["organization_id"] = organization_id
+            
+        supabase.table("note_events").insert(payload).execute()
         
         logger.info(f"📝 Event logged for note {note_id}: {event_type} - {title}")
         
