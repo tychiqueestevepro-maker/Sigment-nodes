@@ -11,6 +11,25 @@ from app.services.supabase_client import supabase
 router = APIRouter()
 
 
+
+@router.get("/{org_slug}/public")
+async def get_public_organization(org_slug: str):
+    """
+    Get public organization details by slug (ID, name, logo)
+    No authentication required. Used for context resolution.
+    """
+    try:
+        response = supabase.table("organizations").select("id, name, slug, logo_url").eq("slug", org_slug).single().execute()
+        
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Organization not found")
+            
+        return response.data
+        
+    except Exception as e:
+        logger.error(f"Error fetching public org details: {e}")
+        raise HTTPException(status_code=404, detail="Organization not found")
+
 @router.get("/{org_slug}/me", response_model=UserOrgAccess)
 async def get_user_org_access(org_slug: str, user_id: str):
     """

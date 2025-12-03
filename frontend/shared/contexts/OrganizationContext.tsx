@@ -39,7 +39,6 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
     const router = useRouter();
 
     useEffect(() => {
-        // 1. Si pas de slug, on ne fait rien
         if (!orgSlug) {
             setIsLoading(false);
             return;
@@ -47,51 +46,42 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
 
         const fetchOrganizationData = async () => {
             try {
-                // 2. Stratégie Cache : On regarde si on l'a déjà
-                const cachedSlug = localStorage.getItem('sigment_org_slug');
-                const cachedId = localStorage.getItem('sigment_org_id');
-                const cachedRole = localStorage.getItem('sigment_user_role');
-
-                if (cachedId && cachedSlug === orgSlug && cachedRole) {
-                    setOrganizationId(cachedId);
-                    setUserRole(cachedRole);
-                    // On set une org partielle pour que withRole ne plante pas
-                    setOrganization({ id: cachedId, slug: orgSlug, name: orgSlug });
-                    setIsLoading(false);
-                    // On continue quand même pour rafraîchir les données fraîches (SWR)
-                }
-
-                const userId = localStorage.getItem('sigment_user_id');
-                if (!userId) {
-                    // Si pas de user, on ne peut pas récupérer le rôle.
-                    setIsLoading(false);
-                    return;
-                }
-
-                // 3. Stratégie Réseau : On appelle l'API pour avoir Org + Role
-                const data = await apiClient.get<any>(
-                    `/organizations/${orgSlug}/me?user_id=${userId}`,
-                    {},
-                    { userId } // Auth headers
+                // 1. Always fetch public organization details first to ensure we have the ID
+                // This is critical for the X-Organization-ID header in subsequent requests
+                const orgData = await apiClient.get<Organization>(
+                    `/organizations/${orgSlug}/public`
                 );
 
-                if (data && data.organization) {
-                    setOrganizationId(data.organization.id);
-                    setOrganization(data.organization);
-                    setUserRole(data.role);
+                if (orgData && orgData.id) {
+                    setOrganizationId(orgData.id);
+                    setOrganization(orgData);
 
-                    // Mise à jour du cache
-                    localStorage.setItem('sigment_org_id', data.organization.id);
+                    // Update cache
+                    localStorage.setItem('sigment_org_id', orgData.id);
                     localStorage.setItem('sigment_org_slug', orgSlug);
-                    localStorage.setItem('sigment_user_role', data.role);
+                } else {
+                    throw new Error('Organization not found');
+                }
+
+                // 2. If we have a user, fetch their role
+                const userId = localStorage.getItem('sigment_user_id');
+                if (userId) {
+                    const accessData = await apiClient.get<any>(
+                        `/organizations/${orgSlug}/me?user_id=${userId}`,
+                        {},
+                        { userId }
+                    );
+
+                    if (accessData && accessData.role) {
+                        setUserRole(accessData.role);
+                        localStorage.setItem('sigment_user_role', accessData.role);
+                    }
                 }
             } catch (error) {
                 console.error("Error fetching organization data", error);
-                // En cas d'erreur critique (404), on redirige
-                if (error instanceof Error) {
-                    if (error.message.includes('404')) {
-                        router.push('/404');
-                    }
+                // Only redirect on 404 (Org not found), not on auth errors
+                if (error instanceof Error && error.message.includes('404')) {
+                    router.push('/404');
                 }
             } finally {
                 setIsLoading(false);

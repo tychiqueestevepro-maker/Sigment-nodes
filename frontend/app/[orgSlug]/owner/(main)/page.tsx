@@ -144,8 +144,11 @@ export default function HomePage() {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
             </div>
           ) : error ? (
-            <div className="text-center py-12 text-red-500">
-              Unable to load feed. Please try again later.
+            <div className="text-center py-12">
+              <div className="text-red-500 font-medium mb-2">Unable to load feed</div>
+              <div className="text-sm text-gray-500 bg-gray-100 p-2 rounded inline-block">
+                {error instanceof Error ? error.message : 'Unknown error'}
+              </div>
             </div>
           ) : (
             <div className="space-y-6">
