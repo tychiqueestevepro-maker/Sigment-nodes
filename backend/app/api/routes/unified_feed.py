@@ -170,8 +170,104 @@ async def get_unified_feed(
         )
         
     except Exception as e:
-        logger.error(f"❌ Error fetching unified feed: {e}")
-        raise
+        logger.warning(f"⚠️ RPC 'get_unified_feed' failed or missing: {e}. Falling back to manual fetch.")
+        
+        # ============================================
+        # FALLBACK: Manual Fetch & Merge
+        # ============================================
+        try:
+            # 1. Fetch Posts
+            posts_response = supabase.table("posts").select(
+                "*, users:user_id(first_name, last_name, avatar_url)"
+            ).eq("organization_id", organization_id).order("created_at", desc=True).limit(limit).execute()
+            
+            posts = posts_response.data or []
+            
+            # 2. Fetch Notes (Orphans or Mine)
+            notes_response = supabase.table("notes").select(
+                "*, pillars(name, color)"
+            ).eq("organization_id", organization_id).order("created_at", desc=True).limit(limit).execute()
+            
+            notes = notes_response.data or []
+            
+            # 3. Fetch Clusters
+            clusters_response = supabase.table("clusters").select(
+                "*"
+            ).eq("organization_id", organization_id).order("last_updated_at", desc=True).limit(limit).execute()
+            
+            clusters = clusters_response.data or []
+            
+            # 4. Merge & Transform
+            items = []
+            
+            for p in posts:
+                items.append(PostFeedItem(
+                    type="POST",
+                    id=str(p.get("id")),
+                    content=p.get("content", ""),
+                    post_type=p.get("post_type", "standard"),
+                    user_id=str(p.get("user_id")),
+                    user_info=p.get("users"),
+                    likes_count=p.get("likes_count", 0),
+                    comments_count=p.get("comments_count", 0),
+                    is_mine=str(p.get("user_id")) == user_id,
+                    created_at=p.get("created_at"),
+                    sort_date=p.get("created_at")
+                ))
+                
+            for n in notes:
+                items.append(NoteFeedItem(
+                    type="NOTE",
+                    id=str(n.get("id")),
+                    content=n.get("content", ""),
+                    content_raw=n.get("content_raw"),
+                    content_clarified=n.get("content_clarified"),
+                    status=n.get("status", "active"),
+                    cluster_id=str(n.get("cluster_id")) if n.get("cluster_id") else None,
+                    pillar_id=str(n.get("pillar_id")) if n.get("pillar_id") else None,
+                    pillar_name=n.get("pillars", {}).get("name") if n.get("pillars") else None,
+                    pillar_color=n.get("pillars", {}).get("color") if n.get("pillars") else None,
+                    ai_relevance_score=n.get("ai_relevance_score"),
+                    user_id=str(n.get("user_id")),
+                    is_mine=str(n.get("user_id")) == user_id,
+                    created_at=n.get("created_at"),
+                    processed_at=n.get("processed_at"),
+                    sort_date=n.get("created_at")
+                ))
+                
+            for c in clusters:
+                items.append(ClusterFeedItem(
+                    type="CLUSTER",
+                    id=str(c.get("id")),
+                    title=c.get("title", "Untitled Cluster"),
+                    note_count=c.get("note_count", 0),
+                    velocity_score=c.get("velocity_score", 0.0),
+                    pillar_id=str(c.get("pillar_id")) if c.get("pillar_id") else None,
+                    pillar_name=c.get("pillar_name"),
+                    pillar_color=c.get("pillar_color"),
+                    created_at=c.get("created_at"),
+                    last_updated_at=c.get("last_updated_at"),
+                    preview_notes=[], # Can't easily fetch preview notes in fallback without N+1
+                    sort_date=c.get("last_updated_at")
+                ))
+            
+            # 5. Sort by Date DESC
+            items.sort(key=lambda x: x.sort_date, reverse=True)
+            
+            # 6. Apply Limit
+            items = items[:limit]
+            
+            logger.info(f"✅ Unified feed fetched (FALLBACK): {len(items)} items")
+            
+            return UnifiedFeedResponse(
+                items=items,
+                total_count=len(items),
+                stats={}
+            )
+            
+        except Exception as fallback_error:
+            logger.error(f"❌ Fallback fetch failed: {fallback_error}")
+            raise e # Raise original error if fallback also fails
 
 
 # ============================================

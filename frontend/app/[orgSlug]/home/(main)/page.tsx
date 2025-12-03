@@ -6,16 +6,18 @@ import {
   Send,
   BarChart2,
   Calendar,
+  MessageSquare,
+  Heart,
+  Share2,
+  MoreHorizontal,
   Search,
   Folder,
   ChevronRight,
-  Layers,
 } from 'lucide-react';
+import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
+import { apiClient } from '../../../../shared/lib/api-client';
 import { useApiClient } from '../../../../shared/hooks/useApiClient';
-import { FeedItem } from '@/types/feed';
-import { FeedItemRenderer } from '@/components/feed/FeedItemRenderer';
-import { useFeed } from '../../../../shared/hooks/useFeed';
 
 // Image Plus icon inline
 const ImagePlus = ({ size }: { size: number }) => (
@@ -36,6 +38,20 @@ const SparklesIcon = () => (
   </svg>
 );
 
+interface Post {
+  id: string;
+  author: string;
+  role: string;
+  avatar: string;
+  color: string;
+  time: string;
+  category: string;
+  content: string;
+  likes: number;
+  comments: number;
+  impact: string;
+}
+
 interface GalaxyFolder {
   id: string;
   name: string;
@@ -48,7 +64,15 @@ export default function HomePage() {
   const queryClient = useQueryClient();
   const api = useApiClient();
 
-  const { items: feedItems, isLoading, error } = useFeed();
+  // Fetch unified feed (posts + clusters + notes)
+  const { data: feedData, isLoading, error } = useQuery({
+    queryKey: ['unifiedFeed'],
+    queryFn: async () => {
+      return await api.get<{ items: any[]; total_count: number }>('/feed/unified/');
+    },
+    refetchInterval: 30000,
+    retry: 1,
+  });
 
   // Fetch pillars for sidebar
   const { data: pillarsData = [] } = useQuery({
@@ -58,11 +82,74 @@ export default function HomePage() {
     },
   });
 
+  // Helper function for avatar colors (assuming a simple rotating scheme)
+  const getAvatarColor = (idx: number) => {
+    const colors = [
+      'bg-blue-100 text-blue-700',
+      'bg-green-100 text-green-700',
+      'bg-purple-100 text-purple-700',
+      'bg-yellow-100 text-yellow-700',
+      'bg-red-100 text-red-700',
+    ];
+    return colors[idx % colors.length];
+  };
+
+  // Transform unified feed items to posts format for UI
+  const posts: Post[] = (feedData?.items || []).map((item: any, idx: number) => {
+    if (item.type === 'POST') {
+      // Standard post from feed
+      return {
+        id: item.id,
+        author: item.user_info?.first_name || 'Anonymous',
+        role: 'Team Member',
+        avatar: (item.user_info?.first_name?.[0] || 'U').toUpperCase(),
+        color: getAvatarColor(idx),
+        time: new Date(item.created_at).toLocaleDateString(),
+        category: 'UPDATE',
+        content: item.content,
+        likes: item.likes_count || 0,
+        comments: item.comments_count || 0,
+        impact: 'Posted',
+      };
+    } else if (item.type === 'CLUSTER') {
+      // Cluster (group of ideas)
+      return {
+        id: item.id,
+        author: 'Board Member',
+        role: 'Strategic Team',
+        avatar: 'BM',
+        color: 'bg-blue-100 text-blue-700',
+        time: new Date(item.last_updated_at).toLocaleDateString(),
+        category: item.pillar_name || 'GENERAL',
+        content: item.title,
+        likes: Math.floor(item.note_count || 0),
+        comments: Math.floor(item.velocity_score || 0) % 20,
+        impact: item.velocity_score > 75 ? 'High Impact' : item.velocity_score > 50 ? 'Medium Impact' : 'Low Impact',
+      };
+    } else if (item.type === 'NOTE') {
+      // Orphan note (idea not yet clustered)
+      return {
+        id: item.id,
+        author: item.is_mine ? 'You' : 'Team Member',
+        role: 'Contributor',
+        avatar: 'N',
+        color: 'bg-purple-100 text-purple-700',
+        time: new Date(item.created_at).toLocaleDateString(),
+        category: item.pillar_name || 'UNCATEGORIZED',
+        content: item.content_clarified || item.content,
+        likes: 0,
+        comments: 0,
+        impact: 'New Idea',
+      };
+    }
+    return null;
+  }).filter(Boolean) as Post[];
+
   // Transform pillars to galaxy folders
   const galaxyFolders: GalaxyFolder[] = pillarsData.map((pillar: any) => ({
     id: pillar.id,
     name: pillar.name,
-    count: (feedItems || []).filter((item: any) => item.pillar_id === pillar.id).length,
+    count: (feedData?.items || []).filter((item: any) => item.pillar_id === pillar.id).length,
     color: getColorForPillar(pillar.name),
   }));
 
@@ -73,6 +160,8 @@ export default function HomePage() {
     }
 
     try {
+      // Utilisation du nouveau client API centralisé
+      // Plus besoin de gérer manuellement les headers ou les IDs !
       await api.post('/feed/posts', {
         content: noteContent,
         post_type: 'standard',
@@ -143,25 +232,67 @@ export default function HomePage() {
             <div className="flex items-center justify-center h-96">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
             </div>
-          ) : error ? (
-            <div className="text-center py-12 text-red-500">
-              Unable to load feed. Please try again later.
-            </div>
           ) : (
             <div className="space-y-6">
-              {feedItems.map((item) => (
-                <FeedItemRenderer key={item.id} item={item} />
-              ))}
-
-              {(!feedItems || feedItems.length === 0) && (
-                <div className="text-center py-12 bg-white rounded-xl border border-gray-200 shadow-sm">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Layers className="text-gray-400" size={32} />
+              {posts.map((post) => (
+                <div
+                  key={post.id}
+                  className="bg-white rounded-[2.5rem] p-1 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300"
+                >
+                  <div className="p-6 pb-2">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm ${post.color}`}>
+                          {post.avatar}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-gray-900">{post.author}</h3>
+                            <span className="text-gray-400 text-xs">• {post.time}</span>
+                          </div>
+                          <p className="text-xs text-gray-500 font-medium">{post.role}</p>
+                        </div>
+                      </div>
+                      <button className="text-gray-400 hover:text-gray-900">
+                        <MoreHorizontal size={20} />
+                      </button>
+                    </div>
+                    <div className="pl-16 pr-4 mb-4">
+                      <div className="inline-block px-3 py-1 bg-gray-100 rounded-full text-[10px] font-bold text-gray-600 uppercase tracking-wide mb-2">
+                        {post.category}
+                      </div>
+                      <p className="text-gray-800 text-lg font-medium leading-relaxed">
+                        {post.content}
+                      </p>
+                    </div>
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900">Your feed is empty</h3>
-                  <p className="text-gray-500 mt-1">Start by creating notes or clusters.</p>
+                  <div className="mx-2 mb-2 bg-gray-50 rounded-[2rem] px-6 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-6">
+                      <button className="flex items-center gap-2 text-gray-500 hover:text-blue-600 transition-colors group">
+                        <div className="p-2 group-hover:bg-blue-100 rounded-full transition-colors">
+                          <MessageSquare size={18} />
+                        </div>
+                        <span className="text-sm font-medium">{post.comments}</span>
+                      </button>
+                      <button className="flex items-center gap-2 text-gray-500 hover:text-pink-600 transition-colors group">
+                        <div className="p-2 group-hover:bg-pink-100 rounded-full transition-colors">
+                          <Heart size={18} />
+                        </div>
+                        <span className="text-sm font-medium">{post.likes}</span>
+                      </button>
+                      <button className="flex items-center gap-2 text-gray-500 hover:text-green-600 transition-colors group">
+                        <div className="p-2 group-hover:bg-green-100 rounded-full transition-colors">
+                          <BarChart2 size={18} />
+                        </div>
+                        <span className="text-xs font-bold uppercase">{post.impact}</span>
+                      </button>
+                    </div>
+                    <button className="text-gray-400 hover:text-gray-900 p-2 hover:bg-gray-200 rounded-full transition-colors">
+                      <Share2 size={18} />
+                    </button>
+                  </div>
                 </div>
-              )}
+              ))}
             </div>
           )}
         </div>

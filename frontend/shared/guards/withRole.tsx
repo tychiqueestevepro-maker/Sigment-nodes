@@ -18,20 +18,28 @@ export function withRole<P extends object>(
         const router = useRouter()
 
         useEffect(() => {
-            if (!isLoading && userRole && userRole !== requiredRole) {
-                // Redirect to user's correct space based on their role
-                let redirectPath: string;
-
-                if (userRole === 'OWNER') {
-                    redirectPath = `/${organization?.slug}/owner`;
-                } else if (userRole === 'BOARD') {
-                    redirectPath = `/${organization?.slug}/board`;
-                } else {
-                    redirectPath = `/${organization?.slug}/member`;
+            if (!isLoading) {
+                if (!userRole) {
+                    // Si pas de rôle après chargement, on redirige vers login ou 403
+                    // Mais on laisse AuthGuard gérer si c'est un problème d'auth
+                    return;
                 }
 
-                console.warn(`Access denied. Required role: ${requiredRole}, User role: ${userRole}`);
-                router.push(redirectPath);
+                if (userRole !== requiredRole) {
+                    // Redirect to user's correct space based on their role
+                    let redirectPath: string;
+
+                    if (userRole === 'OWNER') {
+                        redirectPath = `/${organization?.slug}/owner`;
+                    } else if (userRole === 'BOARD') {
+                        redirectPath = `/${organization?.slug}/board`;
+                    } else {
+                        redirectPath = `/${organization?.slug}/member`;
+                    }
+
+                    console.warn(`Access denied. Required role: ${requiredRole}, User role: ${userRole}`);
+                    router.push(redirectPath);
+                }
             }
         }, [userRole, isLoading, organization, router])
 
@@ -41,6 +49,11 @@ export function withRole<P extends object>(
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
                 </div>
             )
+        }
+
+        // Si pas de rôle, on n'affiche rien ou un message d'erreur, pour éviter de flasher le contenu protégé
+        if (!userRole) {
+            return null; // Ou <div className="p-8 text-center">Checking permissions...</div>
         }
 
         if (userRole !== requiredRole) {
