@@ -5,7 +5,7 @@ Anti-Bruit logic: Only orphan notes + my notes + active clusters
 from typing import List, Union, Literal, Optional
 from datetime import datetime
 from pydantic import BaseModel, Field
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException, status
 from loguru import logger
 
 from app.api.dependencies import get_current_user, get_supabase_client
