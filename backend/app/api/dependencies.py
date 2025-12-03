@@ -41,6 +41,16 @@ class CurrentUser(BaseModel):
         return self.role.upper() == "MEMBER"
 
 
+from async_lru import alru_cache
+
+@alru_cache(maxsize=1000, ttl=60)  # Cache for 60 seconds
+async def get_cached_user(token: str):
+    """
+    Cached wrapper for Supabase Auth getUser
+    Reduces API calls for frequent requests from the same user
+    """
+    return supabase.auth.get_user(token)
+
 async def get_current_user(
     request: Request,
     authorization: str = Header(None)
@@ -49,7 +59,7 @@ async def get_current_user(
     Dependency to get the current authenticated user from JWT token
     
     SECURITY ENFORCED:
-    1. Validates 'Authorization: Bearer <token>' via Supabase Auth
+    1. Validates 'Authorization: Bearer <token>' via Supabase Auth (Cached 60s)
     2. Extracts user_id from verified token claims
     3. Resolves Organization Context from Path Param OR Header (Verified)
     4. Verifies membership in the target organization
@@ -78,8 +88,8 @@ async def get_current_user(
                 detail="Invalid authentication scheme"
             )
             
-        # Use Supabase Auth to get user from token
-        user_response = supabase.auth.get_user(token)
+        # Use Cached Supabase Auth to get user from token
+        user_response = await get_cached_user(token)
         
         if not user_response or not user_response.user:
             raise HTTPException(
