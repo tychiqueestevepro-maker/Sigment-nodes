@@ -83,6 +83,9 @@ async def signup(data: SignupRequest):
         try:
             rpc_response = supabase.rpc("create_organization_and_owner", {
                 "p_user_id": user_id,
+                "p_email": data.email,
+                "p_first_name": data.first_name,
+                "p_last_name": data.last_name,
                 "p_org_slug": data.organization_slug,
                 "p_org_name": data.organization_name,
                 "p_job_title": data.job_title
