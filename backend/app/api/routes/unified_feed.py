@@ -87,7 +87,7 @@ class UnifiedFeedResponse(BaseModel):
 @router.get("/", response_model=UnifiedFeedResponse)
 async def get_unified_feed(
     limit: int = Query(default=50, ge=1, le=100, description="Nombre d'items à retourner"),
-    current_user: dict = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     supabase = Depends(get_supabase_client)
 ):
     """
@@ -100,15 +100,13 @@ async def get_unified_feed(
     
     **Tri :** Par dernière activité (DESC)
     """
+    organization_id = str(current_user.organization_id)
+    user_id = str(current_user.id)
+    
+    # ============================================
+    # STEP 1: Call Stored Function
+    # ============================================
     try:
-        organization_id = str(current_user.organization_id)
-        user_id = str(current_user.id)
-        
-
-        
-        # ============================================
-        # STEP 1: Call Stored Function
-        # ============================================
         feed_response = supabase.rpc(
             "get_unified_feed",
             {
@@ -117,42 +115,49 @@ async def get_unified_feed(
                 "p_limit": limit
             }
         ).execute()
+    except Exception as e:
+        logger.error(f"❌ RPC 'get_unified_feed' failed: {e}")
+        # Fail Fast: Return 500 with clear error
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database error fetching feed: {str(e)}"
+        )
+    
+    if not feed_response.data:
+        return UnifiedFeedResponse(items=[], total_count=0)
+    
+    # ============================================
+    # STEP 2: Parse Polymorphic Items
+    # ============================================
+    items = []
+    
+    for raw_item in feed_response.data:
+        item_type = raw_item["type"]
+        item_data = raw_item["data"]
+        item_data["sort_date"] = raw_item["sort_date"]
         
-        if not feed_response.data:
-
-            return UnifiedFeedResponse(items=[], total_count=0)
-        
-        # ============================================
-        # STEP 2: Parse Polymorphic Items
-        # ============================================
-        items = []
-        
-        for raw_item in feed_response.data:
-            item_type = raw_item["type"]
-            item_data = raw_item["data"]
-            item_data["sort_date"] = raw_item["sort_date"]
-            
-            if item_type == "CLUSTER":
-                items.append(ClusterFeedItem(
-                    type="CLUSTER",
-                    **item_data
-                ))
-            elif item_type == "NOTE":
-                items.append(NoteFeedItem(
-                    type="NOTE",
-                    **item_data
-                ))
-            elif item_type == "POST":
-                items.append(PostFeedItem(
-                    type="POST",
-                    **item_data
-                ))
-            else:
-                logger.warning(f"Unknown feed item type: {item_type}")
-        
-        # ============================================
-        # STEP 3: Get Feed Stats (Optional)
-        # ============================================
+        if item_type == "CLUSTER":
+            items.append(ClusterFeedItem(
+                type="CLUSTER",
+                **item_data
+            ))
+        elif item_type == "NOTE":
+            items.append(NoteFeedItem(
+                type="NOTE",
+                **item_data
+            ))
+        elif item_type == "POST":
+            items.append(PostFeedItem(
+                type="POST",
+                **item_data
+            ))
+        else:
+            logger.warning(f"Unknown feed item type: {item_type}")
+    
+    # ============================================
+    # STEP 3: Get Feed Stats (Optional)
+    # ============================================
+    try:
         stats_response = supabase.table("v_feed_stats").select("*").eq(
             "organization_id", organization_id
         ).execute()
@@ -160,21 +165,15 @@ async def get_unified_feed(
         stats = {}
         if stats_response.data and len(stats_response.data) > 0:
             stats = stats_response.data[0]
-        
-
-        
-        return UnifiedFeedResponse(
-            items=items,
-            total_count=len(items),
-            stats=stats
-        )
-        
     except Exception as e:
-        logger.error(f"❌ RPC 'get_unified_feed' failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch feed data"
-        )
+        logger.warning(f"⚠️ Failed to fetch feed stats: {e}")
+        stats = {}
+    
+    return UnifiedFeedResponse(
+        items=items,
+        total_count=len(items),
+        stats=stats
+    )
 
 
 # ============================================
