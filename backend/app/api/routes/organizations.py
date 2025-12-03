@@ -213,7 +213,7 @@ async def get_user_organizations(user_id: str) -> List[MembershipWithOrg]:
                 "joined_at": membership["joined_at"]
             })
         
-        logger.info(f"Retrieved {len(user_orgs)} organizations for user {user_id}")
+
         return user_orgs
         
     except Exception as e:
@@ -253,7 +253,7 @@ async def create_organization(
             "job_title": job_title
         }).execute()
         
-        logger.info(f"Created organization {org.slug} with creator {creator_user_id}")
+
         return new_org
         
     except Exception as e:

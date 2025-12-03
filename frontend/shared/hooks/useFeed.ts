@@ -19,7 +19,6 @@ export function useFeed(): UseFeedResult {
         queryFn: async () => {
             if (!organizationId) return { items: [], total_count: 0 };
             const response = await apiClient.get<{ items: FeedItem[]; total_count: number }>('/feed/unified/');
-            console.log('Feed data received:', response.items?.length || 0);
             return response;
         },
         enabled: !!organizationId,

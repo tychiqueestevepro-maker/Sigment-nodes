@@ -43,13 +43,8 @@ export function AuthGuard({
             return;
         }
 
-        // Log auth status for debugging
-        if (isAuthenticated) {
-            console.log('✅ Auth Guard: User authenticated', {
-                userId,
-                organizationId,
-            });
-        }
+        // Log auth status for debugging - REMOVED for production
+
     }, [isAuthenticated, requireAuth, router, redirectTo, pathname, userId, organizationId, isLoading]);
 
     // Show loading spinner while checking auth OR loading organization

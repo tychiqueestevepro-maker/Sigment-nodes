@@ -60,7 +60,7 @@ def calculate_virality_score_task(self, post_id: str):
     - Multiplier = Basé sur le score (local, trending, viral, national, global)
     """
     try:
-        logger.info(f"📊 Calculating virality score for post: {post_id}")
+
         
         # ============================================
         # STEP 1: Fetch Post Data
@@ -150,7 +150,7 @@ def calculate_virality_score_task(self, post_id: str):
         boost_newness = 0
         if age_hours < NEWNESS_THRESHOLD_HOURS:
             boost_newness = BOOST_NEWNESS
-            logger.info(f"🚀 Cold Start Boost applied: +{BOOST_NEWNESS} points (age: {age_hours:.2f}h)")
+
         
         # Score avec boost
         score_with_boost = engagement_score + boost_newness
@@ -202,7 +202,7 @@ def calculate_virality_score_task(self, post_id: str):
         # ============================================
         update_tag_trend_scores_task.delay(post_id)
         
-        logger.info(f"✅ Virality score updated for post {post_id}")
+
         
         return {
             "status": "success",
@@ -230,7 +230,7 @@ def update_tag_trend_scores_task(post_id: str):
     Trend Score = Moyenne des virality_scores des posts avec ce tag
     """
     try:
-        logger.info(f"🏷️ Updating tag trend scores for post: {post_id}")
+
         
         # ============================================
         # STEP 1: Get Post Tags
@@ -240,7 +240,7 @@ def update_tag_trend_scores_task(post_id: str):
         ).eq("post_id", post_id).execute()
         
         if not post_tags_response.data or len(post_tags_response.data) == 0:
-            logger.info(f"No tags found for post {post_id}")
+
             return
         
         # ============================================
@@ -272,9 +272,9 @@ def update_tag_trend_scores_task(post_id: str):
                 "updated_at": "now()"
             }).eq("id", tag_id).execute()
             
-            logger.info(f"Updated tag '{tag['name']}' trend score: {trend_score:.2f}")
+
         
-        logger.info(f"✅ Tag trend scores updated for post {post_id}")
+
         
         return {"status": "success", "post_id": post_id}
         
@@ -294,7 +294,7 @@ def recalculate_all_virality_scores_task(organization_id: Optional[str] = None):
     Optionnel: Filtrer par organization_id
     """
     try:
-        logger.info(f"🔄 Recalculating all virality scores (org: {organization_id or 'ALL'})")
+
         
         # Build query
         query = supabase.table("posts").select("id")
@@ -314,7 +314,7 @@ def recalculate_all_virality_scores_task(organization_id: Optional[str] = None):
             calculate_virality_score_task.delay(post["id"])
             count += 1
         
-        logger.info(f"✅ Queued {count} virality score calculations")
+
         
         return {"status": "success", "count": count}
         
@@ -333,4 +333,4 @@ def trigger_virality_recalculation(post_id: str):
     À appeler depuis les endpoints d'engagement
     """
     calculate_virality_score_task.delay(post_id)
-    logger.info(f"🔔 Virality recalculation triggered for post {post_id}")
+

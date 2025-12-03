@@ -57,9 +57,6 @@ export default function MemberHomePage() {
                 // Generate a UUID v4 for this user
                 const newUserId = crypto.randomUUID();
                 localStorage.setItem('sigment_user_id', newUserId);
-                console.log('✅ User ID initialized:', newUserId);
-            } else {
-                console.log('✅ Using existing User ID:', existingUserId);
             }
         }
     }, []);

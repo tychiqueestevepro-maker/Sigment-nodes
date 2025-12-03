@@ -104,7 +104,7 @@ async def get_unified_feed(
         organization_id = str(current_user.organization_id)
         user_id = str(current_user.id)
         
-        logger.info(f"📊 Fetching unified feed for user {user_id} (org: {organization_id})")
+
         
         # ============================================
         # STEP 1: Call Stored Function
@@ -119,7 +119,7 @@ async def get_unified_feed(
         ).execute()
         
         if not feed_response.data:
-            logger.info("No items in unified feed")
+
             return UnifiedFeedResponse(items=[], total_count=0)
         
         # ============================================
@@ -161,7 +161,7 @@ async def get_unified_feed(
         if stats_response.data and len(stats_response.data) > 0:
             stats = stats_response.data[0]
         
-        logger.info(f"✅ Unified feed fetched: {len(items)} items")
+
         
         return UnifiedFeedResponse(
             items=items,
@@ -257,7 +257,7 @@ async def get_unified_feed(
             # 6. Apply Limit
             items = items[:limit]
             
-            logger.info(f"✅ Unified feed fetched (FALLBACK): {len(items)} items")
+
             
             return UnifiedFeedResponse(
                 items=items,
