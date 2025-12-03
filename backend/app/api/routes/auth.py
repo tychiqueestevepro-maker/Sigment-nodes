@@ -109,6 +109,40 @@ async def signup(data: SignupRequest):
                 detail="Failed to create organization. Please try again."
             )
         
+        # 4. Create default pillars explicitly (Reliable fallback if trigger fails)
+        try:
+            default_pillars = [
+                {"name": "Product", "description": "Product development, features, and roadmap", "color": "#3B82F6"},
+                {"name": "Marketing", "description": "Marketing campaigns, strategies, and brand", "color": "#EF4444"},
+                {"name": "Operations", "description": "Business operations, processes, and efficiency", "color": "#10B981"},
+                {"name": "Finance", "description": "Financial planning, budgets, and revenue", "color": "#F59E0B"},
+                {"name": "People", "description": "Team, culture, hiring, and HR", "color": "#8B5CF6"},
+                {"name": "Uncategorized", "description": "Ideas that could not be categorized into existing pillars (relevance score < 4/10)", "color": "#9CA3AF"}
+            ]
+            
+            pillars_data = []
+            for p in default_pillars:
+                pillars_data.append({
+                    "organization_id": new_org["id"],
+                    "name": p["name"],
+                    "description": p["description"],
+                    "color": p["color"]
+                })
+            
+            # Check if pillars already exist (in case trigger worked)
+            existing_pillars = supabase.table("pillars").select("id").eq("organization_id", new_org["id"]).execute()
+            
+            if not existing_pillars.data:
+                supabase.table("pillars").insert(pillars_data).execute()
+                logger.info(f"✅ Created {len(pillars_data)} default pillars for org {new_org['slug']}")
+            else:
+                logger.info(f"ℹ️ Pillars already exist for org {new_org['slug']} (likely via trigger)")
+                
+        except Exception as e:
+            logger.error(f"⚠️ Failed to create default pillars: {e}")
+            # Don't fail signup for this, but log it
+
+        
         # 5. Get the real JWT access token from Supabase Auth
         access_token = auth_response.session.access_token if auth_response.session else None
         

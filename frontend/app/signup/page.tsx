@@ -34,6 +34,10 @@ export default function SignupPage() {
             setError('Please fill in all fields');
             return;
         }
+        if (formData.password.length < 8) {
+            setError('Password must be at least 8 characters long');
+            return;
+        }
         setError('');
         setStep(2);
     };

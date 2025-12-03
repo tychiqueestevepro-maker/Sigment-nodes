@@ -236,9 +236,17 @@ export default function MemberHomePage() {
 
 // Helper functions
 function getColorForPillar(pillarName: string): string {
+    const name = pillarName.toLowerCase();
+
+    if (name.includes('product')) return 'bg-blue-100 text-blue-600';
+    if (name.includes('marketing')) return 'bg-red-100 text-red-600';
+    if (name.includes('operations')) return 'bg-green-100 text-green-600';
+    if (name.includes('finance')) return 'bg-yellow-100 text-yellow-600';
+    if (name.includes('people') || name.includes('hr')) return 'bg-purple-100 text-purple-600';
+    if (name.includes('uncategorized')) return 'bg-gray-100 text-gray-500';
+
     const colors: Record<string, string> = {
         'Customer Experience': 'bg-pink-100 text-pink-500',
-        'Operations': 'bg-orange-100 text-orange-500',
         'Innovation Strategy': 'bg-purple-100 text-purple-500',
         'Workplace Environment': 'bg-blue-100 text-blue-500',
         'ESG': 'bg-teal-100 text-teal-500',

@@ -143,8 +143,10 @@ async def get_pillars(current_user: CurrentUser = Depends(get_current_user)):
         # Note: This counts ALL notes in the pillar, not just "active" ones if we don't filter.
         # Ideally we filter by status='active' or 'processed'.
         # Supabase syntax for count in select: notes(count)
+        # Select pillars and count of associated notes
+        # We use explicit select with count to get the number of notes per pillar
         response = supabase.table("pillars").select(
-            "id, name, description, color"
+            "id, name, description, color, notes(count)"
         ).eq("organization_id", organization_id).order("created_at", desc=False).execute()
         
         if not response.data:
