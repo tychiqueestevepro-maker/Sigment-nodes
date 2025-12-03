@@ -79,48 +79,32 @@ async def signup(data: SignupRequest):
         user_id = auth_response.user.id
         logger.info(f"Created Supabase Auth user: {data.email}")
         
-        # 3. Create organization
-        org_response = supabase.table("organizations").insert({
-            "slug": data.organization_slug,
-            "name": data.organization_name,
-            "description": f"{data.organization_name}'s workspace"
-        }).execute()
-        
-        if not org_response.data:
-            # Rollback: delete auth user if org creation fails
+        # 3. Create organization and owner membership atomically via RPC
+        try:
+            rpc_response = supabase.rpc("create_organization_and_owner", {
+                "p_user_id": user_id,
+                "p_org_slug": data.organization_slug,
+                "p_org_name": data.organization_name,
+                "p_job_title": data.job_title
+            }).execute()
+            
+            if not rpc_response.data:
+                 raise Exception("RPC returned no data")
+                 
+            new_org = rpc_response.data
+            logger.info(f"Created organization {new_org['slug']} and owner membership for user {user_id}")
+            
+        except Exception as e:
+            # Rollback: delete auth user if RPC fails
+            logger.error(f"Failed to create organization/membership via RPC: {e}")
             try:
                 supabase.auth.admin.delete_user(user_id)
             except:
                 pass
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create organization"
+                detail="Failed to create organization. Please try again."
             )
-        
-        new_org = org_response.data[0]
-        logger.info(f"Created organization: {new_org['slug']}")
-        
-        # 4. Create OWNER membership
-        membership_response = supabase.table("memberships").insert({
-            "user_id": user_id,
-            "organization_id": new_org["id"],
-            "role": "OWNER",
-            "job_title": data.job_title
-        }).execute()
-        
-        if not membership_response.data:
-            # Rollback: delete org and auth user if membership creation fails
-            supabase.table("organizations").delete().eq("id", new_org["id"]).execute()
-            try:
-                supabase.auth.admin.delete_user(user_id)
-            except:
-                pass
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create membership"
-            )
-        
-        logger.info(f"Created OWNER membership for user {user_id} in org {new_org['id']}")
         
         # 5. Get the real JWT access token from Supabase Auth
         access_token = auth_response.session.access_token if auth_response.session else None
