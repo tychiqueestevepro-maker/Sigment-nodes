@@ -41,75 +41,86 @@ class CurrentUser(BaseModel):
 
 
 async def get_current_user(
-    x_user_id: Optional[str] = Header(None),
+    authorization: Optional[str] = Header(None),
     x_organization_id: Optional[str] = Header(None)
 ) -> CurrentUser:
     """
-    Dependency to get the current authenticated user from headers
+    Dependency to get the current authenticated user from JWT token
     
-    In production, this should:
-    1. Validate JWT token from Authorization header
-    2. Extract user_id and organization_id from the token
-    3. Verify token signature and expiration
-    
-    For now, we use simple headers for development:
-    - X-User-Id: UUID of the user
-    - X-Organization-Id: UUID of the organization
+    SECURITY ENFORCED:
+    1. Validates 'Authorization: Bearer <token>' via Supabase Auth
+    2. Extracts user_id from verified token claims
+    3. Verifies membership in the requested organization
     
     Raises:
-        HTTPException: 401 if authentication fails
+        HTTPException: 401 if token is invalid or missing
+        HTTPException: 403 if user is not a member of the organization
     """
-    if not x_user_id or not x_organization_id:
+    if not authorization:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing authentication headers (X-User-Id, X-Organization-Id)"
+            detail="Missing Authorization header"
+        )
+    
+    if not x_organization_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing X-Organization-Id header"
         )
     
     try:
-        user_id = UUID(x_user_id)
+        # 1. Validate JWT Token
+        scheme, token = authorization.split()
+        if scheme.lower() != 'bearer':
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authentication scheme"
+            )
+            
+        # Use Supabase Auth to get user from token
+        # This validates the signature and expiration against Supabase's keys
+        user_response = supabase.auth.get_user(token)
+        
+        if not user_response or not user_response.user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired token"
+            )
+            
+        user_id = UUID(user_response.user.id)
+        email = user_response.user.email
         org_id = UUID(x_organization_id)
+        
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid user or organization ID format"
+            detail="Invalid token or header format"
+        )
+    except Exception as e:
+        logger.error(f"Auth validation error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication failed"
         )
     
-    # Fetch user and verify membership - SIMPLIFIED without complex joins
+    # 2. Verify Membership & Organization Access
     try:
-        # 1. Check membership exists
+        # Check membership exists
         membership_response = supabase.table("memberships").select(
             "role, job_title, user_id, organization_id"
         ).eq("user_id", str(user_id)).eq("organization_id", str(org_id)).execute()
         
         if not membership_response.data:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="User not found or not a member of this organization"
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You are not a member of this organization"
             )
         
         membership = membership_response.data[0]
         
-        # 2. Get user data separately
-        user_response = supabase.table("users").select("id, email").eq("id", str(user_id)).execute()
-        if not user_response.data:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="User not found"
-            )
-        user_data = user_response.data[0]
-        
-        # 3. Get organization data separately
-        org_response = supabase.table("organizations").select("id, slug, status").eq("id", str(org_id)).execute()
-        if not org_response.data:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Organization not found"
-            )
-        org_data = org_response.data[0]
-        
         # Check organization status
-        org_status = org_data.get("status", "active")
-        if org_status == "suspended":
+        org_response = supabase.table("organizations").select("status").eq("id", str(org_id)).single().execute()
+        if org_response.data and org_response.data.get("status") == "suspended":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Organization access suspended"
@@ -117,7 +128,7 @@ async def get_current_user(
         
         return CurrentUser(
             id=user_id,
-            email=user_data["email"],
+            email=email,
             organization_id=org_id,
             role=membership["role"],
             job_title=membership.get("job_title", "")
@@ -126,10 +137,10 @@ async def get_current_user(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error fetching user: {e}")
+        logger.error(f"Error fetching user membership: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Authentication failed: {str(e)}"
+            detail="Internal server error during authentication"
         )
 
 

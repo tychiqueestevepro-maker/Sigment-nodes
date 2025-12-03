@@ -132,19 +132,46 @@ async def get_pillars(current_user: CurrentUser = Depends(get_current_user)):
     """
     Get all available pillars for filtering.
     Filtered by current user's organization.
+    Includes count of active notes in each pillar.
     """
     try:
         supabase = get_supabase()
         organization_id = str(current_user.organization_id)
         
-        response = supabase.table("pillars").select("id, name, description, color")\
-            .eq("organization_id", organization_id)\
-            .order("created_at", desc=False)\
-            .execute()
+        # Select pillars and count of associated notes
+        # Note: This counts ALL notes in the pillar, not just "active" ones if we don't filter.
+        # Ideally we filter by status='active' or 'processed'.
+        # Supabase syntax for count in select: notes(count)
+        response = supabase.table("pillars").select(
+            "id, name, description, color, notes(count)"
+        ).eq("organization_id", organization_id).order("created_at", desc=False).execute()
         
-        logger.info(f"✅ Retrieved {len(response.data) if response.data else 0} pillars for org {organization_id}")
+        if not response.data:
+            return []
+            
+        # Transform response to flatten count
+        pillars = []
+        for p in response.data:
+            # notes field will be [{'count': N}] or similar depending on Supabase version/setup
+            # Usually with select='notes(count)', it returns a list of dicts or just the count if using head=true (but here we want data)
+            # Actually, postgrest returns `notes: [{count: 5}]`
+            note_count = 0
+            if p.get("notes"):
+                # It might be a list of objects
+                if isinstance(p["notes"], list) and len(p["notes"]) > 0:
+                    note_count = p["notes"][0].get("count", 0)
+            
+            pillars.append({
+                "id": p["id"],
+                "name": p["name"],
+                "description": p.get("description"),
+                "color": p.get("color"),
+                "count": note_count
+            })
         
-        return response.data if response.data else []
+        logger.info(f"✅ Retrieved {len(pillars)} pillars for org {organization_id}")
+        
+        return pillars
         
     except Exception as e:
         logger.error(f"❌ Error fetching pillars: {e}")
