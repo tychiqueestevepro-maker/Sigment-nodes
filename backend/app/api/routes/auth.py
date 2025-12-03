@@ -41,24 +41,16 @@ class AuthResponse(BaseModel):
 @router.post("/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 async def signup(data: SignupRequest):
     """
-    Create a new user account with organization
+    Create a new user account with organization using Supabase Auth
     
     Flow:
-    1. Create user in users table
+    1. Use Supabase Auth to create user (handles password hashing + JWT)
     2. Create organization
-    3. Create BOARD membership linking user to org
-    4. Return user + org data
+    3. Create OWNER membership linking auth user to org
+    4. Return user + org data + real JWT token
     """
     try:
-        # 1. Check if email already exists
-        existing_user = supabase.table("users").select("id").eq("email", data.email).execute()
-        if existing_user.data:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email already registered"
-            )
-        
-        # 2. Check if org slug is available
+        # 1. Check if org slug is available first
         existing_org = supabase.table("organizations").select("id").eq("slug", data.organization_slug).execute()
         if existing_org.data:
             raise HTTPException(
@@ -66,28 +58,28 @@ async def signup(data: SignupRequest):
                 detail="Organization slug already taken"
             )
         
-        # 3. Create user
-        # Note: In production, you should hash the password using bcrypt/argon2
-        user_id = str(uuid.uuid4())
-        user_response = supabase.table("users").insert({
-            "id": user_id,
+        # 2. Create user via Supabase Auth (handles password hashing automatically)
+        auth_response = supabase.auth.sign_up({
             "email": data.email,
-            "password": data.password,  # TODO: Hash password before storing
-            "first_name": data.first_name,
-            "last_name": data.last_name,
-            "role": "board"  # Required field in DB schema
-        }).execute()
+            "password": data.password,
+            "options": {
+                "data": {
+                    "first_name": data.first_name,
+                    "last_name": data.last_name
+                }
+            }
+        })
         
-        if not user_response.data:
+        if not auth_response.user:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create user"
+                detail="Failed to create user account"
             )
         
-        new_user = user_response.data[0]
-        logger.info(f"Created user: {new_user['email']}")
+        user_id = auth_response.user.id
+        logger.info(f"Created Supabase Auth user: {data.email}")
         
-        # 4. Create organization
+        # 3. Create organization
         org_response = supabase.table("organizations").insert({
             "slug": data.organization_slug,
             "name": data.organization_name,
@@ -95,8 +87,11 @@ async def signup(data: SignupRequest):
         }).execute()
         
         if not org_response.data:
-            # Rollback: delete user if org creation fails
-            supabase.table("users").delete().eq("id", user_id).execute()
+            # Rollback: delete auth user if org creation fails
+            try:
+                supabase.auth.admin.delete_user(user_id)
+            except:
+                pass
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to create organization"
@@ -105,7 +100,7 @@ async def signup(data: SignupRequest):
         new_org = org_response.data[0]
         logger.info(f"Created organization: {new_org['slug']}")
         
-        # 5. Create OWNER membership
+        # 4. Create OWNER membership
         membership_response = supabase.table("memberships").insert({
             "user_id": user_id,
             "organization_id": new_org["id"],
@@ -114,9 +109,12 @@ async def signup(data: SignupRequest):
         }).execute()
         
         if not membership_response.data:
-            # Rollback: delete user and org if membership creation fails
+            # Rollback: delete org and auth user if membership creation fails
             supabase.table("organizations").delete().eq("id", new_org["id"]).execute()
-            supabase.table("users").delete().eq("id", user_id).execute()
+            try:
+                supabase.auth.admin.delete_user(user_id)
+            except:
+                pass
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to create membership"
@@ -124,13 +122,19 @@ async def signup(data: SignupRequest):
         
         logger.info(f"Created OWNER membership for user {user_id} in org {new_org['id']}")
         
-        # 6. Return success response
+        # 5. Get the real JWT access token from Supabase Auth
+        access_token = auth_response.session.access_token if auth_response.session else None
+        
+        if not access_token:
+            logger.warning("No session/token in auth response, user may need to verify email")
+        
+        # 6. Return success response with REAL JWT
         return {
             "user": {
-                "id": new_user["id"],
-                "email": new_user["email"],
-                "first_name": new_user.get("first_name", ""),
-                "last_name": new_user.get("last_name", ""),
+                "id": user_id,
+                "email": data.email,
+                "first_name": data.first_name,
+                "last_name": data.last_name,
                 "role": "OWNER",
                 "job_title": data.job_title
             },
@@ -138,7 +142,9 @@ async def signup(data: SignupRequest):
                 "id": new_org["id"],
                 "slug": new_org["slug"],
                 "name": new_org["name"]
-            }
+            },
+            "access_token": access_token,
+            "redirect_target": "owner"
         }
         
     except HTTPException:
@@ -154,63 +160,59 @@ async def signup(data: SignupRequest):
 @router.post("/login", response_model=AuthResponse)
 async def login(data: LoginRequest):
     """
-    Authenticate user and return user + organization data
+    Authenticate user using Supabase Auth and return user + organization data
     
-    Note: This is a simplified version. In production:
-    - Use proper password hashing (bcrypt/argon2)
-    - Implement JWT tokens
-    - Add session management
+    Uses Supabase Auth Service for password verification and JWT generation.
+    No manual password checking or token generation.
     """
     try:
-        # 1. Find user by email
-        user_response = supabase.table("users").select("*").eq("email", data.email).execute()
+        # 1. Authenticate with Supabase Auth
+        auth_response = supabase.auth.sign_in_with_password({
+            "email": data.email,
+            "password": data.password
+        })
         
-        if not user_response.data:
+        if not auth_response.user or not auth_response.session:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password"
             )
         
-        user = user_response.data[0]
+        user = auth_response.user
+        user_id = user.id
+        email = user.email
         
-        # 2. Verify password (TODO: use proper password hashing)
-        if user["password"] != data.password:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid email or password"
-            )
+        logger.info(f"User {email} authenticated via Supabase Auth")
         
-        # 3. Get user's first organization with status check
+        # 2. Get user's membership (Step 1)
         membership_response = supabase.table("memberships").select(
-            """
-            role,
-            job_title,
-            organizations!inner(*)
-            """
-        ).eq("user_id", user["id"]).limit(1).execute()
+            "organization_id, role, job_title"
+        ).eq("user_id", user_id).limit(1).execute()
         
         if not membership_response.data:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="No organization found for this user"
             )
-        
-        membership = membership_response.data[0]
-        
-        # Handle potential list return for organizations (Supabase quirk)
-        org_data = membership.get("organizations")
-        if isinstance(org_data, list):
-            if not org_data:
-                raise HTTPException(status_code=404, detail="Organization data empty")
-            organization = org_data[0]
-        else:
-            organization = org_data
             
-        if not organization:
-             raise HTTPException(status_code=404, detail="Organization data missing")
+        membership = membership_response.data[0]
+        organization_id = membership["organization_id"]
         
-        # CRITICAL: Check Organization Status
-        # Default to 'active' if status column is missing (backward compatibility)
+        # 3. Get organization details (Step 2)
+        try:
+            org_response = supabase.table("organizations").select("*").eq("id", organization_id).execute()
+            
+            if not org_response.data or len(org_response.data) == 0:
+                raise HTTPException(status_code=404, detail="Organization data missing")
+                
+            organization = org_response.data[0]
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error fetching organization: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to fetch organization: {str(e)}")
+        
+        # 4. Check Organization Status
         org_status = organization.get("status", "active")
         
         if org_status == "suspended":
@@ -220,13 +222,11 @@ async def login(data: LoginRequest):
             )
             
         if org_status == "past_due":
-            # Optional: Warning or block depending on business logic
-            # For now, we allow but maybe log it
             logger.warning(f"Organization {organization.get('slug')} is past due")
 
-        logger.info(f"User {user['email']} logged in successfully")
+        logger.info(f"User {email} logged in successfully")
         
-        # Determine redirect target
+        # 5. Determine redirect target
         role = membership["role"].upper()
         if role == "OWNER":
             redirect_target = "owner"
@@ -235,17 +235,18 @@ async def login(data: LoginRequest):
         else:
             redirect_target = "member"
         
+        # 6. Return REAL JWT access token from Supabase Auth
         return {
             "user": {
-                "id": user["id"],
-                "email": user["email"],
-                "first_name": user.get("first_name", ""),
-                "last_name": user.get("last_name", ""),
+                "id": user_id,
+                "email": email,
+                "first_name": user.user_metadata.get("first_name", ""),
+                "last_name": user.user_metadata.get("last_name", ""),
                 "role": role,
                 "job_title": membership.get("job_title", "")
             },
             "organization": organization,
-            "access_token": "mock_token_" + str(uuid.uuid4()), # Placeholder for JWT
+            "access_token": auth_response.session.access_token,
             "redirect_target": redirect_target
         }
         
@@ -253,7 +254,6 @@ async def login(data: LoginRequest):
         raise
     except Exception as e:
         logger.error(f"Login error: {e}")
-        # Log the full traceback for debugging
         import traceback
         logger.error(traceback.format_exc())
         raise HTTPException(

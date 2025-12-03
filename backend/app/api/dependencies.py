@@ -15,7 +15,6 @@ def get_supabase_client():
 
 
 from pydantic import BaseModel
-
 from fastapi import Header, HTTPException, status, Request
 
 class CurrentUser(BaseModel):

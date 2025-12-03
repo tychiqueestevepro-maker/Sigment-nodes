@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from loguru import logger
 
-from app.api.dependencies import get_current_user, get_supabase_client
+from app.api.dependencies import get_current_user, get_supabase_client, CurrentUser
 
 
 router = APIRouter(prefix="/feed/unified", tags=["Unified Feed"])

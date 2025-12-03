@@ -36,6 +36,14 @@ const SparklesIcon = () => (
   </svg>
 );
 
+interface Pillar {
+  id: string;
+  name: string;
+  description?: string;
+  color?: string;
+  count?: number;
+}
+
 interface GalaxyFolder {
   id: string;
   name: string;
@@ -51,10 +59,10 @@ export default function HomePage() {
   const { items: feedItems, isLoading, error } = useFeed();
 
   // Fetch pillars for sidebar
-  const { data: pillarsData = [] } = useQuery({
+  const { data: pillarsData = [] } = useQuery<Pillar[]>({
     queryKey: ['pillars'],
     queryFn: async () => {
-      return await api.get<any[]>('/board/pillars');
+      return await api.get<Pillar[]>('/board/pillars');
     },
   });
 
