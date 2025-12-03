@@ -105,8 +105,8 @@ CREATE INDEX idx_notes_cluster ON notes(cluster_id);
 CREATE INDEX idx_notes_created ON notes(created_at DESC);
 
 -- Vector similarity search index (CRITICAL for performance)
-CREATE INDEX idx_notes_embedding ON notes USING ivfflat (embedding vector_cosine_ops)
-WITH (lists = 100);
+-- Vector similarity search index (CRITICAL for performance)
+CREATE INDEX idx_notes_embedding ON notes USING hnsw (embedding vector_cosine_ops);
 
 -- ============================================
 -- 5. CLUSTER SNAPSHOTS (Time-Lapse History)
