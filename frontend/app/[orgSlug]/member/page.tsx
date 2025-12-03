@@ -16,6 +16,7 @@ import toast from 'react-hot-toast';
 import { useApiClient } from '../../../shared/hooks/useApiClient';
 import { FeedItem } from '@/types/feed';
 import { FeedItemRenderer } from '@/components/feed/FeedItemRenderer';
+import { useFeed } from '../../../shared/hooks/useFeed';
 
 // Image Plus icon inline
 const ImagePlus = ({ size }: { size: number }) => (
@@ -63,29 +64,24 @@ export default function MemberHomePage() {
         }
     }, []);
 
-    // Fetch unified feed (posts + clusters + notes)
-    const { data: feedData, isLoading, error } = useQuery({
-        queryKey: ['unifiedFeed'],
-        queryFn: async () => {
-            return await apiClient.get<{ items: FeedItem[]; total_count: number }>('/feed/unified/');
-        },
-        refetchInterval: 30000,
-        retry: 1,
-    });
+    const { items: feedItems, isLoading, error } = useFeed();
+    const { organizationId } = apiClient.auth;
 
     // Fetch pillars for sidebar
     const { data: pillarsData = [] } = useQuery({
-        queryKey: ['pillars'],
+        queryKey: ['pillars', organizationId],
         queryFn: async () => {
+            if (!organizationId) return [];
             return await apiClient.get<any[]>('/board/pillars');
         },
+        enabled: !!organizationId,
     });
 
     // Transform pillars to galaxy folders
     const galaxyFolders: GalaxyFolder[] = pillarsData.map((pillar: any) => ({
         id: pillar.id,
         name: pillar.name,
-        count: (feedData?.items || []).filter((item: any) => item.pillar_id === pillar.id).length,
+        count: (feedItems || []).filter((item: any) => item.pillar_id === pillar.id).length,
         color: getColorForPillar(pillar.name),
     }));
 
@@ -172,11 +168,11 @@ export default function MemberHomePage() {
                         </div>
                     ) : (
                         <div className="space-y-6">
-                            {feedData?.items?.map((item) => (
+                            {feedItems?.map((item) => (
                                 <FeedItemRenderer key={item.id} item={item} />
                             ))}
 
-                            {(!feedData?.items || feedData.items.length === 0) && (
+                            {(!feedItems || feedItems.length === 0) && (
                                 <div className="text-center py-12 bg-white rounded-xl border border-gray-200 shadow-sm">
                                     <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                         <Layers className="text-gray-400" size={32} />

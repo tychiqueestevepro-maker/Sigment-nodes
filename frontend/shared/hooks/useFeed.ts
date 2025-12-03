@@ -12,14 +12,17 @@ interface UseFeedResult {
 
 export function useFeed(): UseFeedResult {
     const apiClient = useApiClient();
+    const { organizationId } = apiClient.auth;
 
     const { data, isLoading, error, refetch } = useQuery({
-        queryKey: ['unifiedFeed'],
+        queryKey: ['unifiedFeed', organizationId],
         queryFn: async () => {
+            if (!organizationId) return { items: [], total_count: 0 };
             const response = await apiClient.get<{ items: FeedItem[]; total_count: number }>('/feed/unified/');
             console.log('Feed data received:', response.items?.length || 0);
             return response;
         },
+        enabled: !!organizationId,
         refetchInterval: 30000,
         retry: 1,
     });
