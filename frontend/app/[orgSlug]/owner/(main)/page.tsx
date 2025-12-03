@@ -62,7 +62,7 @@ export default function HomePage() {
   const galaxyFolders: GalaxyFolder[] = pillarsData.map((pillar: any) => ({
     id: pillar.id,
     name: pillar.name,
-    count: (feedItems || []).filter((item: any) => item.pillar_id === pillar.id).length,
+    count: pillar.count || 0, // Use backend-provided count
     color: getColorForPillar(pillar.name),
   }));
 
