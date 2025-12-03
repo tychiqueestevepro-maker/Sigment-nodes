@@ -9,6 +9,9 @@ interface FeedItemRendererProps {
 }
 
 export const FeedItemRenderer: React.FC<FeedItemRendererProps> = ({ item }) => {
+    // Safety: Prevent crash if item is null/undefined
+    if (!item) return null;
+
     switch (item.type) {
         case 'POST':
             return <PostCard item={item} />;
@@ -17,7 +20,8 @@ export const FeedItemRenderer: React.FC<FeedItemRendererProps> = ({ item }) => {
         case 'CLUSTER':
             return <ClusterCard item={item} />;
         default:
-            console.warn('Unknown feed item type:', (item as any).type);
+            // Safety: Handle unknown types gracefully instead of crashing
+            console.warn('Unknown feed item type:', (item as any)?.type);
             return null;
     }
 };

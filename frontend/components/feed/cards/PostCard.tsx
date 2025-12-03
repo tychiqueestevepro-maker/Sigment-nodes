@@ -8,10 +8,19 @@ interface PostCardProps {
 }
 
 export const PostCard: React.FC<PostCardProps> = ({ item }) => {
-    const userInitials = item.user_info?.first_name?.[0] || item.user_info?.email?.[0] || 'U';
-    const userName = item.user_info?.first_name
-        ? `${item.user_info.first_name} ${item.user_info.last_name || ''}`
-        : item.user_info?.email || 'Unknown User';
+    // Safety: Handle missing user_info gracefully
+    const userInfo = item.user_info || {};
+    const firstName = userInfo.first_name || '';
+    const lastName = userInfo.last_name || '';
+    const email = userInfo.email || 'Unknown';
+
+    // Safety: Handle avatar initials crash
+    const userInitials = (firstName?.[0] || email?.[0] || 'U').toUpperCase();
+
+    // Safety: Construct user name safely
+    const userName = firstName
+        ? `${firstName} ${lastName}`.trim()
+        : email !== 'Unknown' ? email : 'Anonymous User';
 
     return (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 hover:shadow-md transition-shadow">
@@ -19,20 +28,22 @@ export const PostCard: React.FC<PostCardProps> = ({ item }) => {
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-gray-900 rounded-full flex items-center justify-center text-white font-bold shrink-0">
-                        {item.user_info?.avatar_url ? (
+                        {userInfo.avatar_url ? (
                             <img
-                                src={item.user_info.avatar_url}
+                                src={userInfo.avatar_url}
                                 alt={userName}
                                 className="w-full h-full rounded-full object-cover"
                             />
                         ) : (
-                            userInitials.toUpperCase()
+                            userInitials
                         )}
                     </div>
                     <div>
                         <div className="font-semibold text-gray-900">{userName}</div>
                         <div className="text-xs text-gray-500">
-                            {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
+                            {item.created_at
+                                ? formatDistanceToNow(new Date(item.created_at), { addSuffix: true })
+                                : 'Just now'}
                         </div>
                     </div>
                 </div>
@@ -43,7 +54,7 @@ export const PostCard: React.FC<PostCardProps> = ({ item }) => {
 
             {/* Content */}
             <div className="text-gray-800 mb-4 whitespace-pre-wrap text-[15px] leading-relaxed">
-                {item.content}
+                {item.content || ''}
             </div>
 
             {/* Action Bar */}

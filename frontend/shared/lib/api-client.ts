@@ -33,7 +33,7 @@ class ApiClient {
         // Get auth data from parameters or localStorage
         const userId = authHeaders?.userId || (typeof window !== 'undefined' ? localStorage.getItem('sigment_user_id') : null);
         const organizationId = authHeaders?.organizationId || (typeof window !== 'undefined' ? localStorage.getItem('sigment_org_id') : null);
-        const token = authHeaders?.token || (typeof window !== 'undefined' ? localStorage.getItem('sigment_token') : null);
+        const token = authHeaders?.token || (typeof window !== 'undefined' ? localStorage.getItem('access_token') : null);
 
         // Add Bearer token if available
         if (token) {
@@ -41,9 +41,10 @@ class ApiClient {
         }
 
         // Add Multi-Tenant headers (CRITICAL for backend)
-        if (userId) {
-            headers['X-User-Id'] = userId;
-        }
+        // X-User-Id is no longer needed as we use JWT for identity
+        // if (userId) {
+        //     headers['X-User-Id'] = userId;
+        // }
 
         if (organizationId) {
             headers['X-Organization-Id'] = organizationId;

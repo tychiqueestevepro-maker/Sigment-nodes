@@ -14,13 +14,18 @@ export function getAuthHeaders(): Record<string, string> {
         'Content-Type': 'application/json',
     };
 
-    if (userId) {
-        headers['X-User-Id'] = userId;
-    }
+    // X-User-Id is no longer needed as we use JWT for identity
+    // if (userId) {
+    //     headers['X-User-Id'] = userId;
+    // }
 
     if (orgId) {
         headers['X-Organization-Id'] = orgId;
+    } else {
+        console.warn('⚠️ getAuthHeaders: No Organization ID found in localStorage');
     }
+
+    // console.log('Auth Headers:', headers); // Uncomment for verbose debugging
 
     return headers;
 }

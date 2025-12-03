@@ -12,6 +12,8 @@ router = APIRouter()
 
 
 
+from app.api.dependencies import CurrentUser, get_current_user
+
 @router.get("/{org_slug}/public")
 async def get_public_organization(org_slug: str):
     """
@@ -31,15 +33,15 @@ async def get_public_organization(org_slug: str):
         raise HTTPException(status_code=404, detail="Organization not found")
 
 @router.get("/{org_slug}/me", response_model=UserOrgAccess)
-async def get_user_org_access(org_slug: str, user_id: str):
+async def get_user_org_access(
+    org_slug: str, 
+    current_user: CurrentUser = Depends(get_current_user)
+):
     """
     Get user's access to a specific organization
     Returns organization details + user's role in that org
     
-    Used by OrganizationLayout to:
-    - Verify user belongs to the org
-    - Load org context
-    - Determine user's role
+    Uses JWT (current_user) to identify the user.
     """
     try:
         # 1. Get organization by slug
@@ -50,30 +52,8 @@ async def get_user_org_access(org_slug: str, user_id: str):
         
         organization = org_response.data
         
-        # 2. Check user membership
-        try:
-            membership_response = supabase.table("memberships").select("*").eq(
-                "user_id", user_id
-            ).eq(
-                "organization_id", organization["id"]
-            ).single().execute()
-        except Exception:
-            # .single() raises exception if 0 rows found
-            raise HTTPException(
-                status_code=403, 
-                detail="You are not a member of this organization"
-            )
-        
-        if not membership_response.data:
-            raise HTTPException(
-                status_code=403, 
-                detail="You are not a member of this organization"
-            )
-        
-        membership = membership_response.data
-        
-        # 3. Build permissions based on role
-        role = (membership.get("role") or "MEMBER").upper()
+        # 2. Build permissions based on role (Role is already in current_user)
+        role = current_user.role.upper()
         permissions = []
         if role == "OWNER":
             permissions = [

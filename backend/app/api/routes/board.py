@@ -137,13 +137,14 @@ async def get_pillars(current_user: CurrentUser = Depends(get_current_user)):
     try:
         supabase = get_supabase()
         organization_id = str(current_user.organization_id)
+        logger.info(f"🔍 Fetching pillars for Org ID: {organization_id}")
         
         # Select pillars and count of associated notes
         # Note: This counts ALL notes in the pillar, not just "active" ones if we don't filter.
         # Ideally we filter by status='active' or 'processed'.
         # Supabase syntax for count in select: notes(count)
         response = supabase.table("pillars").select(
-            "id, name, description, color, notes(count)"
+            "id, name, description, color"
         ).eq("organization_id", organization_id).order("created_at", desc=False).execute()
         
         if not response.data:

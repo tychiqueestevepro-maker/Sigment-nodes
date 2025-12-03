@@ -66,20 +66,22 @@ export default function HomePage() {
 
   // Fetch unified feed (posts + clusters + notes)
   const { data: feedData, isLoading, error } = useQuery({
-    queryKey: ['unifiedFeed'],
+    queryKey: ['unifiedFeed', api.auth.organizationId],
     queryFn: async () => {
       return await api.get<{ items: any[]; total_count: number }>('/feed/unified/');
     },
     refetchInterval: 30000,
     retry: 1,
+    enabled: !!api.auth.organizationId,
   });
 
   // Fetch pillars for sidebar
   const { data: pillarsData = [] } = useQuery({
-    queryKey: ['pillars'],
+    queryKey: ['pillars', api.auth.organizationId],
     queryFn: async () => {
       return await api.get<any[]>('/board/pillars');
     },
+    enabled: !!api.auth.organizationId,
   });
 
   // Helper function for avatar colors (assuming a simple rotating scheme)

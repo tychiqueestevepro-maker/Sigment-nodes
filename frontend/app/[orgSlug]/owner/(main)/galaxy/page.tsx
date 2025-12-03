@@ -19,9 +19,14 @@ import {
     Ban,
     Folder,
 } from 'lucide-react';
-import { api } from '@/lib/api';
-import { authenticatedFetch } from '@/lib/auth-fetch';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useApiClient } from '../../../../../shared/hooks/useApiClient';
 import toast from 'react-hot-toast';
+
+// ... (Types and Helper Functions remain unchanged)
+
+// ... (Main Component start)
+
 
 // --- Types ---
 
@@ -130,6 +135,9 @@ function getSizeForCount(count: number): string {
 // --- Main Component ---
 
 export default function GalaxyViewPage() {
+    const { organizationId } = useOrganization();
+    const apiClient = useApiClient();
+
     const [selectedBubble, setSelectedBubble] = useState<Bubble | null>(null);
     const [isAnimating, setIsAnimating] = useState(false);
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
@@ -142,24 +150,31 @@ export default function GalaxyViewPage() {
     // --- Data Fetching ---
 
     // Fetch pillars
-    const { data: pillars = [] } = useQuery<Pillar[]>({
-        queryKey: ['pillars'],
+    const { data: pillars = [], error: pillarsError } = useQuery<Pillar[]>({
+        queryKey: ['pillars', organizationId], // Add orgId to key
         queryFn: async () => {
-            const response = await authenticatedFetch(`${api.baseURL}/board/pillars`);
-            if (!response.ok) throw new Error('Failed to fetch pillars');
-            return response.json();
+            console.log('Fetching pillars...');
+            const data = await apiClient.get<Pillar[]>('/board/pillars');
+            console.log('Pillars fetched:', data);
+            return data;
         },
+        enabled: !!organizationId, // Only fetch when orgId is available
     });
 
     // Fetch galaxy data (clusters)
-    const { data: clusters = [] } = useQuery<Cluster[]>({
-        queryKey: ['galaxy'],
+    const { data: clusters = [], error: clustersError } = useQuery<Cluster[]>({
+        queryKey: ['galaxy', organizationId], // Add orgId to key
         queryFn: async () => {
-            const response = await authenticatedFetch(`${api.baseURL}/board/galaxy`);
-            if (!response.ok) throw new Error('Failed to fetch galaxy data');
-            return response.json();
+            console.log('Fetching galaxy data...');
+            const data = await apiClient.get<Cluster[]>('/board/galaxy');
+            console.log('Galaxy data fetched:', data);
+            return data;
         },
+        enabled: !!organizationId, // Only fetch when orgId is available
     });
+
+    if (pillarsError) console.error('Pillars Query Error:', pillarsError);
+    if (clustersError) console.error('Galaxy Query Error:', clustersError);
 
     // --- Data Transformation ---
 
@@ -308,16 +323,17 @@ export default function GalaxyViewPage() {
         setIsProcessing(true);
         try {
             // Update all notes in the cluster to review status (for review zone)
-            const updatePromises = selectedNode.noteIds.map(noteId =>
-                authenticatedFetch(`${api.baseURL}/notes/${noteId}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: 'review' }),
-                })
-            );
+            const updatePromises = selectedNode.noteIds.map(async (noteId) => {
+                try {
+                    await apiClient.patch(`/notes/${noteId}`, { status: 'review' });
+                    return { success: true };
+                } catch (error) {
+                    return { success: false };
+                }
+            });
 
             const results = await Promise.all(updatePromises);
-            const failedCount = results.filter(r => !r.ok).length;
+            const failedCount = results.filter(r => !r.success).length;
 
             if (failedCount > 0) {
                 toast.error(`❌ ${failedCount} of ${selectedNode.noteIds.length} notes failed to update`);
@@ -346,16 +362,17 @@ export default function GalaxyViewPage() {
         setIsProcessing(true);
         try {
             // Update all notes in the cluster to refused status
-            const updatePromises = selectedNode.noteIds.map(noteId =>
-                authenticatedFetch(`${api.baseURL}/notes/${noteId}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: 'refused' }),
-                })
-            );
+            const updatePromises = selectedNode.noteIds.map(async (noteId) => {
+                try {
+                    await apiClient.patch(`/notes/${noteId}`, { status: 'refused' });
+                    return { success: true };
+                } catch (error) {
+                    return { success: false };
+                }
+            });
 
             const results = await Promise.all(updatePromises);
-            const failedCount = results.filter(r => !r.ok).length;
+            const failedCount = results.filter(r => !r.success).length;
 
             if (failedCount > 0) {
                 toast.error(`❌ ${failedCount} of ${selectedNode.noteIds.length} notes failed to refuse`);

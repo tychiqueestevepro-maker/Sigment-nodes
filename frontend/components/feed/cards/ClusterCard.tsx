@@ -56,13 +56,13 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({ item }) => {
             </div>
 
             {/* Preview Notes (Stacked Look) */}
-            {item.preview_notes && item.preview_notes.length > 0 && (
+            {(item.preview_notes || []).length > 0 && (
                 <div className="px-5 pb-5">
                     <div className="bg-gray-50 rounded-lg p-3 border border-gray-100 space-y-2.5">
                         <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
                             Latest Updates
                         </div>
-                        {item.preview_notes.map((note: { id: string; content: string }) => (
+                        {(item.preview_notes || []).map((note: { id: string; content: string }) => (
                             <div key={note.id} className="flex items-start gap-2.5 group/note">
                                 <div className="mt-1 w-1.5 h-1.5 rounded-full bg-gray-300 group-hover/note:bg-purple-400 transition-colors shrink-0"></div>
                                 <span className="text-sm text-gray-600 line-clamp-1 group-hover/note:text-gray-900 transition-colors">

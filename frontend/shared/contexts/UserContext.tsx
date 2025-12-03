@@ -75,6 +75,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
             localStorage.setItem('sigment_user_id', user.id)
             localStorage.setItem('sigment_user_email', user.email)
             localStorage.setItem('sigment_user', JSON.stringify(user))
+            if (data.access_token) {
+                localStorage.setItem('access_token', data.access_token)
+            }
             if (organization && organization.id) {
                 localStorage.setItem('sigment_org_id', organization.id)
             }
@@ -111,6 +114,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
             await fetch('/api/v1/auth/logout', { method: 'POST' })
             setUser(null)
             localStorage.removeItem('sigment_user_id')
+            localStorage.removeItem('access_token')
             router.push('/login')
         } catch (error) {
             console.error('Logout error:', error)

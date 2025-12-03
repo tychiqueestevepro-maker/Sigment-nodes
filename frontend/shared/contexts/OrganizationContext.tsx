@@ -67,9 +67,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
                 const userId = localStorage.getItem('sigment_user_id');
                 if (userId) {
                     const accessData = await apiClient.get<any>(
-                        `/organizations/${orgSlug}/me?user_id=${userId}`,
-                        {},
-                        { userId }
+                        `/organizations/${orgSlug}/me`
                     );
 
                     if (accessData && accessData.role) {

@@ -77,6 +77,9 @@ export default function SignupPage() {
             localStorage.setItem('sigment_user_id', data.user.id);
             localStorage.setItem('sigment_user_email', data.user.email);
             localStorage.setItem('sigment_user', JSON.stringify(data.user));
+            if (data.access_token) {
+                localStorage.setItem('access_token', data.access_token);
+            }
 
             // Redirect based on user role
             const redirectPath = data.user.role === 'OWNER' ? 'owner' :

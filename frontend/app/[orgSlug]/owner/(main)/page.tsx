@@ -16,6 +16,7 @@ import { useApiClient } from '../../../../shared/hooks/useApiClient';
 import { FeedItem } from '@/types/feed';
 import { FeedItemRenderer } from '@/components/feed/FeedItemRenderer';
 import { useFeed } from '../../../../shared/hooks/useFeed';
+import { useOrganization } from '../../../../shared/contexts/OrganizationContext';
 
 // Image Plus icon inline
 const ImagePlus = ({ size }: { size: number }) => (
@@ -58,12 +59,16 @@ export default function HomePage() {
 
   const { items: feedItems, isLoading, error } = useFeed();
 
+  const { organizationId } = useOrganization();
+
   // Fetch pillars for sidebar
   const { data: pillarsData = [] } = useQuery<Pillar[]>({
-    queryKey: ['pillars'],
+    queryKey: ['pillars', organizationId], // Add organizationId to key to refetch on change
     queryFn: async () => {
+      if (!organizationId) return [];
       return await api.get<Pillar[]>('/board/pillars');
     },
+    enabled: !!organizationId, // Only run when organizationId is available
   });
 
   // Transform pillars to galaxy folders

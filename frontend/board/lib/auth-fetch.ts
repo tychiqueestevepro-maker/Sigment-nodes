@@ -14,9 +14,10 @@ export function getAuthHeaders(): Record<string, string> {
         'Content-Type': 'application/json',
     };
 
-    if (userId) {
-        headers['X-User-Id'] = userId;
-    }
+    // X-User-Id is no longer needed as we use JWT for identity
+    // if (userId) {
+    //     headers['X-User-Id'] = userId;
+    // }
 
     if (orgId) {
         headers['X-Organization-Id'] = orgId;

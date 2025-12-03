@@ -15,7 +15,7 @@ export function useAuth(): UseAuthReturn {
 
     // Get from localStorage (set during login)
     const userId = typeof window !== 'undefined' ? localStorage.getItem('sigment_user_id') : null;
-    const token = typeof window !== 'undefined' ? localStorage.getItem('sigment_token') : null;
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
 
     return {
         userId,
