@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MemberPicker } from '@/components/shared/MemberPicker';
+import { useApiClient } from '@/hooks/useApiClient';
 
 // --- Types ---
 
@@ -47,6 +48,7 @@ interface Message {
 export default function ChatPage() {
     const { user } = useUser();
     const { organization } = useOrganization();
+    const apiClient = useApiClient();
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
     const [isLoadingConversations, setIsLoadingConversations] = useState(true);
@@ -55,9 +57,7 @@ export default function ChatPage() {
     // Fetch conversations
     const fetchConversations = async () => {
         try {
-            const res = await fetch('/api/v1/chat');
-            if (!res.ok) throw new Error('Failed to fetch conversations');
-            const data = await res.json();
+            const data = await apiClient.get<Conversation[]>('/chat');
             setConversations(data);
             return data;
         } catch (error) {
@@ -83,18 +83,7 @@ export default function ChatPage() {
     const handleStartConversation = async (targetUserId: string) => {
         setIsMemberPickerOpen(false);
         try {
-            const res = await fetch('/api/v1/chat/start', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ target_user_id: targetUserId })
-            });
-
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.detail || 'Failed to start conversation');
-            }
-
-            const conversationId = await res.json();
+            const conversationId = await apiClient.post<string>('/chat/start', { target_user_id: targetUserId });
 
             // Refresh list to show new conversation
             const updatedConversations = await fetchConversations();
@@ -206,6 +195,7 @@ export default function ChatPage() {
                     <ChatWindow
                         conversation={selectedConversation}
                         currentUser={user}
+                        apiClient={apiClient}
                     />
                 ) : (
                     <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
@@ -221,7 +211,7 @@ export default function ChatPage() {
     );
 }
 
-function ChatWindow({ conversation, currentUser }: { conversation: Conversation; currentUser: any }) {
+function ChatWindow({ conversation, currentUser, apiClient }: { conversation: Conversation; currentUser: any; apiClient: any }) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -231,9 +221,7 @@ function ChatWindow({ conversation, currentUser }: { conversation: Conversation;
         async function fetchMessages() {
             setIsLoading(true);
             try {
-                const res = await fetch(`/api/v1/chat/${conversation.id}/messages`);
-                if (!res.ok) throw new Error('Failed to fetch messages');
-                const data = await res.json();
+                const data = await apiClient.get<Message[]>(`/chat/${conversation.id}/messages`);
                 // Sort by created_at ascending for display
                 setMessages(data.sort((a: Message, b: Message) =>
                     new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -267,15 +255,8 @@ function ChatWindow({ conversation, currentUser }: { conversation: Conversation;
         setMessages(prev => [...prev, newMessage]);
 
         try {
-            const res = await fetch(`/api/v1/chat/${conversation.id}/messages`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content })
-            });
+            const savedMessage = await apiClient.post<Message>(`/chat/${conversation.id}/messages`, { content });
 
-            if (!res.ok) throw new Error('Failed to send');
-
-            const savedMessage = await res.json();
             // Replace temp message with real one
             setMessages(prev => prev.map(m => m.id === tempId ? savedMessage : m));
         } catch (error) {

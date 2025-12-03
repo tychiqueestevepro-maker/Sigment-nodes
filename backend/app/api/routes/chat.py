@@ -5,11 +5,11 @@ from loguru import logger
 
 from app.services.supabase_client import supabase
 from app.api.dependencies import CurrentUser, get_current_user
-from app.models.chat import ConversationOut, ConversationStart, MessageCreate, MessageResponse, ParticipantInfo
+from app.models.chat import Conversation, ConversationCreate, MessageCreate, Message, ParticipantInfo
 
 router = APIRouter()
 
-@router.get("/", response_model=List[ConversationOut])
+@router.get("/", response_model=List[Conversation])
 async def get_conversations(
     current_user: CurrentUser = Depends(get_current_user),
     limit: int = 50,
@@ -57,15 +57,7 @@ async def get_conversations(
                     )
                     break
             
-            # If no other participant found (e.g. self-chat or data issue), handle gracefully
-            # Ideally 1-to-1 chat always has another person.
-            
-            # Fetch last message (optional optimization: could be done in main query if supported or separate)
-            # For now, let's leave last_message empty or fetch it if critical.
-            # To fetch last message efficiently for a list is hard without a view or computed column.
-            # We will skip last_message for now to keep it fast, or we could fetch it.
-            
-            conversations_out.append(ConversationOut(
+            conversations_out.append(Conversation(
                 id=conv["id"],
                 updated_at=conv["updated_at"],
                 other_participant=other_participant
@@ -80,7 +72,7 @@ async def get_conversations(
 
 @router.post("/start", response_model=UUID)
 async def start_conversation(
-    payload: ConversationStart,
+    payload: ConversationCreate,
     current_user: CurrentUser = Depends(get_current_user)
 ):
     """
@@ -92,7 +84,8 @@ async def start_conversation(
             "get_or_create_conversation",
             {
                 "p_organization_id": str(current_user.organization_id),
-                "p_target_user_id": str(payload.target_user_id)
+                "p_target_user_id": str(payload.target_user_id),
+                "p_current_user_id": str(current_user.id)
             }
         ).execute()
 
@@ -108,7 +101,7 @@ async def start_conversation(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{conversation_id}/messages", response_model=List[MessageResponse])
+@router.get("/{conversation_id}/messages", response_model=List[Message])
 async def get_messages(
     conversation_id: UUID,
     limit: int = 50,
@@ -133,7 +126,7 @@ async def get_messages(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/{conversation_id}/messages", response_model=MessageResponse)
+@router.post("/{conversation_id}/messages", response_model=Message)
 async def send_message(
     conversation_id: UUID,
     message: MessageCreate,
