@@ -84,18 +84,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
             // Handle Redirection based on user role
             if (organization && organization.slug) {
-                let redirectPath;
-
-                if (user.role === 'OWNER') {
-                    redirectPath = 'owner';
-                } else if (user.role === 'BOARD') {
-                    redirectPath = 'board';
-                } else {
-                    redirectPath = 'member';
-                }
-
-                // Force a hard navigation to ensure contexts are refreshed
-                window.location.href = `/${organization.slug}/${redirectPath}`;
+                // Redirect to the unified organization dashboard
+                window.location.href = `/${organization.slug}`;
             } else {
                 // Fallback if no org data
                 router.push('/');

@@ -93,7 +93,7 @@ async def get_unified_feed(
     """
     Feed unifié polymorphique mélangeant Clusters, Notes et Posts
     
-    **Logique Anti-Bruit :**
+    **Logique Anti-Bruit (Implémentation Python) :**
     - **Clusters** : Uniquement ceux actifs dans les dernières 48h
     - **Notes** : Uniquement orphelines (pas encore clustérisées) OU mes notes
     - **Posts** : Posts standards créés manuellement (exclus 'linked_idea')
@@ -103,66 +103,205 @@ async def get_unified_feed(
     organization_id = str(current_user.organization_id)
     user_id = str(current_user.id)
     
-    # ============================================
-    # STEP 1: Call Stored Function
-    # ============================================
+    items = []
+    from datetime import timedelta
+    
     try:
-        feed_response = supabase.rpc(
-            "get_unified_feed",
-            {
-                "p_organization_id": organization_id,
-                "p_current_user_id": user_id,
-                "p_limit": limit
-            }
-        ).execute()
+        # ============================================
+        # 1. FETCH CLUSTERS (Active last 48h)
+        # ============================================
+        cutoff_48h = datetime.utcnow() - timedelta(hours=48)
+        cutoff_30d = datetime.utcnow() - timedelta(days=30)
+        
+        # Fetch clusters sorted by update time
+        clusters_response = supabase.table("clusters").select(
+            "*, pillars(name, color)"
+        ).eq("organization_id", organization_id).order("last_updated_at", desc=True).limit(limit).execute()
+        
+        active_clusters = []
+        cluster_ids = [] # IDs for preview notes (only for big clusters)
+        small_cluster_ids = [] # IDs for clusters with < 2 notes (to be exploded)
+        
+        for c in clusters_response.data:
+            # Filter active in last 48h
+            try:
+                c_date = datetime.fromisoformat(c["last_updated_at"].replace('Z', '+00:00'))
+                if c_date < cutoff_48h.replace(tzinfo=c_date.tzinfo):
+                    continue
+            except Exception:
+                pass
+            
+            # LOGIC: 1 note = Note Card, 2+ notes = Cluster Card
+            if c.get("note_count", 0) >= 2:
+                active_clusters.append(c)
+                cluster_ids.append(c["id"])
+            else:
+                small_cluster_ids.append(c["id"])
+            
+        # Fetch preview notes for BIG clusters (optimization: 1 query)
+        preview_notes_map = {}
+        if cluster_ids:
+            try:
+                p_notes = supabase.table("notes").select(
+                    "id, content_clarified, content_raw, user_id, created_at, cluster_id"
+                ).in_("cluster_id", cluster_ids).eq("status", "processed").order("created_at", desc=True).limit(len(cluster_ids) * 3).execute()
+                
+                for n in p_notes.data:
+                    cid = n["cluster_id"]
+                    if cid not in preview_notes_map:
+                        preview_notes_map[cid] = []
+                    if len(preview_notes_map[cid]) < 3:
+                        preview_notes_map[cid].append({
+                            "id": n["id"],
+                            "content": n.get("content_clarified") or n.get("content_raw"),
+                            "user_id": n["user_id"],
+                            "created_at": n["created_at"]
+                        })
+            except Exception as e:
+                logger.warning(f"Failed to fetch preview notes: {e}")
+
+        # Add BIG clusters to items
+        for c in active_clusters:
+            items.append(ClusterFeedItem(
+                type="CLUSTER",
+                id=c["id"],
+                title=c["title"],
+                note_count=c.get("note_count", 0),
+                velocity_score=c.get("velocity_score", 0),
+                pillar_id=c.get("pillar_id"),
+                pillar_name=c.get("pillars", {}).get("name") if c.get("pillars") else None,
+                pillar_color=c.get("pillars", {}).get("color") if c.get("pillars") else None,
+                created_at=c["created_at"],
+                last_updated_at=c["last_updated_at"],
+                preview_notes=preview_notes_map.get(c["id"], []),
+                sort_date=c["last_updated_at"]
+            ))
+
+        # ============================================
+        # 1.5. FETCH NOTES FROM SMALL CLUSTERS (Exploded)
+        # ============================================
+        if small_cluster_ids:
+            try:
+                small_notes = supabase.table("notes").select(
+                    "*, pillars(name, color), title_clarified"
+                ).in_("cluster_id", small_cluster_ids).eq("status", "processed").execute()
+                
+                for n in small_notes.data:
+                    items.append(NoteFeedItem(
+                        type="NOTE",
+                        id=n["id"],
+                        title=n.get("title_clarified"),
+                        content=n.get("content_clarified") or n.get("content_raw") or "",
+                        content_raw=n.get("content_raw"),
+                        content_clarified=n.get("content_clarified"),
+                        status=n["status"],
+                        cluster_id=n.get("cluster_id"),
+                        pillar_id=n.get("pillar_id"),
+                        pillar_name=n.get("pillars", {}).get("name") if n.get("pillars") else None,
+                        pillar_color=n.get("pillars", {}).get("color") if n.get("pillars") else None,
+                        ai_relevance_score=n.get("ai_relevance_score"),
+                        user_id=n["user_id"],
+                        is_mine=(n["user_id"] == user_id),
+                        created_at=n["created_at"],
+                        processed_at=n.get("processed_at"),
+                        sort_date=n.get("processed_at") or n["created_at"]
+                    ))
+            except Exception as e:
+                logger.warning(f"Failed to fetch small cluster notes: {e}")
+
+        # ============================================
+        # 2. FETCH NOTES (Orphan OR Mine)
+        # ============================================
+        # Using .or_ filter: cluster_id.is.null,user_id.eq.USER_ID
+        # AND status must be 'processed' (User request: "only appear once corrected")
+        notes_response = supabase.table("notes").select(
+            "*, pillars(name, color), title_clarified"
+        ).eq("organization_id", organization_id).eq("status", "processed").or_(
+            f"cluster_id.is.null,user_id.eq.{user_id}"
+        ).order("created_at", desc=True).limit(limit).execute()
+        
+        # Track existing note IDs to avoid duplicates
+        existing_note_ids = {i.id for i in items if i.type == "NOTE"}
+        
+        for n in notes_response.data:
+            if n["id"] in existing_note_ids:
+                continue
+                
+            items.append(NoteFeedItem(
+                type="NOTE",
+                id=n["id"],
+                title=n.get("title_clarified"),
+                content=n.get("content_clarified") or n.get("content_raw") or "",
+                content_raw=n.get("content_raw"),
+                content_clarified=n.get("content_clarified"),
+                status=n["status"],
+                cluster_id=n.get("cluster_id"),
+                pillar_id=n.get("pillar_id"),
+                pillar_name=n.get("pillars", {}).get("name") if n.get("pillars") else None,
+                pillar_color=n.get("pillars", {}).get("color") if n.get("pillars") else None,
+                ai_relevance_score=n.get("ai_relevance_score"),
+                user_id=n["user_id"],
+                is_mine=(n["user_id"] == user_id),
+                created_at=n["created_at"],
+                processed_at=n.get("processed_at"),
+                sort_date=n.get("processed_at") or n["created_at"]
+            ))
+
+        # ============================================
+        # 3. FETCH POSTS
+        # ============================================
+        posts_response = supabase.table("posts").select(
+            "*, users(first_name, last_name, email)"
+        ).eq("organization_id", organization_id).neq("post_type", "linked_idea").gte("created_at", cutoff_30d.isoformat()).order("created_at", desc=True).limit(limit).execute()
+        
+        for p in posts_response.data:
+            user_info = p.get("users") or {}
+            items.append(PostFeedItem(
+                type="POST",
+                id=p["id"],
+                content=p["content"],
+                post_type=p["post_type"],
+                user_id=p["user_id"],
+                user_info={
+                    "first_name": user_info.get("first_name"),
+                    "last_name": user_info.get("last_name"),
+                    "email": user_info.get("email"),
+                    "avatar_url": None, # Column does not exist yet
+                },
+                likes_count=p.get("likes_count", 0),
+                comments_count=p.get("comments_count", 0),
+                is_mine=(p["user_id"] == user_id),
+                created_at=p["created_at"],
+                sort_date=p["created_at"]
+            ))
+
+        # ============================================
+        # 4. MERGE & SORT
+        # ============================================
+        # Sort by sort_date DESC
+        items.sort(key=lambda x: str(x.sort_date), reverse=True)
+        
+        # Apply limit
+        items = items[:limit]
+
     except Exception as e:
-        logger.error(f"❌ RPC 'get_unified_feed' failed: {e}")
+        logger.error(f"❌ Python Feed Fetch failed: {e}")
         # Fail Fast: Return 500 with clear error
         raise HTTPException(
             status_code=500,
-            detail=f"Database error fetching feed: {str(e)}"
+            detail=f"Error fetching feed: {str(e)}"
         )
-    
-    if not feed_response.data:
-        return UnifiedFeedResponse(items=[], total_count=0)
-    
-    # ============================================
-    # STEP 2: Parse Polymorphic Items
-    # ============================================
-    items = []
-    
-    for raw_item in feed_response.data:
-        item_type = raw_item["type"]
-        item_data = raw_item["data"]
-        item_data["sort_date"] = raw_item["sort_date"]
-        
-        if item_type == "CLUSTER":
-            items.append(ClusterFeedItem(
-                type="CLUSTER",
-                **item_data
-            ))
-        elif item_type == "NOTE":
-            items.append(NoteFeedItem(
-                type="NOTE",
-                **item_data
-            ))
-        elif item_type == "POST":
-            items.append(PostFeedItem(
-                type="POST",
-                **item_data
-            ))
-        else:
-            logger.warning(f"Unknown feed item type: {item_type}")
     
     # ============================================
     # STEP 3: Get Feed Stats (Optional)
     # ============================================
+    stats = {}
     try:
+        # Try to use the view, if it fails, return empty stats
         stats_response = supabase.table("v_feed_stats").select("*").eq(
             "organization_id", organization_id
         ).execute()
         
-        stats = {}
         if stats_response.data and len(stats_response.data) > 0:
             stats = stats_response.data[0]
     except Exception as e:

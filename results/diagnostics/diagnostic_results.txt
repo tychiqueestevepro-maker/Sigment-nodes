@@ -1,0 +1,131 @@
+================================================================================
+🔬 DIAGNOSTIC COMPLET BACKEND - VÉLOCITÉ & CORRÉLATION
+================================================================================
+
+📍 Organization: SIGMENT (eb320a7f-5d5a-4dcd-b0e3-cfdedae68267)
+
+================================================================================
+📝 1. ANALYSE COMPLÈTE DES NOTES
+================================================================================
+✅ Total des notes : 2
+
+📊 Répartition par statut :
+   ✅ processed       :   2
+
+📋 DÉTAILS DE CHAQUE NOTE :
+--------------------------------------------------------------------------------
+
+✅ NOTE #1 [6674bd0b...]
+   Statut          : processed
+   Créée           : 2025-12-04 02:59:52
+   Traitée         : N/A
+   ⚡ VÉLOCITÉ     : N/A
+   Cluster         : f2fd4450...
+   Pillar          : 1371c37f...
+   Score Pertinence: 8.5/10
+   Embedding       : ✅
+   Contenu brut    : Create a smart support hub that predicts client needs, gives...
+   Contenu clarifié: Develop a smart support hub that anticipates client needs, p...
+
+✅ NOTE #2 [17400296...]
+   Statut          : processed
+   Créée           : 2025-12-04 07:00:59
+   Traitée         : 2025-12-04 07:01:05
+   ⚡ VÉLOCITÉ     : 6.47s
+   Cluster         : 84827d09...
+   Pillar          : 1371c37f...
+   Score Pertinence: 8.5/10
+   Embedding       : ✅
+   Contenu brut    : Develop an intelligent customer platform that anticipates ne...
+   Contenu clarifié: Create an intelligent customer platform that predicts needs ...
+
+--------------------------------------------------------------------------------
+
+⚡ STATISTIQUES DE VÉLOCITÉ :
+   Moyenne : 6.47s
+   Min     : 6.47s
+   Max     : 6.47s
+
+================================================================================
+📚 2. ANALYSE DES CLUSTERS
+================================================================================
+✅ Total des clusters : 2
+
+
+📦 CLUSTER #1 [f2fd4450...]
+   Titre           : AI-Driven Client Support Hub with Predictive Personalization
+   Nombre de notes : 1
+   Créé            : 2025-12-04 02:59:59
+   Dernière MAJ    : N/A
+   Notes associées :
+      • [6674bd0b...] Create a smart support hub that predicts...
+
+📦 CLUSTER #2 [84827d09...]
+   Titre           : AI-Driven Customer Platform for Predictive Assistance
+   Nombre de notes : 1
+   Créé            : N/A
+   Dernière MAJ    : 2025-12-04 07:01:05
+   Notes associées :
+      • [17400296...] Develop an intelligent customer platform...
+
+================================================================================
+🔗 3. ANALYSE DE CORRÉLATION ENTRE NOTES
+================================================================================
+✅ 2 notes disponibles pour analyse de corrélation
+
+📊 NOTES CORRÉLÉES (dans le même cluster) :
+
+================================================================================
+🏛️  4. ANALYSE DES PILLARS
+================================================================================
+✅ Total des pillars : 6
+
+📌 Product [1371c37f...]
+   Description : Product development, features, and roadmap
+   Couleur     : #3B82F6
+   Notes       : 2
+
+📌 Marketing [22f2599f...]
+   Description : Marketing campaigns, strategies, and brand
+   Couleur     : #EF4444
+   Notes       : 0
+
+📌 Operations [7ebe9e93...]
+   Description : Business operations, processes, and efficiency
+   Couleur     : #10B981
+   Notes       : 0
+
+📌 Finance [c215781e...]
+   Description : Financial planning, budgets, and revenue
+   Couleur     : #F59E0B
+   Notes       : 0
+
+📌 People [8dbcaa7b...]
+   Description : Team, culture, hiring, and HR
+   Couleur     : #8B5CF6
+   Notes       : 0
+
+📌 Uncategorized [180e5812...]
+   Description : Ideas that could not be categorized into existing pillars (relevance score < 4/10)
+   Couleur     : #9CA3AF
+   Notes       : 0
+
+================================================================================
+📊 5. RÉSUMÉ GLOBAL
+================================================================================
+📝 Notes totales          : 2
+✅ Notes traitées         : 2
+🔗 Notes clustérisées     : 2
+📦 Clusters totaux        : 2
+🎯 Clusters actifs (2+)   : 0
+⚡ Vélocité moyenne       : 6.47s
+
+================================================================================
+💡 6. RECOMMANDATIONS
+================================================================================
+✅ Toutes les notes sont traitées et clustérisées !
+   → Le système fonctionne correctement
+
+================================================================================
+✅ DIAGNOSTIC TERMINÉ
+================================================================================

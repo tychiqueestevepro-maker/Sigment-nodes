@@ -41,7 +41,7 @@ export const MemberSidebar: React.FC = () => {
     const menuItems: MenuItem[] = [
         { label: 'Home', icon: <Home size={18} />, href: `/${orgSlug}/member` },
         { label: 'Node', icon: <Edit3 size={18} />, href: `/${orgSlug}/member/node` },
-        { label: 'Track', icon: <FileCheck size={18} />, href: `/${orgSlug}/member/track` },
+        { label: 'Track', icon: <FileCheck size={18} />, href: `/${orgSlug}/tracking` },
         { label: 'Chat', icon: <MessageCircle size={18} />, href: `/${orgSlug}/member/chat` },
         { label: 'Groups', icon: <Users size={18} />, href: `/${orgSlug}/member/groups` },
     ];

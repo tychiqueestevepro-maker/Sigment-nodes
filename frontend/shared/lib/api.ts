@@ -114,6 +114,16 @@ class APIClient {
 
     return response.json();
   }
+
+  async getNoteTimeline(noteId: string) {
+    const response = await fetch(`${this.baseUrl}/api/v1/notes/${noteId}/timeline`);
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch note timeline');
+    }
+
+    return response.json();
+  }
 }
 
 export const apiClient = new APIClient();

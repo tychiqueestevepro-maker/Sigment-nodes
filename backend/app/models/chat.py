@@ -14,9 +14,15 @@ class Conversation(BaseModel):
     id: UUID
     updated_at: datetime
     other_participant: Optional[ParticipantInfo] = None
+    title: Optional[str] = None
+    is_group: bool = False
 
 class ConversationCreate(BaseModel):
     target_user_id: UUID
+
+class GroupConversationCreate(BaseModel):
+    title: str
+    participant_ids: List[UUID]
 
 class MessageCreate(BaseModel):
     content: str

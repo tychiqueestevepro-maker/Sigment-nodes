@@ -86,12 +86,8 @@ export default function SignupPage() {
                 localStorage.setItem('access_token', data.access_token);
             }
 
-            // Redirect based on user role
-            const redirectPath = data.user.role === 'OWNER' ? 'owner' :
-                data.user.role === 'BOARD' ? 'board' : 'member';
-
             // Force a full page reload to ensure all contexts are refreshed
-            window.location.href = `/${data.organization.slug}/${redirectPath}`;
+            window.location.href = `/${data.organization.slug}`;
         } catch (err: any) {
             setError(err.message || 'Signup failed. Please try again.');
             setIsLoading(false);

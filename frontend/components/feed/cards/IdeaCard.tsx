@@ -20,33 +20,21 @@ export const IdeaCard: React.FC<IdeaCardProps> = ({ item }) => {
             />
 
             {/* Header */}
-            <div className="flex items-center justify-between mb-3 pl-2">
-                <div className="flex items-center gap-2">
-                    {item.ai_relevance_score && item.ai_relevance_score >= 7 ? (
-                        <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 border border-amber-200">
-                            <Sparkles size={12} /> ✨ Idea
-                        </span>
-                    ) : (
-                        <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 border border-gray-200">
-                            <FileText size={12} /> Note
-                        </span>
-                    )}
-
-                    <span className="text-xs text-gray-400">
+            <div className="flex items-start justify-between mb-3 pl-2">
+                <div>
+                    <div className="text-base font-bold text-gray-900 line-clamp-1 mb-0.5">{(item as any).title || "Untitled Note"}</div>
+                    <div className="text-xs text-gray-400">
                         {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
-                    </span>
+                    </div>
                 </div>
 
-                {item.pillar_name && (
-                    <span
-                        className="text-xs font-medium px-2 py-1 rounded-full border"
-                        style={{
-                            backgroundColor: `${pillarColor}10`,
-                            color: pillarColor,
-                            borderColor: `${pillarColor}30`
-                        }}
-                    >
-                        {item.pillar_name}
+                {item.ai_relevance_score && item.ai_relevance_score >= 7 ? (
+                    <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 border border-amber-200 shrink-0 h-fit">
+                        <Sparkles size={12} /> Idea
+                    </span>
+                ) : (
+                    <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 border border-gray-200 shrink-0 h-fit">
+                        <FileText size={12} /> Note
                     </span>
                 )}
             </div>
@@ -61,16 +49,17 @@ export const IdeaCard: React.FC<IdeaCardProps> = ({ item }) => {
             {/* Footer */}
             <div className="pl-2 flex items-center justify-between mt-auto pt-3 border-t border-gray-50">
                 <div className="flex items-center gap-2">
-                    {item.ai_relevance_score && (
-                        <div className="flex items-center gap-1 text-xs text-gray-500" title="AI Relevance Score">
-                            <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                <div
-                                    className="h-full bg-green-500 rounded-full"
-                                    style={{ width: `${(item.ai_relevance_score / 10) * 100}%` }}
-                                />
-                            </div>
-                            <span>{item.ai_relevance_score}/10</span>
-                        </div>
+                    {item.pillar_name && (
+                        <span
+                            className="text-xs font-medium px-2 py-1 rounded-full border"
+                            style={{
+                                backgroundColor: `${pillarColor}10`,
+                                color: pillarColor,
+                                borderColor: `${pillarColor}30`
+                            }}
+                        >
+                            {item.pillar_name}
+                        </span>
                     )}
                 </div>
 

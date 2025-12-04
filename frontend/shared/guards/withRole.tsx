@@ -27,15 +27,8 @@ export function withRole<P extends object>(
 
                 if (userRole !== requiredRole) {
                     // Redirect to user's correct space based on their role
-                    let redirectPath: string;
-
-                    if (userRole === 'OWNER') {
-                        redirectPath = `/${organization?.slug}/owner`;
-                    } else if (userRole === 'BOARD') {
-                        redirectPath = `/${organization?.slug}/board`;
-                    } else {
-                        redirectPath = `/${organization?.slug}/member`;
-                    }
+                    // Redirect to the unified dashboard
+                    const redirectPath = `/${organization?.slug}`;
 
                     console.warn(`Access denied. Required role: ${requiredRole}, User role: ${userRole}`);
                     router.push(redirectPath);
