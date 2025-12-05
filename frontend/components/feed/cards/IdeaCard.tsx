@@ -1,7 +1,12 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
-import { Layers, ArrowRight, Clock, CheckCircle2, XCircle, Eye } from 'lucide-react';
+import { Layers, CheckCircle2, XCircle, Eye, Heart, MessageCircle, Share2 } from 'lucide-react';
 import { NoteItem } from '@/types/feed';
+import { CommentSection } from '@/components/feed/comments';
+import { useApiClient } from '@/hooks/useApiClient';
 
 interface IdeaCardProps {
     item: NoteItem;
@@ -22,11 +27,70 @@ function getStatusConfig(status: string): { label: string; color: string; bg: st
 }
 
 export const IdeaCard: React.FC<IdeaCardProps> = ({ item }) => {
+    const router = useRouter();
+    const params = useParams();
+    const orgSlug = params.orgSlug as string;
+    const apiClient = useApiClient();
+    const [showComments, setShowComments] = useState(false);
+    const [isLiked, setIsLiked] = useState(item.is_liked || false);
+    const [likesCount, setLikesCount] = useState(item.likes_count || 0);
+    const [commentsCount, setCommentsCount] = useState(item.comments_count || 0);
+
     const pillarColor = item.pillar_color || '#6B7280'; // Default gray
     const statusConfig = getStatusConfig(item.status);
 
+    const handleLike = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        // Optimistic update
+        setIsLiked(!isLiked);
+        setLikesCount((prev: number) => isLiked ? prev - 1 : prev + 1);
+
+        try {
+            const data = await apiClient.post<{ success: boolean; action: string; new_count: number }>(
+                `/feed/unified/notes/${item.id}/like`,
+                {}
+            );
+            setLikesCount(data.new_count);
+            setIsLiked(data.action === 'liked');
+        } catch (error) {
+            // Rollback
+            setIsLiked(item.is_liked || false);
+            setLikesCount(item.likes_count || 0);
+            console.error('Error liking idea:', error);
+        }
+    };
+
+    const handleShare = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        try {
+            await navigator.clipboard.writeText(
+                `${window.location.origin}/${orgSlug}/idea/${item.id}`
+            );
+        } catch (error) {
+            console.error('Failed to copy link');
+        }
+    };
+
+    const handleCommentClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setShowComments(!showComments);
+    };
+
+    const handleCardClick = () => {
+        router.push(`/${orgSlug}/idea/${item.id}`);
+    };
+
+    const handleStopPropagation = (e: React.MouseEvent) => {
+        e.stopPropagation();
+    };
+
     return (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 hover:shadow-md transition-shadow relative overflow-hidden group">
+        <div
+            onClick={handleCardClick}
+            className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 hover:shadow-md transition-shadow relative overflow-hidden group cursor-pointer"
+        >
             {/* Pillar Strip */}
             <div
                 className="absolute left-0 top-0 bottom-0 w-1"
@@ -67,26 +131,64 @@ export const IdeaCard: React.FC<IdeaCardProps> = ({ item }) => {
                 </p>
             </div>
 
-            {/* Footer */}
-            <div className="pl-2 flex items-center justify-between mt-auto pt-3 border-t border-gray-50">
-                <div className="flex items-center gap-2">
-                    {item.pillar_name && (
-                        <span
-                            className="text-xs font-medium px-2 py-1 rounded-full border"
-                            style={{
-                                backgroundColor: `${pillarColor}10`,
-                                color: pillarColor,
-                                borderColor: `${pillarColor}30`
-                            }}
-                        >
-                            {item.pillar_name}
-                        </span>
-                    )}
+            {/* Pillar Tag */}
+            {item.pillar_name && (
+                <div className="pl-2 mb-3">
+                    <span
+                        className="text-xs font-medium px-2 py-1 rounded-full border inline-block"
+                        style={{
+                            backgroundColor: `${pillarColor}10`,
+                            color: pillarColor,
+                            borderColor: `${pillarColor}30`
+                        }}
+                    >
+                        {item.pillar_name}
+                    </span>
                 </div>
+            )}
 
-                <button className="text-sm font-medium text-gray-900 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity hover:underline">
-                    View Node <ArrowRight size={14} />
+            {/* Action Bar */}
+            <div className="pl-2 flex items-center gap-6 pt-3 border-t border-gray-100">
+                {/* Likes */}
+                <button
+                    onClick={handleLike}
+                    className={`flex items-center gap-1.5 transition-colors group ${isLiked ? 'text-red-500' : 'text-gray-500 hover:text-red-500'}`}
+                >
+                    <Heart
+                        size={18}
+                        strokeWidth={2}
+                        className="group-hover:scale-105 transition-transform"
+                        fill={isLiked ? 'currentColor' : 'none'}
+                    />
+                    <span className="text-sm font-medium">{likesCount}</span>
                 </button>
+
+                {/* Comments */}
+                <button
+                    onClick={handleCommentClick}
+                    className={`flex items-center gap-1.5 transition-colors group ${showComments ? 'text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}
+                >
+                    <MessageCircle size={18} strokeWidth={2} className="group-hover:scale-105 transition-transform" />
+                    <span className="text-sm font-medium">{commentsCount}</span>
+                </button>
+
+                {/* Share - aligné à droite */}
+                <button
+                    onClick={handleShare}
+                    className="ml-auto text-gray-500 hover:text-gray-900 transition-colors"
+                >
+                    <Share2 size={18} strokeWidth={2} />
+                </button>
+            </div>
+
+            {/* Comment Section */}
+            <div className="pl-2" onClick={handleStopPropagation}>
+                <CommentSection
+                    postId={item.id}
+                    initialCount={commentsCount}
+                    isOpen={showComments}
+                    onToggle={() => setShowComments(!showComments)}
+                />
             </div>
         </div>
     );

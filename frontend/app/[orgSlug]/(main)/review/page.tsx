@@ -26,7 +26,9 @@ import {
     Archive,
     Rocket,
     X,
-    Ban
+    Ban,
+    Sparkles,
+    Quote
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useApiClient } from '@/hooks/useApiClient';
@@ -195,7 +197,8 @@ export default function ReviewPage() {
                     avatar: selectedReview.author_avatar || selectedReview.author?.substring(0, 2).toUpperCase() || "??",
                     isUrl: !!selectedReview.author_avatar, // Flag to indicate if avatar is a URL
                     color: "bg-blue-100 text-blue-700",
-                    idea: selectedReview.title?.substring(0, 50) || "",
+                    idea: (selectedReview.content_clarified || selectedReview.title || "").substring(0, 80) + ((selectedReview.content_clarified || selectedReview.title || "").length > 80 ? "..." : ""),
+                    fullIdea: selectedReview.content_clarified || selectedReview.content || "",
                     date: formatDate(selectedReview.date),
                     x: 25,
                     y: 30
@@ -474,7 +477,13 @@ export default function ReviewPage() {
                                         <div className="flex items-center justify-between mb-1"><span className="text-[10px] font-bold text-gray-400 uppercase">{collab.date}</span><div className={`w-2 h-2 rounded-full ${collab.color.split(' ')[0]}`}></div></div>
                                         <p className="text-xs font-medium text-gray-800 italic">"{collab.idea}"</p>
                                     </div>
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shadow-sm border-2 border-white ${collab.color}`}>{collab.avatar}</div>
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shadow-sm border-2 border-white overflow-hidden ${collab.isUrl ? 'bg-white' : collab.color}`}>
+                                        {collab.isUrl ? (
+                                            <img src={collab.avatar} alt="avatar" className="w-full h-full object-cover" />
+                                        ) : (
+                                            collab.avatar
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -508,18 +517,59 @@ export default function ReviewPage() {
             <div className={`fixed top-0 right-0 bottom-0 w-[400px] bg-white border-l border-gray-200 shadow-2xl z-50 transition-transform duration-500 ease-[cubic-bezier(0.25,0.8,0.25,1)] flex flex-col ${selectedReviewNode ? 'translate-x-0' : 'translate-x-full'}`}>
                 {selectedReviewNode && (
                     <>
-                        <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+                        <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white/80 backdrop-blur-sm sticky top-0 z-10">
                             <h3 className="font-bold text-lg text-gray-900">Contribution Details</h3>
-                            <button onClick={() => setSelectedReviewNode(null)} className="p-2 hover:bg-gray-200 rounded-full text-gray-500"><X size={20} /></button>
+                            <button onClick={() => setSelectedReviewNode(null)} className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors"><X size={20} /></button>
                         </div>
-                        <div className="p-6 flex-1 overflow-y-auto space-y-6">
+                        <div className="p-6 flex-1 overflow-y-auto space-y-8">
+                            {/* User Profile */}
                             <div className="flex items-center gap-4">
-                                <div className={`w-16 h-16 rounded-full flex items-center justify-center font-bold text-xl ${selectedReviewNode.color}`}>{selectedReviewNode.avatar}</div>
-                                <div><h4 className="text-xl font-bold text-gray-900">{selectedReviewNode.name}</h4><p className="text-sm text-gray-500">{selectedReviewNode.role}</p></div>
+                                <div className={`w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg overflow-hidden shadow-sm border border-gray-100 ${selectedReviewNode.isUrl ? 'bg-white' : selectedReviewNode.color}`}>
+                                    {selectedReviewNode.isUrl ? (
+                                        <img src={selectedReviewNode.avatar} alt={selectedReviewNode.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        selectedReviewNode.avatar
+                                    )}
+                                </div>
+                                <div>
+                                    <h4 className="text-lg font-bold text-gray-900 leading-tight">{selectedReviewNode.name}</h4>
+                                    <p className="text-sm text-gray-500 font-medium">{selectedReviewNode.role}</p>
+                                </div>
                             </div>
-                            <div><label className="text-xs font-bold text-gray-400 uppercase mb-2 block">Original Idea</label><div className="bg-gray-50 p-4 rounded-xl border border-gray-100 text-gray-800 font-medium">"{selectedReviewNode.idea}"</div></div>
-                            <div><label className="text-xs font-bold text-gray-400 uppercase mb-2 block">Timeline</label><div className="flex items-center gap-2 text-gray-700"><Calendar size={16} /> Submitted on {selectedReviewNode.date}, 2024</div></div>
-                            <div><label className="text-xs font-bold text-gray-400 uppercase mb-2 block">Status</label><div className="flex items-center gap-2 text-green-600 font-medium bg-green-50 px-3 py-2 rounded-lg inline-block"><CheckCircle2 size={16} /> Merged</div></div>
+
+                            {/* Idea Content */}
+                            <div>
+                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 block">
+                                    Original Contribution
+                                </label>
+                                <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100 text-gray-800 text-base leading-relaxed font-medium relative group hover:bg-gray-100 transition-colors">
+                                    <Quote size={16} className="text-gray-300 absolute top-4 right-4 opacity-50" />
+                                    {selectedReviewNode.fullIdea || selectedReviewNode.idea}
+                                </div>
+                            </div>
+
+                            {/* Metadata Grid */}
+                            <div className="grid grid-cols-1 gap-3">
+                                <div className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-white shadow-sm">
+                                    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg shrink-0">
+                                        <Calendar size={18} />
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Submitted</div>
+                                        <div className="text-sm font-semibold text-gray-900">{selectedReviewNode.date}</div>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-white shadow-sm">
+                                    <div className="p-2 bg-green-50 text-green-600 rounded-lg shrink-0">
+                                        <CheckCircle2 size={18} />
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Status</div>
+                                        <div className="text-sm font-semibold text-gray-900">Merged to Cluster</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div className="p-6 border-t border-gray-100 space-y-3">
                             <button className="w-full py-3 bg-black text-white rounded-xl font-medium hover:bg-gray-800">View Full Thread</button>

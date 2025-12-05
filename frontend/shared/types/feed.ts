@@ -14,6 +14,9 @@ export interface ClusterItem extends BaseFeedItem {
     pillar_id?: string;
     pillar_name?: string;
     pillar_color?: string;
+    likes_count?: number;
+    comments_count?: number;
+    is_liked?: boolean;
     created_at: string;
     last_updated_at: string;
     preview_notes?: Array<{
@@ -38,6 +41,9 @@ export interface NoteItem extends BaseFeedItem {
     ai_relevance_score?: number;
     user_id: string;
     is_mine: boolean;
+    likes_count?: number;
+    comments_count?: number;
+    is_liked?: boolean;
     created_at: string;
     processed_at?: string;
 }
@@ -55,6 +61,10 @@ export interface PostItem extends BaseFeedItem {
     };
     likes_count: number;
     comments_count: number;
+    saves_count?: number;
+    shares_count?: number;
+    is_liked?: boolean;
+    is_saved?: boolean;
     is_mine: boolean;
     created_at: string;
 }
