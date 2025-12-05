@@ -73,6 +73,14 @@ YOUR TASK:
    
    ⚠️ SPECIAL RULE: If ALL pillars score < 5/10, return pillar_id as null and pillar_name as "Uncategorized"
 
+5. TEAM CAPACITY ANALYSIS (Be realistic and specific):
+   Suggest what team composition would be needed to implement this idea:
+   - team_size: Total number of people (1-20)
+   - profiles: Array of specific roles needed (2-5 profiles)
+   - feasibility: "Easy" (existing team can do it), "Moderate" (needs some new skills), "Complex" (needs hiring/external)
+   
+   Example profiles: "Product Manager", "Backend Developer", "UX Designer", "Data Analyst", "Project Lead"
+
 RESPONSE FORMAT (JSON):
 {{
   "clarified_title": "Short, specific title (max 10 words)",
@@ -80,7 +88,13 @@ RESPONSE FORMAT (JSON):
   "pillar_id": "The exact UUID from the list above (or null if score < 5)",
   "pillar_name": "The exact pillar name from the list above (or 'Uncategorized' if score < 5)",
   "relevance_score": 6.5,
-  "reasoning": "Why this score? Be honest about weaknesses."
+  "reasoning": "Why this score? Be honest about weaknesses.",
+  "team_capacity": {{
+    "team_size": 3,
+    "profiles": ["Product Manager", "Backend Developer", "UX Designer"],
+    "feasibility": "Moderate",
+    "feasibility_reason": "Requires dedicated sprint capacity and UX refinement"
+  }}
 }}
 """
         

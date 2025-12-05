@@ -45,15 +45,21 @@ function getColorForCategory(category: string): string {
 
 // Helper to format date
 function formatDate(dateString: string): string {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (!dateString) return 'Date unknown';
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return 'Invalid Date';
 
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch (e) {
+        return 'Date unknown';
+    }
 }
 
 export default function ReviewPage() {
@@ -73,7 +79,7 @@ export default function ReviewPage() {
             return data.map((note: any) => ({
                 ...note,
                 color: getColorForCategory(note.category),
-                date: formatDate(note.date),
+                // Keep original date format for sorting/processing
             }));
         },
     });
@@ -97,41 +103,72 @@ export default function ReviewPage() {
             };
         }
 
+        console.log("🔍 Review Data Debug:", {
+            id: selectedReview.id,
+            score: selectedReview.relevance_score,
+            created: selectedReview.date,
+            updated: selectedReview.updated_at,
+            author: selectedReview.author,
+            avatar: selectedReview.author_avatar
+        });
+
         // Use real data from the selected review
-        const relevanceScore = selectedReview.relevance_score || 0;
+        // AI score is 0-10, convert to 0-100 for percentage
+        const rawScore = selectedReview.relevance_score || 0;
+        const relevancePercentage = Math.round(rawScore * 10);
+
+        // Extract team capacity data from AI analysis
+        const teamCapacity = selectedReview.team_capacity || {
+            team_size: 0,
+            profiles: [],
+            feasibility: "Unknown",
+            feasibility_reason: "No AI analysis available yet"
+        };
+
+        // Calculate Potential Impact based on relevance score (using raw 0-10 score)
+        let potentialImpact = "Low";
+        let impactColor = "text-red-600";
+        if (rawScore >= 8.5) {
+            potentialImpact = "High";
+            impactColor = "text-green-600";
+        } else if (rawScore >= 6.5) {
+            potentialImpact = "Medium";
+            impactColor = "text-amber-600";
+        }
 
         return {
             title: selectedReview.cluster_title || selectedReview.title,
             category: selectedReview.category,
             description: selectedReview.content_clarified || selectedReview.content || "No description available.",
-            relevance: Math.round(relevanceScore),
+            relevance: relevancePercentage, // Display 0-100%
             lastReview: formatDate(selectedReview.date),
             createdDate: formatDate(selectedReview.date),
+            aiReasoning: selectedReview.ai_reasoning || "AI analysis pending...",
 
             impactMetrics: [
                 {
                     label: "Relevance Score",
-                    value: `${Math.round(relevanceScore)}%`,
-                    trend: relevanceScore > 70 ? "up" : "down",
+                    value: `${relevancePercentage}%`,
+                    trend: rawScore > 7 ? "up" : "down",
                     color: "text-black",
                     bg: "bg-white",
                     desc: "AI-calculated relevance"
                 },
                 {
-                    label: "Strategic Value",
-                    value: relevanceScore > 80 ? "High" : relevanceScore > 50 ? "Medium" : "Low",
-                    trend: "up",
-                    color: "text-black",
+                    label: "Potential Impact",
+                    value: potentialImpact,
+                    trend: rawScore > 6.5 ? "up" : "down",
+                    color: impactColor,
                     bg: "bg-white",
-                    desc: "Business alignment"
+                    desc: "Strategic business impact"
                 },
                 {
-                    label: "Review Status",
-                    value: "Pending",
+                    label: "Team Size",
+                    value: teamCapacity.team_size > 0 ? `${teamCapacity.team_size} people` : "TBD",
                     trend: "up",
                     color: "text-black",
                     bg: "bg-white",
-                    desc: "Awaiting decision"
+                    desc: "AI-suggested headcount"
                 },
             ],
 
@@ -141,9 +178,13 @@ export default function ReviewPage() {
                 `Submitted by: ${selectedReview.author}`,
             ],
 
-            riskLevel: relevanceScore > 70 ? "Low" : "Medium",
-            riskDesc: relevanceScore > 70 ? "High relevance score indicates strong strategic alignment" : "Review needed to validate alignment with strategic goals",
-            costEstimation: "To be determined",
+            // Team Capacity & Feasibility (from AI)
+            teamCapacity: teamCapacity,
+            feasibility: teamCapacity.feasibility || "Unknown",
+            feasibilityReason: teamCapacity.feasibility_reason || "No feasibility analysis available",
+
+            // Suggested team profiles
+            suggestedProfiles: teamCapacity.profiles || [],
 
             // Mock collaborators for now - we'll enhance this later
             collaborators: [
@@ -151,14 +192,19 @@ export default function ReviewPage() {
                     id: 1,
                     name: selectedReview.author,
                     role: "Contributor",
-                    avatar: selectedReview.author.substring(0, 2).toUpperCase(),
+                    avatar: selectedReview.author_avatar || selectedReview.author?.substring(0, 2).toUpperCase() || "??",
+                    isUrl: !!selectedReview.author_avatar, // Flag to indicate if avatar is a URL
                     color: "bg-blue-100 text-blue-700",
-                    idea: selectedReview.title.substring(0, 50),
+                    idea: selectedReview.title?.substring(0, 50) || "",
                     date: formatDate(selectedReview.date),
                     x: 25,
                     y: 30
                 }
-            ]
+            ],
+
+            // Fix dates
+            lastUpdateDisplay: formatDate(selectedReview.updated_at || selectedReview.date),
+            createdDisplay: formatDate(selectedReview.date)
         };
     }, [selectedReview]);
 
@@ -210,7 +256,7 @@ export default function ReviewPage() {
                                     <div>
                                         <span className={`text-xs font-bold px-2 py-1 rounded-full mb-2 inline-block ${review.color}`}>{review.category}</span>
                                         <h3 className="text-xl font-bold text-gray-900">{review.cluster_title || review.title}</h3>
-                                        <p className="text-sm text-gray-500 mt-1">Submitted by {review.author} • {review.date}</p>
+                                        <p className="text-sm text-gray-500 mt-1">Submitted by {review.author} • Review ready: {formatDate(review.updated_at)}</p>
                                     </div>
                                     <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-gray-200 group-hover:bg-black group-hover:text-white transition-colors">
                                         <ArrowUpRight size={20} />
@@ -294,10 +340,6 @@ export default function ReviewPage() {
                                     <div className="flex items-center gap-2 text-sm font-bold text-gray-900 uppercase tracking-wider">
                                         Strategic Impact Analysis
                                     </div>
-                                    <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full px-3 py-1">
-                                        <span className="text-xs font-medium text-gray-500">Confidence Score:</span>
-                                        <span className="text-sm font-bold text-black">85%</span>
-                                    </div>
                                 </div>
 
                                 <div className="p-6">
@@ -333,27 +375,42 @@ export default function ReviewPage() {
                                             </ul>
                                         </div>
 
-                                        {/* Risk & Cost Analysis */}
+                                        {/* Team Capacity & Feasibility */}
                                         <div className="space-y-4">
-                                            <h4 className="text-sm font-bold text-orange-600 mb-4 flex items-center gap-2">
-                                                <ShieldAlert size={16} /> Risk & Feasibility
+                                            <h4 className="text-sm font-bold text-purple-600 mb-4 flex items-center gap-2">
+                                                <Users size={16} /> Team Capacity & Feasibility
                                             </h4>
 
+                                            {/* Feasibility Indicator */}
                                             <div className="p-3 bg-white rounded-xl border border-gray-100">
                                                 <div className="flex items-center justify-between mb-1">
-                                                    <span className="text-xs font-semibold text-gray-500 uppercase">Risk Level</span>
-                                                    <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-bold rounded">{reviewData.riskLevel}</span>
+                                                    <span className="text-xs font-semibold text-gray-500 uppercase">Feasibility</span>
+                                                    <span className={`px-2 py-0.5 text-xs font-bold rounded ${reviewData.feasibility === 'Easy' ? 'bg-green-100 text-green-700' :
+                                                        reviewData.feasibility === 'Moderate' ? 'bg-amber-100 text-amber-700' :
+                                                            reviewData.feasibility === 'Complex' ? 'bg-red-100 text-red-700' :
+                                                                'bg-gray-100 text-gray-700'
+                                                        }`}>{reviewData.feasibility}</span>
                                                 </div>
-                                                <p className="text-xs text-gray-500">{reviewData.riskDesc}</p>
+                                                <p className="text-xs text-gray-500">{reviewData.feasibilityReason}</p>
                                             </div>
 
+                                            {/* Suggested Team Profiles */}
                                             <div className="p-3 bg-white rounded-xl border border-gray-100">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                                                        <Coins size={16} /> Estimated Cost
-                                                    </div>
-                                                    <span className="text-sm font-bold text-gray-900">{reviewData.costEstimation}</span>
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <Briefcase size={14} className="text-gray-400" />
+                                                    <span className="text-xs font-semibold text-gray-500 uppercase">Suggested Profiles</span>
                                                 </div>
+                                                {reviewData.suggestedProfiles.length > 0 ? (
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {reviewData.suggestedProfiles.map((profile: string, i: number) => (
+                                                            <span key={i} className="bg-purple-50 text-purple-700 text-xs font-medium px-2 py-1 rounded-full border border-purple-200">
+                                                                {profile}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-xs text-gray-400 italic">AI analysis pending...</p>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -364,11 +421,11 @@ export default function ReviewPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="bg-white p-5 rounded-xl border border-gray-200 flex flex-col gap-1">
                                     <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase"><Calendar size={14} /> Created</div>
-                                    <div className="text-lg font-bold text-gray-900">{reviewData.createdDate}</div>
+                                    <div className="text-lg font-bold text-gray-900">{reviewData.createdDisplay}</div>
                                 </div>
                                 <div className="bg-white p-5 rounded-xl border border-gray-200 flex flex-col gap-1">
                                     <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase"><Clock size={14} /> Last Update</div>
-                                    <div className="text-lg font-bold text-gray-900">{reviewData.lastReview}</div>
+                                    <div className="text-lg font-bold text-gray-900">{reviewData.lastUpdateDisplay}</div>
                                 </div>
                             </div>
                         </div>
@@ -383,15 +440,16 @@ export default function ReviewPage() {
                                 <div className="space-y-4 flex-1">
                                     {reviewData.collaborators.map((member, idx) => (
                                         <div key={idx} className="flex items-center gap-4 p-3 rounded-xl hover:bg-gray-50 transition-colors group cursor-default border border-transparent hover:border-gray-100">
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${member.color}`}>{member.avatar}</div>
+                                            {member.isUrl ? (
+                                                <img src={member.avatar} alt={member.name} className="w-10 h-10 rounded-full object-cover border border-gray-200" />
+                                            ) : (
+                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${member.color}`}>{member.avatar}</div>
+                                            )}
                                             <div className="flex-1 min-w-0"><div className="font-semibold text-gray-900 truncate">{member.name}</div><div className="flex items-center gap-1 text-xs text-gray-500 truncate"><Briefcase size={10} />{member.role}</div></div>
                                             <ChevronRight size={16} className="text-gray-300 group-hover:text-gray-600" />
                                         </div>
                                     ))}
                                 </div>
-                                <button className="mt-6 w-full py-2 border border-dashed border-gray-300 text-gray-400 rounded-xl text-sm font-medium hover:text-gray-900 hover:border-gray-400 transition-colors flex items-center justify-center gap-2">
-                                    <Users size={16} /> Add Contributor
-                                </button>
                             </div>
                         </div>
                     </div>

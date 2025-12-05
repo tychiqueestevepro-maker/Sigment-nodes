@@ -182,6 +182,9 @@ async def update_note(
         update_data = {}
         if update.status:
             update_data["status"] = update.status
+            # If moving to review, update processed_at to reflect when it entered review
+            if update.status == "review":
+                update_data["processed_at"] = "now()"
         if update.cluster_id:
             update_data["cluster_id"] = str(update.cluster_id)
         

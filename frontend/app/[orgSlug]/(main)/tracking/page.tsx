@@ -363,10 +363,14 @@ function TrackPageContent() {
                         hour: '2-digit',
                         minute: '2-digit'
                     });
-                } else if (noteData.processedDate && noteData.processedDate !== 'Pending') {
-                    lastUpdated = noteData.processedDate;
+                } else if (noteData.processedDate) {
+                    lastUpdated = new Date(noteData.processedDate).toLocaleDateString('en-US', {
+                        month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                    });
                 } else if (noteData.createdDate) {
-                    lastUpdated = noteData.createdDate;
+                    lastUpdated = new Date(noteData.createdDate).toLocaleDateString('en-US', {
+                        month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                    });
                 }
 
                 return (

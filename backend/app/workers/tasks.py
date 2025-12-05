@@ -1,6 +1,7 @@
 """
 Celery tasks for AI processing pipeline
 """
+import json
 from typing import Dict, List, Optional
 from uuid import UUID
 from loguru import logger
@@ -141,16 +142,23 @@ def process_note_task(self, note_id: str):
         # ============================================
         # STEP 6: Update Note
         # ============================================
-        supabase.table("notes").update({
+        # Prepare team_capacity as JSON if available
+        team_capacity = analysis.get("team_capacity")
+        
+        update_data = {
             "title_clarified": analysis.get("clarified_title"),  # AI-generated short title
             "content_clarified": analysis["clarified_content"],
             "embedding": embedding,
             "pillar_id": pillar_id,
             "cluster_id": cluster_id,
             "ai_relevance_score": analysis["relevance_score"],
+            "ai_reasoning": analysis.get("reasoning"),  # Store AI reasoning
+            "ai_team_capacity": json.dumps(team_capacity) if team_capacity else None,  # Store team capacity as JSON
             "status": "processed",
             "processed_at": "now()"
-        }).eq("id", note_id).execute()
+        }
+        
+        supabase.table("notes").update(update_data).eq("id", note_id).execute()
         
         # Log cluster fusion event
         cluster_response = supabase.table("clusters").select("title").eq("id", cluster_id).single().execute()

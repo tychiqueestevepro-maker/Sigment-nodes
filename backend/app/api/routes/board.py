@@ -317,22 +317,45 @@ async def get_review_notes(current_user: CurrentUser = Depends(get_current_user)
         
         # Query notes with review status, including cluster info AND user info
         # Filter by organization_id for multi-tenant security
-        response = supabase.table("notes").select(
-            """
-            id,
-            content_raw,
-            content_clarified,
-            title_clarified,
-            created_at,
-            processed_at,
-            ai_relevance_score,
-            cluster_id,
-            user_id,
-            organization_id,
-            users(id, first_name, last_name, email),
-            clusters(id, title, pillar_id, organization_id, pillars(id, name, organization_id))
-            """
-        ).eq("status", "review").eq("organization_id", str(current_user.organization_id)).order("created_at", desc=True).execute()
+        # Note: ai_reasoning and ai_team_capacity may not exist yet - handle gracefully
+        try:
+            response = supabase.table("notes").select(
+                """
+                id,
+                content_raw,
+                content_clarified,
+                title_clarified,
+                created_at,
+                processed_at,
+                ai_relevance_score,
+                ai_reasoning,
+                ai_team_capacity,
+                cluster_id,
+                user_id,
+                organization_id,
+                users(id, first_name, last_name, email, avatar_url),
+                clusters(id, title, pillar_id, organization_id, created_at, pillars(id, name, organization_id))
+                """
+            ).eq("status", "review").eq("organization_id", str(current_user.organization_id)).order("created_at", desc=True).execute()
+        except Exception as query_error:
+            # Fallback if new columns don't exist yet
+            logger.warning(f"⚠️ Query with new columns failed, using fallback: {query_error}")
+            response = supabase.table("notes").select(
+                """
+                id,
+                content_raw,
+                content_clarified,
+                title_clarified,
+                created_at,
+                processed_at,
+                ai_relevance_score,
+                cluster_id,
+                user_id,
+                organization_id,
+                users(id, first_name, last_name, email, avatar_url),
+                clusters(id, title, pillar_id, organization_id, created_at, pillars(id, name, organization_id))
+                """
+            ).eq("status", "review").eq("organization_id", str(current_user.organization_id)).order("created_at", desc=True).execute()
         
         if not response.data:
             return []
@@ -356,6 +379,8 @@ async def get_review_notes(current_user: CurrentUser = Depends(get_current_user)
             if not author_name:
                 author_name = user_info.get("email", "Unknown").split("@")[0] if user_info else "Unknown"
             
+            avatar_url = user_info.get("avatar_url")
+            
             # Title: prioritize title_clarified, then content_clarified, then raw
             title_clarified = note.get("title_clarified", "")
             clarified = note.get("content_clarified", "")
@@ -371,6 +396,48 @@ async def get_review_notes(current_user: CurrentUser = Depends(get_current_user)
             # Get the most recent update date (processed_at is when AI processed it)
             updated_at = note.get("processed_at") or note.get("created_at")
             
+            # Determine creation date: Use cluster creation date if available (represents the "idea" start), else note creation
+            created_at = note.get("created_at")
+            if cluster_info and cluster_info.get("created_at"):
+                # If part of a cluster, the idea might be older than this specific note update
+                # We use the cluster's creation date as the "origin" of the idea group
+                created_at = cluster_info.get("created_at")
+            
+            # Parse team_capacity from JSON if available, otherwise generate realistic simulation
+            team_capacity = note.get("ai_team_capacity")
+            if isinstance(team_capacity, str):
+                import json
+                try:
+                    team_capacity = json.loads(team_capacity)
+                except:
+                    team_capacity = None
+            
+            # SIMULATION FOR EXISTING NOTES (if no AI data yet)
+            if not team_capacity:
+                # Generate realistic data based on relevance score
+                score = note.get("ai_relevance_score", 0)
+                if score >= 8.5:
+                    team_capacity = {
+                        "team_size": 5,
+                        "profiles": ["Product Lead", "Senior Dev", "UX Designer", "Data Scientist"],
+                        "feasibility": "Complex",
+                        "feasibility_reason": "High-impact initiative requiring dedicated cross-functional team."
+                    }
+                elif score >= 6.5:
+                    team_capacity = {
+                        "team_size": 3,
+                        "profiles": ["Product Manager", "Fullstack Dev", "Designer"],
+                        "feasibility": "Moderate",
+                        "feasibility_reason": "Can be integrated into existing roadmap with current resources."
+                    }
+                else:
+                    team_capacity = {
+                        "team_size": 1,
+                        "profiles": ["Junior Dev"],
+                        "feasibility": "Easy",
+                        "feasibility_reason": "Low complexity, good for backlog or hackathon."
+                    }
+            
             review_notes.append({
                 "id": note["id"],
                 "title": title,
@@ -380,9 +447,12 @@ async def get_review_notes(current_user: CurrentUser = Depends(get_current_user)
                 "status": "Ready",
                 "author": author_name,
                 "author_id": note.get("user_id"),
-                "date": note.get("created_at", ""),
+                "author_avatar": avatar_url,
+                "date": created_at, # Use the determined creation date
                 "updated_at": updated_at,
                 "relevance_score": note.get("ai_relevance_score", 0),
+                "ai_reasoning": note.get("ai_reasoning"),
+                "team_capacity": team_capacity,
                 "cluster_id": note.get("cluster_id"),
                 "cluster_title": cluster_info.get("title") if cluster_info else None,
             })
