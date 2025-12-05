@@ -26,6 +26,7 @@ interface Participant {
     last_name: string | null;
     job_title: string | null;
     email: string | null;
+    avatar_url?: string | null;
 }
 
 interface Conversation {
@@ -206,9 +207,15 @@ export default function ChatPage() {
                                     }`}
                             >
                                 <div className="flex items-center space-x-3">
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-gray-600 font-medium border border-gray-100 ${conv.is_group ? 'bg-indigo-50 text-indigo-600' : 'bg-gradient-to-br from-gray-100 to-gray-200'}`}>
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-gray-600 font-medium border border-gray-100 overflow-hidden ${conv.is_group ? 'bg-indigo-50 text-indigo-600' : 'bg-gradient-to-br from-gray-100 to-gray-200'}`}>
                                         {conv.is_group ? (
                                             <Users className="w-5 h-5" />
+                                        ) : conv.other_participant?.avatar_url ? (
+                                            <img
+                                                src={conv.other_participant.avatar_url}
+                                                alt={conv.other_participant.first_name || 'User'}
+                                                className="w-full h-full object-cover"
+                                            />
                                         ) : (
                                             conv.other_participant?.first_name?.[0] || conv.other_participant?.email?.[0] || '?'
                                         )}
@@ -320,8 +327,18 @@ function ChatWindow({ conversation, currentUser, apiClient }: { conversation: Co
             {/* Chat Header */}
             <div className="h-16 px-6 bg-white border-b border-gray-200 flex items-center justify-between shadow-sm z-10">
                 <div className="flex items-center space-x-3">
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-gray-600 text-sm font-bold border border-gray-200 ${conversation.is_group ? 'bg-indigo-50 text-indigo-600' : 'bg-gray-100'}`}>
-                        {conversation.is_group ? <Users size={18} /> : (conversation.other_participant?.first_name?.[0] || '?')}
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-gray-600 text-sm font-bold border border-gray-200 overflow-hidden ${conversation.is_group ? 'bg-indigo-50 text-indigo-600' : 'bg-gray-100'}`}>
+                        {conversation.is_group ? (
+                            <Users size={18} />
+                        ) : conversation.other_participant?.avatar_url ? (
+                            <img
+                                src={conversation.other_participant.avatar_url}
+                                alt={conversation.other_participant.first_name || 'User'}
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            conversation.other_participant?.first_name?.[0] || '?'
+                        )}
                     </div>
                     <div>
                         <h3 className="text-sm font-bold text-gray-900">

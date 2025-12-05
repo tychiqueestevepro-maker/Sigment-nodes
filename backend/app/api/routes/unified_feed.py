@@ -38,6 +38,7 @@ class NoteFeedItem(BaseModel):
     """Note dans le feed unifié"""
     type: Literal["NOTE"] = "NOTE"
     id: str
+    title: Optional[str] = None  # AI-generated clarified title
     content: str
     content_raw: Optional[str] = None
     content_clarified: Optional[str] = None
@@ -187,10 +188,16 @@ async def get_unified_feed(
                 ).in_("cluster_id", small_cluster_ids).eq("status", "processed").execute()
                 
                 for n in small_notes.data:
+                    # Generate title with fallback: title_clarified > truncated content_clarified
+                    title = n.get("title_clarified")
+                    if not title:
+                        clarified = n.get("content_clarified") or n.get("content_raw") or ""
+                        title = clarified[:80] + "..." if len(clarified) > 80 else clarified
+                    
                     items.append(NoteFeedItem(
                         type="NOTE",
                         id=n["id"],
-                        title=n.get("title_clarified"),
+                        title=title,
                         content=n.get("content_clarified") or n.get("content_raw") or "",
                         content_raw=n.get("content_raw"),
                         content_clarified=n.get("content_clarified"),
@@ -226,11 +233,17 @@ async def get_unified_feed(
         for n in notes_response.data:
             if n["id"] in existing_note_ids:
                 continue
+            
+            # Generate title with fallback: title_clarified > truncated content_clarified
+            title = n.get("title_clarified")
+            if not title:
+                clarified = n.get("content_clarified") or n.get("content_raw") or ""
+                title = clarified[:80] + "..." if len(clarified) > 80 else clarified
                 
             items.append(NoteFeedItem(
                 type="NOTE",
                 id=n["id"],
-                title=n.get("title_clarified"),
+                title=title,
                 content=n.get("content_clarified") or n.get("content_raw") or "",
                 content_raw=n.get("content_raw"),
                 content_clarified=n.get("content_clarified"),
@@ -251,7 +264,7 @@ async def get_unified_feed(
         # 3. FETCH POSTS
         # ============================================
         posts_response = supabase.table("posts").select(
-            "*, users(first_name, last_name, email)"
+            "*, users(first_name, last_name, email, avatar_url)"
         ).eq("organization_id", organization_id).neq("post_type", "linked_idea").gte("created_at", cutoff_30d.isoformat()).order("created_at", desc=True).limit(limit).execute()
         
         for p in posts_response.data:
@@ -266,7 +279,7 @@ async def get_unified_feed(
                     "first_name": user_info.get("first_name"),
                     "last_name": user_info.get("last_name"),
                     "email": user_info.get("email"),
-                    "avatar_url": None, # Column does not exist yet
+                    "avatar_url": user_info.get("avatar_url"),
                 },
                 likes_count=p.get("likes_count", 0),
                 comments_count=p.get("comments_count", 0),

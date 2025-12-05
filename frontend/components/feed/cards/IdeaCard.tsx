@@ -1,6 +1,6 @@
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { FileText, Sparkles, ArrowRight } from 'lucide-react';
+import { Layers, ArrowRight } from 'lucide-react';
 import { NoteItem } from '@/types/feed';
 
 interface IdeaCardProps {
@@ -22,21 +22,17 @@ export const IdeaCard: React.FC<IdeaCardProps> = ({ item }) => {
             {/* Header */}
             <div className="flex items-start justify-between mb-3 pl-2">
                 <div>
-                    <div className="text-base font-bold text-gray-900 line-clamp-1 mb-0.5">{(item as any).title || "Untitled Note"}</div>
+                    <div className="text-base font-bold text-gray-900 line-clamp-1 mb-0.5">
+                        {item.title || (item.content_clarified ? item.content_clarified.slice(0, 80) : item.content.slice(0, 80))}
+                    </div>
                     <div className="text-xs text-gray-400">
                         {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
                     </div>
                 </div>
 
-                {item.ai_relevance_score && item.ai_relevance_score >= 7 ? (
-                    <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 border border-amber-200 shrink-0 h-fit">
-                        <Sparkles size={12} /> Idea
-                    </span>
-                ) : (
-                    <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 border border-gray-200 shrink-0 h-fit">
-                        <FileText size={12} /> Note
-                    </span>
-                )}
+                <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 border border-gray-200 shrink-0 h-fit">
+                    <Layers size={12} /> Node
+                </span>
             </div>
 
             {/* Content */}

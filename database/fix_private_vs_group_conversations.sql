@@ -1,5 +1,19 @@
--- Fonction pour récupérer ou créer une conversation privée (1-to-1)
--- Cette fonction distingue les conversations privées des conversations de groupe
+-- ===================================================
+-- Migration: Fix Private vs Group Conversations
+-- Description: Updates get_or_create_conversation function to properly distinguish
+--              between private (1-to-1) and group conversations.
+-- 
+-- PROBLEM: Quand un utilisateur essayait de démarrer une conversation privée
+--          avec quelqu'un qui était déjà dans un groupe commun, le système
+--          retournait le groupe au lieu de créer une nouvelle conversation privée.
+--
+-- SOLUTION: La fonction vérifie maintenant que:
+--   1. is_group = FALSE (exclure les conversations de groupe)
+--   2. Il y a exactement 2 participants
+--   3. Les 2 participants sont l'utilisateur courant et l'utilisateur cible
+-- ===================================================
+
+-- Drop and recreate the function with proper distinction
 CREATE OR REPLACE FUNCTION get_or_create_conversation(
     p_organization_id UUID,
     p_target_user_id UUID,
@@ -60,3 +74,21 @@ BEGIN
     RETURN v_conversation_id;
 END;
 $$;
+
+-- Optionnel: Mettre à jour les anciennes conversations privées qui n'ont pas is_group défini
+-- Cela corrige les données existantes pour marquer correctement les conversations 1-à-1
+UPDATE conversations c
+SET is_group = FALSE
+WHERE is_group IS NULL
+  AND (
+      SELECT COUNT(*) 
+      FROM conversation_participants cp 
+      WHERE cp.conversation_id = c.id
+  ) = 2;
+
+-- Confirmer que la migration a été appliquée
+DO $$
+BEGIN
+    RAISE NOTICE 'Migration fix_private_vs_group_conversations applied successfully!';
+    RAISE NOTICE 'Private conversations are now properly distinguished from group conversations.';
+END $$;

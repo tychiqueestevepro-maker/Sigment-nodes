@@ -9,6 +9,7 @@ class ParticipantInfo(BaseModel):
     last_name: Optional[str]
     job_title: Optional[str]
     email: str
+    avatar_url: Optional[str] = None
 
 class Conversation(BaseModel):
     id: UUID

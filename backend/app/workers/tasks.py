@@ -92,13 +92,13 @@ def process_note_task(self, note_id: str):
         if not pillar and analysis.get("pillar_name") and analysis["pillar_name"] != "Uncategorized":
             pillar = next((p for p in available_pillars if p["name"] == analysis["pillar_name"]), None)
         
-        # If no pillar found or score < 4/10, assign to "Uncategorized"
+        # If no pillar found or score < 5/10, assign to "Uncategorized"
         if not pillar or (analysis.get("pillar_name") == "Uncategorized"):
             # Find "Uncategorized" pillar for this organization
             uncategorized_pillar = next((p for p in available_pillars if p["name"] == "Uncategorized"), None)
             
             if uncategorized_pillar:
-                logger.info(f"Note {note_id} assigned to 'Uncategorized' pillar (score < 4/10 or no match)")
+                logger.info(f"Note {note_id} assigned to 'Uncategorized' pillar (score < 5/10 or no match)")
                 pillar_id = uncategorized_pillar["id"]
             else:
                 # Fallback: Create "Uncategorized" pillar if it doesn't exist
@@ -106,7 +106,7 @@ def process_note_task(self, note_id: str):
                 uncategorized_response = supabase.table("pillars").insert({
                     "organization_id": organization_id,
                     "name": "Uncategorized",
-                    "description": "Ideas that could not be categorized into existing pillars (relevance score < 4/10)",
+                    "description": "Ideas that could not be categorized into existing pillars (relevance score < 5/10)",
                     "color": "#9CA3AF"
                 }).execute()
                 pillar_id = uncategorized_response.data[0]["id"]
@@ -142,6 +142,7 @@ def process_note_task(self, note_id: str):
         # STEP 6: Update Note
         # ============================================
         supabase.table("notes").update({
+            "title_clarified": analysis.get("clarified_title"),  # AI-generated short title
             "content_clarified": analysis["clarified_content"],
             "embedding": embedding,
             "pillar_id": pillar_id,

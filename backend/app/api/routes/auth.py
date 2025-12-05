@@ -253,7 +253,17 @@ async def login(data: LoginRequest):
 
         logger.info(f"User {email} logged in successfully")
         
-        # 5. Determine redirect target
+        # 5. Get user profile data from users table (includes avatar_url)
+        user_profile = supabase.table("users").select(
+            "first_name, last_name, avatar_url"
+        ).eq("id", user_id).single().execute()
+        
+        # Use profile data if available, fallback to user_metadata
+        first_name = user_profile.data.get("first_name") if user_profile.data else user.user_metadata.get("first_name", "")
+        last_name = user_profile.data.get("last_name") if user_profile.data else user.user_metadata.get("last_name", "")
+        avatar_url = user_profile.data.get("avatar_url") if user_profile.data else None
+        
+        # 6. Determine redirect target
         role = membership["role"].upper()
         if role == "OWNER":
             redirect_target = "owner"
@@ -262,15 +272,16 @@ async def login(data: LoginRequest):
         else:
             redirect_target = "member"
         
-        # 6. Return REAL JWT access token from Supabase Auth
+        # 7. Return REAL JWT access token from Supabase Auth
         return {
             "user": {
                 "id": user_id,
                 "email": email,
-                "first_name": user.user_metadata.get("first_name", ""),
-                "last_name": user.user_metadata.get("last_name", ""),
+                "first_name": first_name,
+                "last_name": last_name,
                 "role": role,
-                "job_title": membership.get("job_title", "")
+                "job_title": membership.get("job_title", ""),
+                "avatar_url": avatar_url
             },
             "organization": organization,
             "access_token": auth_response.session.access_token,

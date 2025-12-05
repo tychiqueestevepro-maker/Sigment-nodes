@@ -19,6 +19,7 @@ import {
     Ban,
     Folder,
 } from 'lucide-react';
+import RoleGuard from '@/guards/RoleGuard';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useApiClient } from '@/hooks/useApiClient';
 import toast from 'react-hot-toast';
@@ -81,6 +82,41 @@ interface Node {
     noteIds: string[]; // IDs of notes in this cluster
 }
 
+// Real cluster details from API
+interface ClusterDetails {
+    id: string;
+    title: string;
+    pillar: string;
+    pillar_id: string;
+    pillar_color: string | null;
+    strategic_brief: string;
+    created_at: string | null;
+    last_updated_at: string | null;
+    impact: string;
+    relevance_score: number;
+    avg_relevance_raw: number;
+    note_count: number;
+    collaborators: {
+        id: string;
+        name: string;
+        initials: string;
+        avatar_url: string | null;
+        job_title: string;
+        department: string;
+    }[];
+    collaborator_count: number;
+    note_ids: string[];
+}
+
+interface Collaborator {
+    id: string;
+    name: string;
+    initials: string;
+    avatar_url: string | null;
+    job_title: string;
+    department: string;
+}
+
 // --- Helper Functions ---
 
 function getColorForPillar(pillarName: string): { bg: string; hex: string } {
@@ -134,7 +170,9 @@ function getSizeForCount(count: number): string {
 
 // --- Main Component ---
 
-export default function GalaxyViewPage() {
+// --- Main Component ---
+
+function GalaxyViewPageContent() {
     const { organizationId } = useOrganization();
     const apiClient = useApiClient();
 
@@ -145,6 +183,8 @@ export default function GalaxyViewPage() {
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const [isProcessing, setIsProcessing] = useState(false);
+    const [nodeDetails, setNodeDetails] = useState<ClusterDetails | null>(null);
+    const [isLoadingDetails, setIsLoadingDetails] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
     // --- Data Fetching ---
@@ -309,13 +349,29 @@ export default function GalaxyViewPage() {
         }, 300);
     };
 
-    const handleNodeClick = (e: React.MouseEvent, node: Node) => {
+    const handleNodeClick = async (e: React.MouseEvent, node: Node) => {
         e.stopPropagation();
         setSelectedNode(node);
+        setNodeDetails(null); // Clear previous details
+        setIsLoadingDetails(true);
+
+        try {
+            // Fetch real cluster details from API
+            const details = await apiClient.get<ClusterDetails>(`/board/cluster/${node.clusterId}/details`);
+            setNodeDetails(details);
+        } catch (error) {
+            console.error('Failed to fetch cluster details:', error);
+            toast.error('Failed to load cluster details');
+        } finally {
+            setIsLoadingDetails(false);
+        }
     };
 
     const handleTreatedNotes = async () => {
-        if (!selectedNode || !selectedNode.noteIds || selectedNode.noteIds.length === 0) {
+        // Use note_ids from nodeDetails if available, fallback to selectedNode.noteIds
+        const noteIds = nodeDetails?.note_ids || selectedNode?.noteIds || [];
+
+        if (noteIds.length === 0) {
             toast.error('No notes found in this cluster');
             return;
         }
@@ -323,7 +379,7 @@ export default function GalaxyViewPage() {
         setIsProcessing(true);
         try {
             // Update all notes in the cluster to review status (for review zone)
-            const updatePromises = selectedNode.noteIds.map(async (noteId) => {
+            const updatePromises = noteIds.map(async (noteId) => {
                 try {
                     await apiClient.patch(`/notes/${noteId}`, { status: 'review' });
                     return { success: true };
@@ -336,10 +392,11 @@ export default function GalaxyViewPage() {
             const failedCount = results.filter(r => !r.success).length;
 
             if (failedCount > 0) {
-                toast.error(`❌ ${failedCount} of ${selectedNode.noteIds.length} notes failed to update`);
+                toast.error(`❌ ${failedCount} of ${noteIds.length} notes failed to update`);
             } else {
-                toast.success(`✅ ${selectedNode.noteIds.length} note(s) marked for review!`);
+                toast.success(`✅ ${noteIds.length} note(s) marked for review!`);
                 setSelectedNode(null);
+                setNodeDetails(null);
             }
         } catch (error) {
             console.error('Error updating notes:', error);
@@ -350,19 +407,22 @@ export default function GalaxyViewPage() {
     };
 
     const handleRefuseNote = async () => {
-        if (!selectedNode || !selectedNode.noteIds || selectedNode.noteIds.length === 0) {
+        // Use note_ids from nodeDetails if available, fallback to selectedNode.noteIds
+        const noteIds = nodeDetails?.note_ids || selectedNode?.noteIds || [];
+
+        if (noteIds.length === 0) {
             toast.error('No notes found in this cluster');
             return;
         }
 
-        if (!confirm(`Are you sure you want to refuse ${selectedNode.noteIds.length} note(s)? This action will remove them from the cluster.`)) {
+        if (!confirm(`Are you sure you want to refuse ${noteIds.length} note(s)? This action will remove them from the cluster.`)) {
             return;
         }
 
         setIsProcessing(true);
         try {
             // Update all notes in the cluster to refused status
-            const updatePromises = selectedNode.noteIds.map(async (noteId) => {
+            const updatePromises = noteIds.map(async (noteId) => {
                 try {
                     await apiClient.patch(`/notes/${noteId}`, { status: 'refused' });
                     return { success: true };
@@ -375,10 +435,11 @@ export default function GalaxyViewPage() {
             const failedCount = results.filter(r => !r.success).length;
 
             if (failedCount > 0) {
-                toast.error(`❌ ${failedCount} of ${selectedNode.noteIds.length} notes failed to refuse`);
+                toast.error(`❌ ${failedCount} of ${noteIds.length} notes failed to refuse`);
             } else {
-                toast.success(`🗑️ ${selectedNode.noteIds.length} note(s) refused and removed from the cluster.`);
+                toast.success(`🗑️ ${noteIds.length} note(s) refused and removed from the cluster.`);
                 setSelectedNode(null);
+                setNodeDetails(null);
             }
         } catch (error) {
             console.error('Error refusing notes:', error);
@@ -515,106 +576,163 @@ export default function GalaxyViewPage() {
                                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedBubble.hex }}></div>
                                     <h3 className="font-bold text-lg text-gray-900">Node Details</h3>
                                 </div>
-                                <button onClick={() => setSelectedNode(null)} className="p-2 hover:bg-gray-200 rounded-full text-gray-500">
+                                <button onClick={() => { setSelectedNode(null); setNodeDetails(null); }} className="p-2 hover:bg-gray-200 rounded-full text-gray-500">
                                     <X size={20} />
                                 </button>
                             </div>
                             <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                                <div className="flex items-start gap-4">
-                                    <div
-                                        className="w-14 h-14 rounded-full flex items-center justify-center text-white shadow-md text-lg font-bold shrink-0 mt-1"
-                                        style={{ backgroundColor: selectedBubble.hex }}
-                                    >
-                                        {Number(selectedNode.id) + 1}
+                                {isLoadingDetails ? (
+                                    <div className="flex items-center justify-center py-12">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                                        <span className="ml-3 text-gray-500">Loading details...</span>
                                     </div>
-                                    <div>
-                                        <h2 className="text-xl font-bold text-gray-900 leading-tight mb-1">{selectedNode.title}</h2>
-                                        <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                            {selectedBubble.title}
+                                ) : nodeDetails ? (
+                                    <>
+                                        {/* Title Section */}
+                                        <div className="flex items-start gap-4">
+                                            <div
+                                                className="w-14 h-14 rounded-full flex items-center justify-center text-white shadow-md text-lg font-bold shrink-0 mt-1"
+                                                style={{ backgroundColor: selectedBubble.hex }}
+                                            >
+                                                {Number(selectedNode.id) + 1}
+                                            </div>
+                                            <div>
+                                                <h2 className="text-xl font-bold text-gray-900 leading-tight mb-1">{nodeDetails.title || selectedNode.title}</h2>
+                                                <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                    {nodeDetails.pillar || selectedBubble.title}
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
-                                <hr className="border-gray-100" />
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                        <Info size={14} />Strategic Brief
-                                    </div>
-                                    <p className="text-sm text-gray-600 leading-relaxed">{selectedNode.description}</p>
-                                </div>
-                                <div className="grid grid-cols-2 gap-x-4 gap-y-6">
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                            <Clock size={14} />Last Review
+                                        <hr className="border-gray-100" />
+
+                                        {/* Strategic Brief - AI Generated */}
+                                        <div className="space-y-2">
+                                            <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                                <Info size={14} />Strategic Brief
+                                            </div>
+                                            <p className="text-sm text-gray-600 leading-relaxed">{nodeDetails.strategic_brief}</p>
                                         </div>
-                                        <div className="text-sm font-medium text-gray-900 border-b border-gray-100 pb-1">
-                                            {selectedNode.reviewDate}
+
+                                        {/* Metrics Grid */}
+                                        <div className="grid grid-cols-2 gap-x-4 gap-y-6">
+                                            <div className="space-y-2">
+                                                <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                                    <Clock size={14} />Last Update
+                                                </div>
+                                                <div className="text-sm font-medium text-gray-900 border-b border-gray-100 pb-1">
+                                                    {nodeDetails.last_updated_at
+                                                        ? new Date(nodeDetails.last_updated_at).toLocaleDateString('en-US', {
+                                                            day: '2-digit',
+                                                            month: '2-digit',
+                                                            year: 'numeric'
+                                                        })
+                                                        : 'Pending'}
+                                                </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                                    <Calendar size={14} />Created Date
+                                                </div>
+                                                <div className="text-sm font-medium text-gray-900">
+                                                    {nodeDetails.created_at
+                                                        ? new Date(nodeDetails.created_at).toLocaleDateString('en-US', {
+                                                            day: '2-digit',
+                                                            month: '2-digit',
+                                                            year: 'numeric'
+                                                        })
+                                                        : 'Unknown'}
+                                                </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                                    <Zap size={14} />Potential Impact
+                                                </div>
+                                                <div className={`text-sm font-bold ${nodeDetails.impact === 'High' ? 'text-green-600' :
+                                                    nodeDetails.impact === 'Medium' ? 'text-amber-600' :
+                                                        'text-red-500'
+                                                    }`}>
+                                                    {nodeDetails.impact}
+                                                    {nodeDetails.impact === 'Low' && (
+                                                        <span className="ml-1 text-[10px] font-normal text-gray-400">(needs improvement)</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                                    <Users size={14} />Collaborators
+                                                </div>
+                                                <div className="flex items-center -space-x-2 overflow-hidden pt-1">
+                                                    {nodeDetails.collaborators.slice(0, 4).map((collab, i) => (
+                                                        <div
+                                                            key={collab.id || i}
+                                                            className="inline-block h-7 w-7 rounded-full ring-2 ring-white bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-600 overflow-hidden"
+                                                            title={`${collab.name} - ${collab.job_title || collab.department}`}
+                                                        >
+                                                            {collab.avatar_url ? (
+                                                                <img
+                                                                    src={collab.avatar_url}
+                                                                    alt={collab.name}
+                                                                    className="w-full h-full object-cover"
+                                                                />
+                                                            ) : (
+                                                                collab.initials
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                    {nodeDetails.collaborator_count > 4 && (
+                                                        <div className="inline-block h-7 w-7 rounded-full ring-2 ring-white bg-gray-100 flex items-center justify-center text-[9px] font-bold text-gray-500">
+                                                            +{nodeDetails.collaborator_count - 4}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                            <Calendar size={14} />Created Date
-                                        </div>
-                                        <div className="text-sm font-medium text-gray-900">{selectedNode.createdDate}</div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                            <Zap size={14} />Potential Impact
-                                        </div>
-                                        <div className="text-sm font-bold text-gray-900">{selectedNode.impact}</div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                            <Users size={14} />Collaborators
-                                        </div>
-                                        <div className="flex items-center -space-x-2 overflow-hidden pt-1">
-                                            {[...Array(Math.min(selectedNode.collaborators, 4))].map((_, i) => (
+
+                                        {/* Relevance Score */}
+                                        <div className="space-y-3 pt-2">
+                                            <div className="flex items-center justify-between text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                                <div className="flex items-center gap-2">
+                                                    <TrendingUp size={14} />Relevance Score
+                                                </div>
+                                                <span className="text-gray-900 font-bold">{nodeDetails.relevance_score}%</span>
+                                            </div>
+                                            <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden shadow-inner">
                                                 <div
-                                                    key={i}
-                                                    className="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-500"
+                                                    className="h-full rounded-full transition-all duration-1000 ease-out relative"
+                                                    style={{
+                                                        width: `${nodeDetails.relevance_score}%`,
+                                                        backgroundColor: selectedBubble.hex
+                                                    }}
                                                 >
-                                                    {String.fromCharCode(65 + i)}
+                                                    <div className="absolute inset-0 bg-white opacity-20 bg-[length:10px_10px] bg-[linear-gradient(45deg,rgba(255,255,255,.15)_25%,transparent_25%,transparent_50%,rgba(255,255,255,.15)_50%,rgba(255,255,255,.15)_75%,transparent_75%,transparent)]"></div>
                                                 </div>
-                                            ))}
-                                            {selectedNode.collaborators > 4 && (
-                                                <div className="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-gray-100 flex items-center justify-center text-[9px] font-bold text-gray-500">
-                                                    +{selectedNode.collaborators - 4}
-                                                </div>
-                                            )}
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
-                                <div className="space-y-3 pt-2">
-                                    <div className="flex items-center justify-between text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                        <div className="flex items-center gap-2">
-                                            <TrendingUp size={14} />Relevance Score
+
+                                        {/* Action Buttons */}
+                                        <div className="pt-6 mt-auto space-y-3">
+                                            <button
+                                                onClick={handleTreatedNotes}
+                                                disabled={isProcessing}
+                                                className="w-full py-3 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                <FileText size={18} /> {isProcessing ? 'Processing...' : 'Treated Notes'}
+                                            </button>
+                                            <button
+                                                onClick={handleRefuseNote}
+                                                disabled={isProcessing}
+                                                className="w-full py-3 border border-gray-200 text-gray-500 rounded-xl font-medium hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                <Ban size={18} /> {isProcessing ? 'Processing...' : 'Refused'}
+                                            </button>
                                         </div>
-                                        <span className="text-gray-900 font-bold">{selectedNode.relevance}%</span>
+                                    </>
+                                ) : (
+                                    <div className="text-center py-12 text-gray-500">
+                                        <Info size={24} className="mx-auto mb-2 opacity-50" />
+                                        <p>Failed to load details. Please try again.</p>
                                     </div>
-                                    <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden shadow-inner">
-                                        <div
-                                            className="h-full rounded-full transition-all duration-1000 ease-out relative"
-                                            style={{ width: `${selectedNode.relevance}%`, backgroundColor: selectedBubble.hex }}
-                                        >
-                                            <div className="absolute inset-0 bg-white opacity-20 bg-[length:10px_10px] bg-[linear-gradient(45deg,rgba(255,255,255,.15)_25%,transparent_25%,transparent_50%,rgba(255,255,255,.15)_50%,rgba(255,255,255,.15)_75%,transparent_75%,transparent)]"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="pt-6 mt-auto space-y-3">
-                                    <button
-                                        onClick={handleTreatedNotes}
-                                        disabled={isProcessing}
-                                        className="w-full py-3 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        <FileText size={18} /> {isProcessing ? 'Processing...' : 'Treated Notes'}
-                                    </button>
-                                    <button
-                                        onClick={handleRefuseNote}
-                                        disabled={isProcessing}
-                                        className="w-full py-3 border border-gray-200 text-gray-500 rounded-xl font-medium hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        <Ban size={18} /> {isProcessing ? 'Processing...' : 'Refused'}
-                                    </button>
-                                </div>
+                                )}
                             </div>
                         </>
                     )}
@@ -682,5 +800,13 @@ export default function GalaxyViewPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function GalaxyViewPage() {
+    return (
+        <RoleGuard allowedRoles={['OWNER', 'BOARD']}>
+            <GalaxyViewPageContent />
+        </RoleGuard>
     );
 }

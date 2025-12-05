@@ -323,14 +323,23 @@ async def get_user_notes(
 ):
     """
     Get all notes for a specific user (for Track Queue page)
-    Returns all notes for the given user regardless of status with their current processing state
-    Enforces organization boundaries
+    
+    IMPORTANT: Only returns notes that have been fully processed by AI.
+    Notes with status 'draft' or 'processing' are NOT shown - they appear
+    only AFTER the AI has analyzed them and generated the clarified content.
+    
+    This ensures users only see notes with proper AI-generated titles and content.
+    
+    Enforces organization boundaries.
     """
     try:
         # Query notes filtered by user_id AND organization_id
+        # ONLY notes with status in (processed, review, approved, refused)
+        # Excludes 'draft' and 'processing' - those are still being analyzed
         query = supabase.table("notes").select(
             """
             id,
+            title_clarified,
             content_raw,
             content_clarified,
             status,
@@ -340,7 +349,9 @@ async def get_user_notes(
             cluster_id,
             clusters(id, title, pillar_id, note_count, pillars(id, name))
             """
-        ).eq("user_id", user_id).eq("organization_id", str(current_user.organization_id))
+        ).eq("user_id", user_id).eq("organization_id", str(current_user.organization_id)).in_(
+            "status", ["processed", "review", "approved", "refused"]
+        )
             
         response = query.order("created_at", desc=True).execute()
         
@@ -364,15 +375,23 @@ async def get_user_notes(
                 "refused": "Refused"
             }.get(status, status.capitalize())
             
-            # Create title from clarified content or raw content
-            raw_content = note.get("content_raw", "")
+            # TITLE: Use AI-generated title_clarified as primary title
+            # Fallback chain: title_clarified > truncated content_clarified > truncated content_raw
+            title_clarified = note.get("title_clarified")
             clarified = note.get("content_clarified", "")
-            title = clarified if clarified else (raw_content[:100] + "..." if len(raw_content) > 100 else raw_content)
+            raw_content = note.get("content_raw", "")
+            
+            if title_clarified:
+                title = title_clarified
+            elif clarified:
+                title = clarified[:120] + "..." if len(clarified) > 120 else clarified
+            else:
+                title = raw_content[:100] + "..." if len(raw_content) > 100 else raw_content
             
             user_notes.append({
                 "id": note["id"],
                 "title": title,
-                "content": raw_content,
+                "content": clarified or raw_content,  # Use clarified content for display
                 "category": pillar_info.get("name", "PENDING") if pillar_info else "PENDING",
                 "status": status_display,
                 "status_raw": status,

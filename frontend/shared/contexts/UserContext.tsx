@@ -22,17 +22,45 @@ export function UserProvider({ children }: { children: ReactNode }) {
             const userId = localStorage.getItem('sigment_user_id')
             const userEmail = localStorage.getItem('sigment_user_email')
             const userDataStr = localStorage.getItem('sigment_user')
+            const accessToken = localStorage.getItem('access_token')
 
             if (userId && userDataStr) {
                 try {
                     const userData = JSON.parse(userDataStr)
-                    setUser({
+                    const initialUser = {
                         ...userData,
                         id: userId,
                         email: userEmail || userData.email || 'unknown@example.com',
                         name: `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || userData.name || 'User',
                         created_at: userData.created_at || new Date().toISOString()
-                    })
+                    }
+                    setUser(initialUser)
+
+                    // Fetch fresh user data from API to get updated avatar_url and other fields
+                    if (accessToken) {
+                        try {
+                            const response = await fetch('/api/v1/users/me', {
+                                headers: {
+                                    'Authorization': `Bearer ${accessToken}`
+                                }
+                            })
+
+                            if (response.ok) {
+                                const freshUserData = await response.json()
+                                const updatedUser = {
+                                    ...initialUser,
+                                    ...freshUserData,
+                                    name: `${freshUserData.first_name || ''} ${freshUserData.last_name || ''}`.trim() || initialUser.name
+                                }
+                                setUser(updatedUser)
+                                // Update localStorage with fresh data
+                                localStorage.setItem('sigment_user', JSON.stringify(updatedUser))
+                            }
+                        } catch (apiError) {
+                            console.warn('Could not refresh user data from API:', apiError)
+                            // Continue with cached data
+                        }
+                    }
                 } catch (e) {
                     console.error('Failed to parse user data:', e)
                     // Fallback to minimal user object
@@ -103,7 +131,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
         try {
             await fetch('/api/v1/auth/logout', { method: 'POST' })
             setUser(null)
+            // Clear all user-related localStorage items
             localStorage.removeItem('sigment_user_id')
+            localStorage.removeItem('sigment_user_email')
+            localStorage.removeItem('sigment_user')
+            localStorage.removeItem('sigment_org_id')
             localStorage.removeItem('access_token')
             router.push('/login')
         } catch (error) {
@@ -115,16 +147,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
         if (!user) return
 
         try {
-            const response = await fetch(`/api/v1/users/${user.id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updates)
-            })
-
-            if (!response.ok) throw new Error('Update failed')
-
-            const updatedUser = await response.json()
+            // Update local state immediately for responsive UI
+            const updatedUser = {
+                ...user,
+                ...updates,
+                name: updates.first_name && updates.last_name
+                    ? `${updates.first_name} ${updates.last_name}`.trim()
+                    : updates.name || user.name
+            }
             setUser(updatedUser)
+
+            // Update localStorage for persistence
+            localStorage.setItem('sigment_user', JSON.stringify(updatedUser))
         } catch (error) {
             console.error('Update user error:', error)
             throw error

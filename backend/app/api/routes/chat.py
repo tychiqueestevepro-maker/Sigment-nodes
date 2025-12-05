@@ -35,7 +35,7 @@ async def get_conversations(
 
         # 2. Fetch full conversation details for these IDs
         response = supabase.table("conversations")\
-            .select("id, updated_at, title, is_group, conversation_participants(user_id, users(id, first_name, last_name, job_title, email))")\
+            .select("id, updated_at, title, is_group, conversation_participants(user_id, users(id, first_name, last_name, job_title, email, avatar_url))")\
             .in_("id", my_conversation_ids)\
             .order("updated_at", desc=True)\
             .range(offset, offset + limit - 1)\
@@ -61,7 +61,8 @@ async def get_conversations(
                         first_name=u.get("first_name"),
                         last_name=u.get("last_name"),
                         job_title=u.get("job_title"),
-                        email=u.get("email")
+                        email=u.get("email"),
+                        avatar_url=u.get("avatar_url")
                     )
                     break
             

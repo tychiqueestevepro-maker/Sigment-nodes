@@ -26,6 +26,7 @@ export interface ClusterItem extends BaseFeedItem {
 
 export interface NoteItem extends BaseFeedItem {
     type: 'NOTE';
+    title?: string; // AI-generated clarified title
     content: string;
     content_raw?: string;
     content_clarified?: string;

@@ -10,8 +10,11 @@ export interface User {
     last_name?: string
     role?: 'OWNER' | 'BOARD' | 'MEMBER' | 'admin' | 'employee' | string
     job_title?: string
+    department?: string
+    seniority_level?: number
     avatar_url?: string
     created_at?: string
+    updated_at?: string
 }
 
 export interface UserContextType {

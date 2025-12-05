@@ -38,7 +38,8 @@ class AIService:
             for p in available_pillars
         ])
         
-        system_prompt = f"""You are a Strategic Analyst for a B2B company.
+        system_prompt = f"""You are a DEMANDING Strategic Analyst for a B2B company.
+BE SEVERE AND CRITICAL. This is a professional environment - high scores are RARE.
 
 AUTHOR CONTEXT:
 - Job Title: {user_context.job_title}
@@ -54,22 +55,32 @@ You are FORBIDDEN from inventing or suggesting new pillars.
 If the note doesn't fit well in any pillar, choose the one with the highest relevance and give it a low score.
 
 YOUR TASK:
-1. Rewrite the note for clarity and executive comprehension (keep it concise)
-2. Assign to the EXISTING pillar with the HIGHEST relevance score
-3. Calculate a Relevance Score (1-10) based on:
-   - HIGH SCORE (8-10): Topic strongly matches the pillar AND author's expertise
-   - MEDIUM SCORE (5-7): Topic partially matches the pillar OR author's domain
-   - LOW SCORE (1-4): Topic weakly matches the pillar (but it's still the best fit)
+1. Create a SHORT TITLE (max 10 words) that captures the core idea
+2. Rewrite the note for clarity and executive comprehension (keep it concise)
+3. Assign to the EXISTING pillar with the HIGHEST relevance score
+4. Calculate a Relevance Score (1-10) with SEVERE PROFESSIONAL CRITERIA:
+
+⚠️ STRICT SCORING GUIDELINES (BE DEMANDING):
+   - EXCEPTIONAL (8.5-10): RARE. Clear ROI, strong strategic alignment, actionable, from relevant expert
+   - GOOD (6.5-8.4): Solid idea with potential, needs refinement, partially actionable
+   - ACCEPTABLE (5-6.4): Vague, unclear implementation path, or weak strategic fit
+   - WEAK (3-4.9): Poor fit, unclear value, lacks specificity
+   - REJECT (1-2.9): Off-topic, not actionable, or irrelevant to business objectives
    
-   ⚠️ SPECIAL RULE: If ALL pillars score < 4/10, return pillar_id as null and pillar_name as "Uncategorized"
+   🚫 DO NOT give 8+ unless the idea is TRULY exceptional and clearly actionable
+   🚫 Most average ideas should score between 4-6
+   🚫 Author's seniority does NOT automatically mean high score
+   
+   ⚠️ SPECIAL RULE: If ALL pillars score < 5/10, return pillar_id as null and pillar_name as "Uncategorized"
 
 RESPONSE FORMAT (JSON):
 {{
-  "clarified_content": "Clear, executive-friendly version",
-  "pillar_id": "The exact UUID from the list above (or null if score < 4)",
-  "pillar_name": "The exact pillar name from the list above (or 'Uncategorized' if score < 4)",
-  "relevance_score": 8.5,
-  "reasoning": "Brief explanation: why this pillar? why this score?"
+  "clarified_title": "Short, specific title (max 10 words)",
+  "clarified_content": "Clear, executive-friendly version of the idea",
+  "pillar_id": "The exact UUID from the list above (or null if score < 5)",
+  "pillar_name": "The exact pillar name from the list above (or 'Uncategorized' if score < 5)",
+  "relevance_score": 6.5,
+  "reasoning": "Why this score? Be honest about weaknesses."
 }}
 """
         
@@ -204,6 +215,94 @@ Be data-driven and actionable.
         except Exception as e:
             logger.error(f"Title generation failed: {e}")
             return "Untitled Cluster"
+    
+    def generate_strategic_brief(
+        self,
+        cluster_title: str,
+        pillar_name: str,
+        notes: List[Dict],
+        avg_relevance: float
+    ) -> str:
+        """
+        Generate a short strategic brief (150-200 characters max) for executive quick-view.
+        
+        SEVERE PROFESSIONAL ASSESSMENT: Honest, critical, no sugarcoating.
+        """
+        # Build context from notes
+        notes_summary = "\n".join([
+            f"- {note.get('content_clarified', note.get('content_raw', ''))[:100]}"
+            for note in notes[:5]  # Use top 5 notes
+        ])
+        
+        # Determine severity level based on score
+        if avg_relevance >= 8.5:
+            score_context = "HIGH PRIORITY - Exceptional strategic alignment"
+        elif avg_relevance >= 6.5:
+            score_context = "MODERATE PRIORITY - Good potential but needs refinement"
+        else:
+            score_context = "LOW PRIORITY - Weak alignment or unclear value proposition"
+        
+        system_prompt = f"""You are a DEMANDING Strategic Advisor for a board of directors.
+Be SEVERE, CRITICAL, and PROFESSIONAL. No sugarcoating.
+
+CLUSTER ASSESSMENT:
+- Title: {cluster_title}
+- Pillar: {pillar_name}
+- Relevance Score: {avg_relevance:.1f}/10
+- Assessment Level: {score_context}
+- Number of Contributions: {len(notes)}
+
+YOUR TASK:
+Write a BRUTALLY HONEST strategic brief (MAXIMUM 200 characters).
+
+TONE REQUIREMENTS:
+1. Be CRITICAL - point out weaknesses honestly
+2. Be SPECIFIC - avoid vague statements
+3. Be ACTIONABLE - what decision is needed?
+4. If score < 6.5 → Be skeptical and highlight concerns
+5. If score 6.5-8.5 → Acknowledge potential but note gaps
+6. If score > 8.5 → Confirm strategic value with urgency
+
+NEVER use:
+- "Interesting ideas" or similar weak language
+- "Team suggests" or passive voice
+- Overly positive spinning of weak ideas
+
+EXAMPLE FOR LOW SCORE (45 chars):
+"Unclear ROI. Needs clearer business case before consideration."
+
+EXAMPLE FOR MEDIUM SCORE (120 chars):
+"Valid customer pain points identified. Requires detailed feasibility study and cost-benefit analysis before pilot."
+
+EXAMPLE FOR HIGH SCORE (90 chars):
+"Strategic opportunity aligned with Q1 goals. Recommend fast-track evaluation by operations."
+
+OUTPUT: Just the brief. Maximum 200 characters. Be demanding."""
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"EMPLOYEE IDEAS TO ASSESS:\n{notes_summary}"}
+                ],
+                temperature=0.3,  # Lower temperature for more consistent, serious tone
+                max_tokens=80,
+            )
+            
+            brief = response.choices[0].message.content.strip().strip('"').strip("'")
+            
+            # Ensure max length
+            if len(brief) > 200:
+                brief = brief[:197] + "..."
+            
+            logger.info(f"Generated strategic brief: {len(brief)} chars (score: {avg_relevance:.1f})")
+            
+            return brief
+            
+        except Exception as e:
+            logger.error(f"Strategic brief generation failed: {e}")
+            return "Assessment pending. Insufficient data for executive recommendation."
 
 
 # Global instance

@@ -5,6 +5,7 @@ from fastapi import APIRouter, Query, Depends
 from typing import Optional
 from loguru import logger
 from app.services.supabase_client import get_supabase
+from app.services.ai_service import ai_service
 from app.api.dependencies import CurrentUser, get_current_user
 
 router = APIRouter()
@@ -372,3 +373,197 @@ async def get_review_notes(current_user: CurrentUser = Depends(get_current_user)
         logger.error(f"❌ Error fetching review notes: {e}")
         raise
 
+
+@router.get("/cluster/{cluster_id}/details")
+async def get_cluster_details(cluster_id: str, current_user: CurrentUser = Depends(get_current_user)):
+    """
+    Get complete details for a single cluster (Node Details panel in Galaxy View).
+    
+    Returns REAL data (no mock):
+    - strategic_brief: AI-generated short summary (150-200 chars)
+    - created_at: When the cluster was first created
+    - last_updated_at: When the cluster was last modified
+    - impact: High/Medium/Low based on avg_relevance_score
+    - relevance_score: Average relevance as percentage (0-100)
+    - collaborators: Array of real users who contributed notes
+    - note_count: Number of notes in the cluster
+    """
+    try:
+        supabase = get_supabase()
+        organization_id = str(current_user.organization_id)
+        
+        # ============================================
+        # STEP 1: Fetch Cluster with Notes and Users
+        # ============================================
+        cluster_response = supabase.table("clusters").select(
+            """
+            id,
+            title,
+            created_at,
+            last_updated_at,
+            organization_id,
+            pillar_id,
+            pillars(id, name, color, organization_id),
+            notes!inner(
+                id,
+                content_clarified,
+                content_raw,
+                ai_relevance_score,
+                created_at,
+                status,
+                organization_id,
+                user_id,
+                users(id, first_name, last_name, email, avatar_url, job_title, department)
+            )
+            """
+        ).eq("id", cluster_id).eq("organization_id", organization_id).eq("notes.status", "processed").single().execute()
+        
+        if not cluster_response.data:
+            logger.warning(f"⚠️ Cluster {cluster_id} not found or not accessible for org {organization_id}")
+            return {"error": "Cluster not found"}, 404
+        
+        cluster = cluster_response.data
+        notes = cluster.get("notes", [])
+        pillar_info = cluster.get("pillars", {})
+        
+        # Security check
+        if str(cluster.get("organization_id")) != organization_id:
+            logger.error(f"❌ Security violation: cluster {cluster_id} does not belong to org {organization_id}")
+            return {"error": "Access denied"}, 403
+        
+        # ============================================
+        # STEP 2: Calculate Metrics
+        # ============================================
+        # Filter notes for security
+        valid_notes = [
+            n for n in notes 
+            if str(n.get("organization_id")) == organization_id
+        ]
+        
+        # Calculate average relevance score
+        relevance_scores = [
+            note.get("ai_relevance_score", 0) 
+            for note in valid_notes 
+            if note.get("ai_relevance_score") is not None
+        ]
+        avg_relevance = sum(relevance_scores) / len(relevance_scores) if relevance_scores else 0
+        
+        # ============================================
+        # SEVERE PROFESSIONAL SCORING
+        # ============================================
+        # Impact level - STRICT professional criteria:
+        # - High: Only for exceptional ideas (8.5+/10) with clear strategic value
+        # - Medium: Good ideas that need refinement (6.5-8.5/10)
+        # - Low: Ideas requiring significant improvement or not strategically aligned
+        if avg_relevance >= 8.5:
+            impact = "High"
+        elif avg_relevance >= 6.5:
+            impact = "Medium"
+        else:
+            impact = "Low"
+        
+        # Relevance as percentage - STRICT scoring
+        # We apply a professional curve: raw score * 10, but capped realistically
+        # In a professional context, even a 70% relevance is considered good
+        relevance_percentage = int(avg_relevance * 10)
+        
+        # ============================================
+        # STEP 3: Extract Real Collaborators
+        # ============================================
+        # Get unique users who contributed notes
+        seen_users = set()
+        collaborators = []
+        
+        for note in valid_notes:
+            user_data = note.get("users", {})
+            user_id = user_data.get("id")
+            
+            if user_id and user_id not in seen_users:
+                seen_users.add(user_id)
+                
+                first_name = user_data.get("first_name", "")
+                last_name = user_data.get("last_name", "")
+                full_name = f"{first_name} {last_name}".strip()
+                
+                # Generate initials
+                initials = ""
+                if first_name:
+                    initials += first_name[0].upper()
+                if last_name:
+                    initials += last_name[0].upper()
+                if not initials and user_data.get("email"):
+                    initials = user_data["email"][0].upper()
+                
+                collaborators.append({
+                    "id": user_id,
+                    "name": full_name or "Anonymous",
+                    "initials": initials or "?",
+                    "avatar_url": user_data.get("avatar_url"),
+                    "job_title": user_data.get("job_title", ""),
+                    "department": user_data.get("department", ""),
+                })
+        
+        # ============================================
+        # STEP 4: Generate Strategic Brief (AI)
+        # ============================================
+        try:
+            strategic_brief = ai_service.generate_strategic_brief(
+                cluster_title=cluster.get("title", "Untitled Cluster"),
+                pillar_name=pillar_info.get("name", "Unknown") if pillar_info else "Unknown",
+                notes=valid_notes,
+                avg_relevance=avg_relevance
+            )
+        except Exception as ai_error:
+            logger.warning(f"⚠️ AI strategic brief generation failed: {ai_error}")
+            strategic_brief = f"Cluster with {len(valid_notes)} related ideas in {pillar_info.get('name', 'Unknown') if pillar_info else 'Unknown'} pillar. Review recommended."
+        
+        # ============================================
+        # STEP 5: Format Dates
+        # ============================================
+        created_at = cluster.get("created_at")
+        last_updated_at = cluster.get("last_updated_at")
+        
+        # Find the oldest note date as alternative created date
+        note_dates = [n.get("created_at") for n in valid_notes if n.get("created_at")]
+        oldest_note_date = min(note_dates) if note_dates else None
+        
+        # ============================================
+        # STEP 6: Build Response
+        # ============================================
+        result = {
+            "id": cluster["id"],
+            "title": cluster.get("title", "Untitled Cluster"),
+            "pillar": pillar_info.get("name", "Unknown") if pillar_info else "Unknown",
+            "pillar_id": cluster.get("pillar_id"),
+            "pillar_color": pillar_info.get("color") if pillar_info else None,
+            
+            # Strategic Brief (AI-generated, 150-200 chars)
+            "strategic_brief": strategic_brief,
+            
+            # Dates
+            "created_at": created_at or oldest_note_date,
+            "last_updated_at": last_updated_at or created_at or oldest_note_date,
+            
+            # Metrics
+            "impact": impact,
+            "relevance_score": relevance_percentage,
+            "avg_relevance_raw": round(avg_relevance, 2),  # Original 0-10 score
+            "note_count": len(valid_notes),
+            
+            # Real Collaborators
+            "collaborators": collaborators,
+            "collaborator_count": len(collaborators),
+            
+            # Note IDs for moderation
+            "note_ids": [n.get("id") for n in valid_notes if n.get("id")],
+        }
+        
+        logger.info(f"✅ Retrieved details for cluster {cluster_id}: {len(valid_notes)} notes, {len(collaborators)} collaborators")
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ Error fetching cluster details for {cluster_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        raise

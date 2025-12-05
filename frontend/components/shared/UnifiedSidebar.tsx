@@ -7,10 +7,11 @@ import { useUser } from '@/contexts'; // Assurez-vous que useUser expose le 'rol
 import {
     Home, Orbit, FileCheck, BarChart2, MessageCircle, Users,
     Archive, User, MoreHorizontal, PanelLeftClose, PanelLeftOpen,
-    LayoutDashboard, Edit3, Settings, HelpCircle, LogOut
+    LayoutDashboard, Edit3, Settings, HelpCircle, LogOut, UserCircle
 } from 'lucide-react';
 import { SigmentLogo } from './SigmentLogo';
 import { SettingsModal } from './SettingsModal';
+import { ProfileModal } from './ProfileModal';
 
 // Définition des types de menu avec restriction par rôle
 interface MenuItem {
@@ -24,6 +25,7 @@ export const UnifiedSidebar: React.FC = () => {
     const [isOpen, setIsOpen] = useState(true);
     const [activeMenu, setActiveMenu] = useState<'profile' | null>(null);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
 
     const pathname = usePathname();
     const params = useParams();
@@ -36,7 +38,7 @@ export const UnifiedSidebar: React.FC = () => {
 
     // Configuration centralisée des menus
     const menuConfig: MenuItem[] = useMemo(() => [
-        { label: "Home", icon: <Home size={18} />, href: `/${orgSlug}` },
+        { label: "Home", icon: <Home size={18} />, href: `/${orgSlug}/home` },
         // Items Owner/Board
         { label: "Galaxy View", icon: <Orbit size={18} />, href: `/${orgSlug}/galaxy`, roles: ['OWNER', 'BOARD'] },
         { label: "Review", icon: <FileCheck size={18} />, href: `/${orgSlug}/review`, roles: ['OWNER', 'BOARD'] },
@@ -54,9 +56,20 @@ export const UnifiedSidebar: React.FC = () => {
         !item.roles || item.roles.includes(userRole)
     );
 
+    const handleOpenProfile = () => {
+        setActiveMenu(null);
+        setIsProfileOpen(true);
+    };
+
+    const handleOpenSettings = () => {
+        setActiveMenu(null);
+        setIsSettingsOpen(true);
+    };
+
     return (
         <>
             <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+            <ProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
 
             <aside className={`flex flex-col h-full bg-white border-r border-gray-100 transition-all duration-300 relative ${isOpen ? 'w-[260px]' : 'w-[70px]'}`}>
                 {/* Header Logo */}
@@ -101,7 +114,10 @@ export const UnifiedSidebar: React.FC = () => {
                 <div className="p-4 border-t border-gray-100 mt-2 relative">
                     {activeMenu === 'profile' && isOpen && (
                         <div className="absolute bottom-full left-2 mb-2 w-56 bg-white rounded-xl shadow-xl border border-gray-200 z-50 p-1">
-                            <button onClick={() => setIsSettingsOpen(true)} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 rounded-lg">
+                            <button onClick={handleOpenProfile} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 rounded-lg">
+                                <UserCircle size={16} /> Profile
+                            </button>
+                            <button onClick={handleOpenSettings} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 rounded-lg">
                                 <Settings size={16} /> Settings
                             </button>
                             {/* Lien Admin conditionnel */}
@@ -121,7 +137,15 @@ export const UnifiedSidebar: React.FC = () => {
                         onClick={() => setActiveMenu(activeMenu ? null : 'profile')}
                         className={`flex items-center gap-2 w-full p-1 hover:bg-gray-50 rounded-lg ${!isOpen ? 'justify-center' : ''}`}
                     >
-                        <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center"><User size={14} /></div>
+                        <div className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center overflow-hidden shrink-0">
+                            {user?.avatar_url ? (
+                                <img src={user.avatar_url} alt={user.name || 'User'} className="w-full h-full object-cover" />
+                            ) : (
+                                <span className="text-white text-xs font-bold">
+                                    {user?.name ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : <User size={14} />}
+                                </span>
+                            )}
+                        </div>
                         {isOpen && (
                             <div className="flex flex-col items-start overflow-hidden">
                                 <span className="text-sm font-semibold truncate w-full text-left">{user?.name || 'User'}</span>
@@ -135,3 +159,4 @@ export const UnifiedSidebar: React.FC = () => {
         </>
     );
 };
+

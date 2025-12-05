@@ -1,15 +1,30 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Edit3, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Edit3, ZoomIn, ZoomOut, Maximize, Cloud, CloudOff } from 'lucide-react';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { useApiClient } from '@/hooks/useApiClient';
+import RoleGuard from '@/guards/RoleGuard';
+
+// LocalStorage key for draft
+const DRAFT_STORAGE_KEY = 'sigment_node_draft';
+const DRAFT_TIMESTAMP_KEY = 'sigment_node_draft_timestamp';
 
 export default function NodePage() {
+    return (
+        <RoleGuard allowedRoles={['MEMBER']}>
+            <NodePageContent />
+        </RoleGuard>
+    );
+}
+
+function NodePageContent() {
     const [text, setText] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [size, setSize] = useState(500); // Base size
+    const [hasDraft, setHasDraft] = useState(false);
+    const [draftSaveStatus, setDraftSaveStatus] = useState<'saved' | 'saving' | 'idle'>('idle');
     const textareaRef = React.useRef<HTMLTextAreaElement>(null);
     const apiClient = useApiClient();
 
@@ -19,8 +34,78 @@ export default function NodePage() {
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const containerRef = React.useRef<HTMLDivElement>(null);
 
+    // --- Auto-save Draft Logic ---
+
+    // Load draft from LocalStorage on mount
+    useEffect(() => {
+        const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+        const savedTimestamp = localStorage.getItem(DRAFT_TIMESTAMP_KEY);
+
+        if (savedDraft && savedDraft.trim()) {
+            setText(savedDraft);
+            setHasDraft(true);
+
+            // Show a subtle notification that draft was restored
+            if (savedTimestamp) {
+                const date = new Date(parseInt(savedTimestamp));
+                const timeAgo = getTimeAgo(date);
+                toast.success(`Draft restored from ${timeAgo}`, {
+                    icon: '📝',
+                    duration: 3000,
+                    style: {
+                        background: '#f0f9ff',
+                        color: '#0369a1',
+                        border: '1px solid #bae6fd'
+                    }
+                });
+            }
+        }
+    }, []);
+
+    // Auto-save to LocalStorage with debounce
+    useEffect(() => {
+        if (text.trim()) {
+            setDraftSaveStatus('saving');
+
+            const saveTimeout = setTimeout(() => {
+                localStorage.setItem(DRAFT_STORAGE_KEY, text);
+                localStorage.setItem(DRAFT_TIMESTAMP_KEY, Date.now().toString());
+                setHasDraft(true);
+                setDraftSaveStatus('saved');
+
+                // Reset status after a moment
+                setTimeout(() => setDraftSaveStatus('idle'), 2000);
+            }, 500); // Debounce: save after 500ms of no typing
+
+            return () => clearTimeout(saveTimeout);
+        } else {
+            // Clear draft if text is empty
+            localStorage.removeItem(DRAFT_STORAGE_KEY);
+            localStorage.removeItem(DRAFT_TIMESTAMP_KEY);
+            setHasDraft(false);
+            setDraftSaveStatus('idle');
+        }
+    }, [text]);
+
+    // Clear draft after successful save
+    const clearDraft = useCallback(() => {
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+        localStorage.removeItem(DRAFT_TIMESTAMP_KEY);
+        setHasDraft(false);
+    }, []);
+
+    // Helper function to format time ago
+    const getTimeAgo = (date: Date): string => {
+        const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+
+        if (seconds < 60) return 'just now';
+        if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`;
+        if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
+        return `${Math.floor(seconds / 86400)} days ago`;
+    };
+
     // Dynamic resizing & Adaptive Scaling logic
-    React.useEffect(() => {
+    useEffect(() => {
         const BASE_SIZE = 500;
         const GROWTH_FACTOR = 1.2; // Pixels per character
 
@@ -103,6 +188,7 @@ export default function NodePage() {
 
             toast.success('Node captured successfully!');
             setText('');
+            clearDraft(); // Clear the draft after successful save
             setTransform({ x: 0, y: 0, scale: 1 }); // Reset zoom on save
         } catch (error) {
             console.error('Error saving node:', error);
@@ -112,11 +198,46 @@ export default function NodePage() {
         }
     };
 
+    // Discard draft handler
+    const handleDiscardDraft = () => {
+        setText('');
+        clearDraft();
+        toast.success('Draft discarded', { icon: '🗑️' });
+    };
+
     return (
         <div className="h-full w-full bg-white relative overflow-hidden animate-in fade-in duration-500">
             {/* Background effects */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-gray-50 via-white to-white opacity-80 pointer-events-none"></div>
             <div className="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
+
+            {/* Draft Status Indicator */}
+            {hasDraft && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-full shadow-lg border border-gray-100 animate-in slide-in-from-top duration-300">
+                    {draftSaveStatus === 'saving' ? (
+                        <>
+                            <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
+                            <span className="text-xs text-gray-500">Saving draft...</span>
+                        </>
+                    ) : draftSaveStatus === 'saved' ? (
+                        <>
+                            <Cloud size={14} className="text-green-500" />
+                            <span className="text-xs text-green-600">Draft saved</span>
+                        </>
+                    ) : (
+                        <>
+                            <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                            <span className="text-xs text-gray-500">Draft</span>
+                            <button
+                                onClick={handleDiscardDraft}
+                                className="ml-2 text-xs text-gray-400 hover:text-red-500 transition-colors"
+                            >
+                                Discard
+                            </button>
+                        </>
+                    )}
+                </div>
+            )}
 
             {/* Zoom Controls */}
             <div className="absolute bottom-8 right-8 z-50 flex flex-col gap-2 bg-white rounded-xl shadow-xl border border-gray-100 p-2">
@@ -210,3 +331,4 @@ export default function NodePage() {
         </div>
     );
 }
+

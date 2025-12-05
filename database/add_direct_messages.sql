@@ -152,8 +152,9 @@ FOR EACH ROW
 EXECUTE FUNCTION update_conversation_timestamp();
 
 
--- RPC Function: Get or Create Conversation
--- Checks if a conversation exists between current user and target user in the org.
+-- RPC Function: Get or Create Private Conversation (1-to-1)
+-- This function distinguishes private conversations from group conversations.
+-- Checks if a private conversation exists between current user and target user in the org.
 -- If yes, returns it. If no, creates it (verifying target user membership).
 CREATE OR REPLACE FUNCTION get_or_create_conversation(
     p_organization_id UUID,
@@ -178,23 +179,33 @@ BEGIN
         RAISE EXCEPTION 'Target user is not a member of this organization';
     END IF;
 
-    -- 2. Check if conversation already exists
-    -- We look for a conversation in this org where both users are participants
+    -- 2. Check if a PRIVATE conversation already exists
+    -- Important criteria:
+    --   - is_group = FALSE (exclude groups)
+    --   - Exactly 2 participants
+    --   - Both participants are current_user and target_user
     SELECT c.id INTO v_conversation_id
     FROM conversations c
     JOIN conversation_participants cp1 ON c.id = cp1.conversation_id
     JOIN conversation_participants cp2 ON c.id = cp2.conversation_id
     WHERE c.organization_id = p_organization_id
-    AND cp1.user_id = v_current_user_id
-    AND cp2.user_id = p_target_user_id;
+      AND c.is_group = FALSE  -- IMPORTANT: Only search private conversations
+      AND cp1.user_id = v_current_user_id
+      AND cp2.user_id = p_target_user_id
+      -- Verify exactly 2 participants
+      AND (
+          SELECT COUNT(*) 
+          FROM conversation_participants cp 
+          WHERE cp.conversation_id = c.id
+      ) = 2;
 
     IF v_conversation_id IS NOT NULL THEN
         RETURN v_conversation_id;
     END IF;
 
-    -- 3. Create new conversation
-    INSERT INTO conversations (organization_id)
-    VALUES (p_organization_id)
+    -- 3. Create new PRIVATE conversation
+    INSERT INTO conversations (organization_id, is_group)
+    VALUES (p_organization_id, FALSE)  -- Explicitly mark as private conversation
     RETURNING id INTO v_conversation_id;
 
     -- 4. Add participants
@@ -206,3 +217,4 @@ BEGIN
     RETURN v_conversation_id;
 END;
 $$;
+

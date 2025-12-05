@@ -13,10 +13,7 @@ import {
     Hash,
     Github,
     Settings,
-    X,
-    CreditCard,
-    Lock,
-    Shield
+    X
 } from 'lucide-react';
 
 interface SettingsModalProps {
@@ -67,23 +64,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                                 <option value="Review">Review</option>
                                 <option value="Chat">Chat</option>
                             </select>
-                        </div>
-                    </div>
-                );
-            case 'account':
-                return (
-                    <div className="space-y-6">
-                        <div className="flex items-center gap-4 mb-6">
-                            <div className="w-16 h-16 rounded-full bg-gray-900 flex items-center justify-center text-white text-xl font-bold">JD</div>
-                            <div>
-                                <button className="text-xs font-bold text-white bg-black px-4 py-2 rounded-lg hover:bg-gray-800">Upload new picture</button>
-                                <div className="text-xs text-gray-400 mt-1">JPG, GIF or PNG. Max size of 800K</div>
-                            </div>
-                        </div>
-                        <div className="space-y-4">
-                            <div><label className="text-xs font-bold text-gray-500 uppercase block mb-1">Full Name</label><input type="text" defaultValue="John Doe" className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 outline-none focus:ring-1 focus:ring-black" /></div>
-                            <div><label className="text-xs font-bold text-gray-500 uppercase block mb-1">Email</label><input type="email" defaultValue="john.doe@sigment.com" className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 outline-none focus:ring-1 focus:ring-black" /></div>
-                            <div><label className="text-xs font-bold text-gray-500 uppercase block mb-1">Status</label><select className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 outline-none"><option>Available</option><option>In a meeting</option><option>Focus Mode</option></select></div>
                         </div>
                     </div>
                 );
@@ -193,13 +173,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
     return (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[100] flex items-center justify-center animate-in fade-in duration-300">
-            <div className="bg-white w-[700px] h-[550px] rounded-3xl shadow-2xl border border-white/50 flex overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="bg-white w-[700px] h-[500px] rounded-3xl shadow-2xl border border-white/50 flex overflow-hidden animate-in zoom-in-95 duration-300">
                 {/* Sidebar of Modal */}
                 <div className="w-1/3 bg-gray-50 border-r border-gray-100 p-6 flex flex-col">
                     <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2"><Settings size={20} /> Settings</h2>
                     <div className="space-y-1">
                         <button onClick={() => setActiveSettingsTab('general')} className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeSettingsTab === 'general' ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:bg-gray-100'}`}>General</button>
-                        <button onClick={() => setActiveSettingsTab('account')} className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeSettingsTab === 'account' ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:bg-gray-100'}`}>Account</button>
                         <button onClick={() => setActiveSettingsTab('appearance')} className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeSettingsTab === 'appearance' ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:bg-gray-100'}`}>Appearance</button>
                         <button onClick={() => setActiveSettingsTab('notifications')} className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeSettingsTab === 'notifications' ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:bg-gray-100'}`}>Notifications</button>
                         <div className="h-px bg-gray-200 my-2"></div>

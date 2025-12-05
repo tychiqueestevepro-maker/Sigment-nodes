@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { api, apiClient } from '@/lib/api';
 import { useApiClient } from '@/hooks/useApiClient';
+import RoleGuard from '@/guards/RoleGuard';
 
 // Helper function to get color for pillar category
 function getColorForCategory(category: string): string {
@@ -73,6 +74,14 @@ function formatDate(dateString: string): string {
 }
 
 export default function TrackPage() {
+    return (
+        <RoleGuard allowedRoles={['MEMBER']}>
+            <TrackPageContent />
+        </RoleGuard>
+    );
+}
+
+function TrackPageContent() {
     const [selectedNote, setSelectedNote] = useState<any>(null);
     const [userId, setUserId] = useState<string | null>(null);
     const authApiClient = useApiClient();
