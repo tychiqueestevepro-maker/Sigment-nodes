@@ -1,15 +1,29 @@
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { Layers, ArrowRight } from 'lucide-react';
+import { Layers, ArrowRight, Clock, CheckCircle2, XCircle, Eye } from 'lucide-react';
 import { NoteItem } from '@/types/feed';
 
 interface IdeaCardProps {
     item: NoteItem;
 }
 
+// Status badge configuration
+function getStatusConfig(status: string): { label: string; color: string; bg: string; icon: React.ReactNode } | null {
+    switch (status) {
+        case 'review':
+            return { label: 'In Review', color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', icon: <Eye size={10} /> };
+        case 'approved':
+            return { label: 'Approved', color: 'text-green-700', bg: 'bg-green-50 border-green-200', icon: <CheckCircle2 size={10} /> };
+        case 'refused':
+            return { label: 'Refused', color: 'text-red-600', bg: 'bg-red-50 border-red-200', icon: <XCircle size={10} /> };
+        default:
+            return null; // No badge for 'processed'
+    }
+}
+
 export const IdeaCard: React.FC<IdeaCardProps> = ({ item }) => {
-    const isProcessed = item.status === 'processed';
     const pillarColor = item.pillar_color || '#6B7280'; // Default gray
+    const statusConfig = getStatusConfig(item.status);
 
     return (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 hover:shadow-md transition-shadow relative overflow-hidden group">
@@ -30,9 +44,20 @@ export const IdeaCard: React.FC<IdeaCardProps> = ({ item }) => {
                     </div>
                 </div>
 
-                <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 border border-gray-200 shrink-0 h-fit">
-                    <Layers size={12} /> Node
-                </span>
+                <div className="flex items-center gap-2 shrink-0">
+                    {/* Status Badge */}
+                    {statusConfig && (
+                        <span className={`text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 border ${statusConfig.bg} ${statusConfig.color}`}>
+                            {statusConfig.icon}
+                            {statusConfig.label}
+                        </span>
+                    )}
+
+                    {/* Node Badge */}
+                    <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 border border-gray-200 h-fit">
+                        <Layers size={12} /> Node
+                    </span>
+                </div>
             </div>
 
             {/* Content */}

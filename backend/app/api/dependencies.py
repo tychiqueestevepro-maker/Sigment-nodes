@@ -183,15 +183,16 @@ async def get_current_user(
     )
 
 
-async def require_board_or_owner(current_user: CurrentUser = None) -> CurrentUser:
+async def require_board_or_owner(
+    request: Request,
+    authorization: str = Header(None)
+) -> CurrentUser:
     """
     Dependency to require BOARD or OWNER role
+    Properly chains with get_current_user for authentication
     """
-    if current_user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required"
-        )
+    # First authenticate the user
+    current_user = await get_current_user(request, authorization)
     
     if not current_user.is_board_or_owner():
         raise HTTPException(
@@ -202,15 +203,16 @@ async def require_board_or_owner(current_user: CurrentUser = None) -> CurrentUse
     return current_user
 
 
-async def require_owner(current_user: CurrentUser = None) -> CurrentUser:
+async def require_owner(
+    request: Request,
+    authorization: str = Header(None)
+) -> CurrentUser:
     """
     Dependency to require OWNER role
+    Properly chains with get_current_user for authentication
     """
-    if current_user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required"
-        )
+    # First authenticate the user
+    current_user = await get_current_user(request, authorization)
     
     if not current_user.is_owner():
         raise HTTPException(

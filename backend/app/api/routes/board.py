@@ -315,19 +315,21 @@ async def get_review_notes(current_user: CurrentUser = Depends(get_current_user)
     try:
         supabase = get_supabase()
         
-        # Query notes with review status, including cluster info
+        # Query notes with review status, including cluster info AND user info
         # Filter by organization_id for multi-tenant security
         response = supabase.table("notes").select(
             """
             id,
             content_raw,
             content_clarified,
+            title_clarified,
             created_at,
             processed_at,
             ai_relevance_score,
             cluster_id,
             user_id,
             organization_id,
+            users(id, first_name, last_name, email),
             clusters(id, title, pillar_id, organization_id, pillars(id, name, organization_id))
             """
         ).eq("status", "review").eq("organization_id", str(current_user.organization_id)).order("created_at", desc=True).execute()
@@ -340,26 +342,46 @@ async def get_review_notes(current_user: CurrentUser = Depends(get_current_user)
         for note in response.data:
             cluster_info = note.get("clusters", {})
             pillar_info = cluster_info.get("pillars", {}) if cluster_info else {}
+            user_info = note.get("users", {})
             
             # Security check: verify cluster belongs to same organization
             if cluster_info and str(cluster_info.get("organization_id")) != str(current_user.organization_id):
                 logger.warning(f"⚠️ Note {note['id']} has cluster from different org, skipping")
                 continue
             
-            # Truncate title if needed
-            raw_content = note.get("content_raw", "")
+            # Build proper author name from user data
+            first_name = user_info.get("first_name", "") if user_info else ""
+            last_name = user_info.get("last_name", "") if user_info else ""
+            author_name = f"{first_name} {last_name}".strip()
+            if not author_name:
+                author_name = user_info.get("email", "Unknown").split("@")[0] if user_info else "Unknown"
+            
+            # Title: prioritize title_clarified, then content_clarified, then raw
+            title_clarified = note.get("title_clarified", "")
             clarified = note.get("content_clarified", "")
-            title = clarified if clarified else (raw_content[:100] + "..." if len(raw_content) > 100 else raw_content)
+            raw_content = note.get("content_raw", "")
+            
+            if title_clarified:
+                title = title_clarified
+            elif clarified:
+                title = clarified[:100] + "..." if len(clarified) > 100 else clarified
+            else:
+                title = raw_content[:100] + "..." if len(raw_content) > 100 else raw_content
+            
+            # Get the most recent update date (processed_at is when AI processed it)
+            updated_at = note.get("processed_at") or note.get("created_at")
             
             review_notes.append({
                 "id": note["id"],
                 "title": title,
                 "content": raw_content,
-                "content_clarified": clarified,  # Add clarified content field
+                "content_clarified": clarified,
                 "category": pillar_info.get("name", "UNCATEGORIZED") if pillar_info else "UNCATEGORIZED",
                 "status": "Ready",
-                "author": "User",  # We'll enhance this later with proper user data
+                "author": author_name,
+                "author_id": note.get("user_id"),
                 "date": note.get("created_at", ""),
+                "updated_at": updated_at,
                 "relevance_score": note.get("ai_relevance_score", 0),
                 "cluster_id": note.get("cluster_id"),
                 "cluster_title": cluster_info.get("title") if cluster_info else None,
@@ -504,18 +526,29 @@ async def get_cluster_details(cluster_id: str, current_user: CurrentUser = Depen
                 })
         
         # ============================================
-        # STEP 4: Generate Strategic Brief (AI)
+        # STEP 4: Strategic Brief (OPTIMIZED - Fast First)
         # ============================================
-        try:
-            strategic_brief = ai_service.generate_strategic_brief(
-                cluster_title=cluster.get("title", "Untitled Cluster"),
-                pillar_name=pillar_info.get("name", "Unknown") if pillar_info else "Unknown",
-                notes=valid_notes,
-                avg_relevance=avg_relevance
-            )
-        except Exception as ai_error:
-            logger.warning(f"⚠️ AI strategic brief generation failed: {ai_error}")
-            strategic_brief = f"Cluster with {len(valid_notes)} related ideas in {pillar_info.get('name', 'Unknown') if pillar_info else 'Unknown'} pillar. Review recommended."
+        # Priority: 1. Stored synthesis  2. Fast fallback  3. AI (if fast)
+        strategic_brief = None
+        
+        # Try to use stored cluster synthesis first (instant)
+        stored_synthesis = cluster.get("synthesis")
+        if stored_synthesis and len(stored_synthesis) > 20:
+            # Truncate to 200 chars if needed
+            strategic_brief = stored_synthesis[:197] + "..." if len(stored_synthesis) > 200 else stored_synthesis
+        
+        # Fast fallback if no stored synthesis
+        if not strategic_brief:
+            pillar_name = pillar_info.get("name", "Unknown") if pillar_info else "Unknown"
+            note_count = len(valid_notes)
+            
+            # Generate contextual fallback based on score
+            if avg_relevance >= 8.5:
+                strategic_brief = f"High-impact {pillar_name} initiative with {note_count} aligned contributions. Priority for board review."
+            elif avg_relevance >= 6.5:
+                strategic_brief = f"Solid {pillar_name} proposals requiring refinement. {note_count} related ideas awaiting strategic evaluation."
+            else:
+                strategic_brief = f"{note_count} {pillar_name} contributions pending review. Alignment and feasibility assessment needed."
         
         # ============================================
         # STEP 5: Format Dates

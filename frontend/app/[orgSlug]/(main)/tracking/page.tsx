@@ -118,7 +118,12 @@ function TrackPageContent() {
         queryKey: ['note-timeline', selectedNote?.id],
         queryFn: async () => {
             if (!selectedNote?.id) return [];
-            return apiClient.getNoteTimeline(selectedNote.id);
+            try {
+                return await authApiClient.get<any[]>(`/notes/${selectedNote.id}/timeline`);
+            } catch (error) {
+                console.error('Failed to fetch timeline:', error);
+                return [];
+            }
         },
         enabled: !!selectedNote?.id,
     });
@@ -344,18 +349,25 @@ function TrackPageContent() {
                     </div>
                 );
             case 'validation':
-                // Format latest event time
+                // Get last updated from note data, fallback to timeline events if available
                 const latestEvent = timelineEvents && timelineEvents.length > 0
                     ? timelineEvents[timelineEvents.length - 1]
                     : null;
-                const lastUpdated = latestEvent
-                    ? new Date(latestEvent.created_at).toLocaleDateString('en-US', {
+
+                // Priority: timeline event > processed_date > created_date
+                let lastUpdated = 'Unknown';
+                if (latestEvent?.created_at) {
+                    lastUpdated = new Date(latestEvent.created_at).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
                         hour: '2-digit',
                         minute: '2-digit'
-                    })
-                    : 'Unknown';
+                    });
+                } else if (noteData.processedDate && noteData.processedDate !== 'Pending') {
+                    lastUpdated = noteData.processedDate;
+                } else if (noteData.createdDate) {
+                    lastUpdated = noteData.createdDate;
+                }
 
                 return (
                     <div className="animate-in slide-in-from-bottom-4 duration-300 space-y-6">

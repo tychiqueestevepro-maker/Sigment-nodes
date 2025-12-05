@@ -202,7 +202,7 @@ function GalaxyViewPageContent() {
     });
 
     // Fetch galaxy data (clusters)
-    const { data: clusters = [], error: clustersError } = useQuery<Cluster[]>({
+    const { data: clusters = [], error: clustersError, refetch: refetchGalaxy } = useQuery<Cluster[]>({
         queryKey: ['galaxy', organizationId], // Add orgId to key
         queryFn: async () => {
             console.log('Fetching galaxy data...');
@@ -384,6 +384,7 @@ function GalaxyViewPageContent() {
                     await apiClient.patch(`/notes/${noteId}`, { status: 'review' });
                     return { success: true };
                 } catch (error) {
+                    console.error(`Failed to update note ${noteId}:`, error);
                     return { success: false };
                 }
             });
@@ -397,6 +398,8 @@ function GalaxyViewPageContent() {
                 toast.success(`✅ ${noteIds.length} note(s) marked for review!`);
                 setSelectedNode(null);
                 setNodeDetails(null);
+                // Refresh galaxy data to reflect changes
+                refetchGalaxy();
             }
         } catch (error) {
             console.error('Error updating notes:', error);
@@ -427,6 +430,7 @@ function GalaxyViewPageContent() {
                     await apiClient.patch(`/notes/${noteId}`, { status: 'refused' });
                     return { success: true };
                 } catch (error) {
+                    console.error(`Failed to refuse note ${noteId}:`, error);
                     return { success: false };
                 }
             });
@@ -440,6 +444,8 @@ function GalaxyViewPageContent() {
                 toast.success(`🗑️ ${noteIds.length} note(s) refused and removed from the cluster.`);
                 setSelectedNode(null);
                 setNodeDetails(null);
+                // Refresh galaxy data to reflect changes
+                refetchGalaxy();
             }
         } catch (error) {
             console.error('Error refusing notes:', error);

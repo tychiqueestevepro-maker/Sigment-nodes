@@ -144,8 +144,8 @@ async def get_unified_feed(
         if cluster_ids:
             try:
                 p_notes = supabase.table("notes").select(
-                    "id, content_clarified, content_raw, user_id, created_at, cluster_id"
-                ).in_("cluster_id", cluster_ids).eq("status", "processed").order("created_at", desc=True).limit(len(cluster_ids) * 3).execute()
+                    "id, content_clarified, content_raw, user_id, created_at, cluster_id, status"
+                ).in_("cluster_id", cluster_ids).in_("status", ["processed", "review", "approved", "refused"]).order("created_at", desc=True).limit(len(cluster_ids) * 3).execute()
                 
                 for n in p_notes.data:
                     cid = n["cluster_id"]
@@ -185,7 +185,7 @@ async def get_unified_feed(
             try:
                 small_notes = supabase.table("notes").select(
                     "*, pillars(name, color), title_clarified"
-                ).in_("cluster_id", small_cluster_ids).eq("status", "processed").execute()
+                ).in_("cluster_id", small_cluster_ids).in_("status", ["processed", "review", "approved", "refused"]).execute()
                 
                 for n in small_notes.data:
                     # Generate title with fallback: title_clarified > truncated content_clarified
@@ -219,11 +219,11 @@ async def get_unified_feed(
         # ============================================
         # 2. FETCH NOTES (Orphan OR Mine)
         # ============================================
-        # Using .or_ filter: cluster_id.is.null,user_id.eq.USER_ID
-        # AND status must be 'processed' (User request: "only appear once corrected")
+        # Include all notes that have been actioned (processed, review, approved, refused)
+        # These represent ideas at various stages of their lifecycle
         notes_response = supabase.table("notes").select(
             "*, pillars(name, color), title_clarified"
-        ).eq("organization_id", organization_id).eq("status", "processed").or_(
+        ).eq("organization_id", organization_id).in_("status", ["processed", "review", "approved", "refused"]).or_(
             f"cluster_id.is.null,user_id.eq.{user_id}"
         ).order("created_at", desc=True).limit(limit).execute()
         
