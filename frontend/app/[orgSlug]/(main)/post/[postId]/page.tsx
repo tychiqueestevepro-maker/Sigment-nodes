@@ -8,6 +8,7 @@ import { ArrowLeft, Heart, MessageCircle, Share2, MoreHorizontal, Loader2, Searc
 import { useApiClient } from '@/hooks/useApiClient';
 import { CommentSection } from '@/components/feed/comments';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { PollCard } from '@/components/feed/poll';
 
 // Types
 interface PostUser {
@@ -83,7 +84,9 @@ export default function PostDetailPage() {
     const [isLiked, setIsLiked] = useState(false);
     const [likesCount, setLikesCount] = useState(0);
     const [commentsCount, setCommentsCount] = useState(0);
+
     const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+    const [poll, setPoll] = useState<any>(null);
 
     // Fetch pillars for sidebar
     const { data: pillarsData = [] } = useQuery<Pillar[]>({
@@ -112,6 +115,16 @@ export default function PostDetailPage() {
                 setIsLiked(data.is_liked || false);
                 setLikesCount(data.likes_count || 0);
                 setCommentsCount(data.comments_count || 0);
+
+                if (data.post_type === 'poll') {
+                    try {
+                        const pollData = await apiClient.get<any>(`/feed/posts/${postId}/poll`);
+                        setPoll(pollData);
+                    } catch (e) {
+                        console.error("Failed to load poll", e);
+                    }
+                }
+
             } catch (err) {
                 console.error('Error fetching post:', err);
                 setError('Failed to load post');
@@ -248,6 +261,13 @@ export default function PostDetailPage() {
                             <div className="text-gray-900 text-lg leading-relaxed whitespace-pre-wrap">
                                 {post.content || ''}
                             </div>
+
+                            {/* Poll */}
+                            {poll && (
+                                <div className="mt-4">
+                                    <PollCard poll={poll} />
+                                </div>
+                            )}
 
                             {/* Media Images */}
                             {post.media_urls && post.media_urls.length > 0 && (
