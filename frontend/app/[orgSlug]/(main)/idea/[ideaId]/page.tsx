@@ -175,7 +175,7 @@ export default function IdeaDetailPage() {
                 <p className="text-gray-500">{error || 'Idea not found'}</p>
                 <button
                     onClick={handleBack}
-                    className="text-blue-500 hover:underline flex items-center gap-2"
+                    className="text-gray-500 hover:text-gray-900 hover:underline flex items-center gap-2"
                 >
                     <ArrowLeft size={16} />
                     Back to feed

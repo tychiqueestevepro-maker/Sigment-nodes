@@ -158,7 +158,7 @@ export default function ClusterDetailPage() {
                 <p className="text-gray-500">{error || 'Cluster not found'}</p>
                 <button
                     onClick={handleBack}
-                    className="text-blue-500 hover:underline flex items-center gap-2"
+                    className="text-gray-500 hover:text-gray-900 hover:underline flex items-center gap-2"
                 >
                     <ArrowLeft size={16} />
                     Back to feed
@@ -191,7 +191,7 @@ export default function ClusterDetailPage() {
                             {/* Header */}
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center gap-2">
-                                    <span className="bg-blue-100 text-blue-700 text-sm font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-blue-200">
+                                    <span className="bg-gray-100 text-gray-700 text-sm font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-gray-200">
                                         <Layers size={14} /> CLUSTER
                                     </span>
                                     <span className="text-sm text-gray-500">
@@ -235,7 +235,7 @@ export default function ClusterDetailPage() {
                                     <div className="space-y-3">
                                         {cluster.preview_notes.map((note) => (
                                             <div key={note.id} className="flex items-start gap-3 group">
-                                                <div className="mt-1.5 w-2 h-2 rounded-full bg-gray-300 group-hover:bg-blue-400 transition-colors shrink-0" />
+                                                <div className="mt-1.5 w-2 h-2 rounded-full bg-gray-300 group-hover:bg-gray-500 transition-colors shrink-0" />
                                                 <p className="text-gray-700 leading-relaxed group-hover:text-gray-900 transition-colors">
                                                     {note.content}
                                                 </p>

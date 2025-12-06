@@ -158,7 +158,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                         {/* Reply - Toujours disponible */}
                         <button
                             onClick={() => setShowReplyForm(!showReplyForm)}
-                            className={`flex items-center gap-1 text-xs hover:text-gray-900 transition-colors ${showReplyForm ? 'text-blue-500' : ''}`}
+                            className={`flex items-center gap-1 text-xs hover:text-gray-900 transition-colors ${showReplyForm ? 'text-gray-900' : ''}`}
                         >
                             <MessageCircle size={14} strokeWidth={2} />
                             <span>Reply</span>
@@ -177,7 +177,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                         {hasReplies && (
                             <button
                                 onClick={() => setShowReplies(!showReplies)}
-                                className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700 transition-colors ml-auto"
+                                className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900 transition-colors ml-auto"
                             >
                                 {showReplies ? (
                                     <>

@@ -29,7 +29,7 @@ const ImagePlus = ({ size }: { size: number }) => (
 );
 
 const SparklesIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-700">
         <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3Z" />
         <path d="M5 3v4" />
         <path d="M9 5H5" />
@@ -142,14 +142,14 @@ export default function HomePage() {
                                     className="w-full bg-transparent border-none focus:ring-0 text-lg placeholder-gray-400 resize-none min-h-[80px] outline-none"
                                 />
                                 <div className="flex items-center justify-between mt-2 pt-4 border-t border-gray-50">
-                                    <div className="flex gap-2 text-blue-500">
-                                        <button className="p-2 hover:bg-blue-50 rounded-full transition-colors">
+                                    <div className="flex gap-2 text-gray-600">
+                                        <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                                             <ImagePlus size={20} />
                                         </button>
-                                        <button className="p-2 hover:bg-blue-50 rounded-full transition-colors">
+                                        <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                                             <BarChart2 size={20} />
                                         </button>
-                                        <button className="p-2 hover:bg-blue-50 rounded-full transition-colors">
+                                        <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                                             <Calendar size={20} />
                                         </button>
                                     </div>

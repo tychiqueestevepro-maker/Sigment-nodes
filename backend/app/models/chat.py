@@ -15,6 +15,7 @@ class Conversation(BaseModel):
     id: UUID
     updated_at: datetime
     other_participant: Optional[ParticipantInfo] = None
+    participants: List[ParticipantInfo] = []  # For groups: all participants except current user
     title: Optional[str] = None
     is_group: bool = False
 

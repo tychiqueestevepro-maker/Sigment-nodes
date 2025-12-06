@@ -33,6 +33,7 @@ interface Conversation {
     id: string;
     updated_at: string;
     other_participant: Participant | null;
+    participants?: Participant[];
     title?: string;
     is_group: boolean;
     last_message?: string;
@@ -45,6 +46,41 @@ interface Message {
     content: string;
     is_read: boolean;
     created_at: string;
+}
+
+// Avatar colors
+const avatarColors = [
+    'bg-emerald-500',
+    'bg-blue-500',
+    'bg-purple-500',
+    'bg-orange-500',
+    'bg-pink-500',
+    'bg-teal-500',
+];
+
+function getAvatarColor(id: string): string {
+    const index = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % avatarColors.length;
+    return avatarColors[index];
+}
+
+function getInitials(participant: Participant | null): string {
+    if (!participant) return '?';
+    const first = participant.first_name?.[0] || participant.email?.[0] || '';
+    const last = participant.last_name?.[0] || '';
+    return (first + last).toUpperCase() || '?';
+}
+
+function getDisplayName(participant: Participant | null): string {
+    if (!participant) return 'Unknown';
+    if (participant.first_name) {
+        return `${participant.first_name} ${participant.last_name || ''}`.trim();
+    }
+    return participant.email || 'Unknown';
+}
+
+function getGroupMemberNames(participants: Participant[] | undefined): string {
+    if (!participants || participants.length === 0) return 'Group';
+    return participants.map(p => p.first_name || p.email?.split('@')[0] || 'User').join(', ');
 }
 
 // --- Components ---
@@ -197,49 +233,82 @@ export default function ChatPage() {
                             </button>
                         </div>
                     ) : (
-                        conversations.map((conv) => (
-                            <div
-                                key={conv.id}
-                                onClick={() => setSelectedConversationId(conv.id)}
-                                className={`p-4 border-b border-gray-50 cursor-pointer transition-all ${selectedConversationId === conv.id
-                                    ? 'bg-gray-100 border-l-4 border-l-black pl-[12px]' // Adjust padding for border
-                                    : 'hover:bg-gray-50 bg-white border-l-4 border-l-transparent'
-                                    }`}
-                            >
-                                <div className="flex items-center space-x-3">
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-gray-600 font-medium border border-gray-100 overflow-hidden ${conv.is_group ? 'bg-indigo-50 text-indigo-600' : 'bg-gradient-to-br from-gray-100 to-gray-200'}`}>
-                                        {conv.is_group ? (
-                                            <Users className="w-5 h-5" />
-                                        ) : conv.other_participant?.avatar_url ? (
-                                            <img
-                                                src={conv.other_participant.avatar_url}
-                                                alt={conv.other_participant.first_name || 'User'}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        ) : (
-                                            conv.other_participant?.first_name?.[0] || conv.other_participant?.email?.[0] || '?'
-                                        )}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex justify-between items-baseline">
-                                            <p className="text-sm font-semibold text-gray-900 truncate">
-                                                {conv.is_group ? conv.title : (
-                                                    conv.other_participant?.first_name
-                                                        ? `${conv.other_participant.first_name} ${conv.other_participant.last_name || ''}`
-                                                        : conv.other_participant?.email
+                        conversations.map((conv) => {
+                            const avatarColor = conv.other_participant ? getAvatarColor(conv.other_participant.id) : 'bg-gray-400';
+                            const initials = getInitials(conv.other_participant);
+                            const displayName = conv.is_group ? conv.title : getDisplayName(conv.other_participant);
+                            const isSelected = selectedConversationId === conv.id;
+                            const groupMembers = conv.participants || [];
+                            const memberNames = conv.is_group ? getGroupMemberNames(conv.participants) : '';
+
+                            return (
+                                <div
+                                    key={conv.id}
+                                    onClick={() => setSelectedConversationId(conv.id)}
+                                    className={`px-5 py-3 cursor-pointer transition-all flex items-center gap-3 ${isSelected ? 'bg-gray-100' : 'hover:bg-gray-50'
+                                        }`}
+                                >
+                                    {/* Avatar */}
+                                    {conv.is_group && groupMembers.length >= 2 ? (
+                                        // Stacked avatars for groups
+                                        <div className="relative w-10 h-10 shrink-0">
+                                            {/* First avatar (bottom-right) */}
+                                            <div className={`absolute bottom-0 right-0 w-7 h-7 rounded-full flex items-center justify-center text-white font-semibold text-xs border-2 border-white ${getAvatarColor(groupMembers[1].id)}`}>
+                                                {groupMembers[1].avatar_url ? (
+                                                    <img
+                                                        src={groupMembers[1].avatar_url}
+                                                        alt=""
+                                                        className="w-full h-full rounded-full object-cover"
+                                                    />
+                                                ) : (
+                                                    getInitials(groupMembers[1])
                                                 )}
+                                            </div>
+                                            {/* Second avatar (top-left) */}
+                                            <div className={`absolute top-0 left-0 w-7 h-7 rounded-full flex items-center justify-center text-white font-semibold text-xs border-2 border-white ${getAvatarColor(groupMembers[0].id)}`}>
+                                                {groupMembers[0].avatar_url ? (
+                                                    <img
+                                                        src={groupMembers[0].avatar_url}
+                                                        alt=""
+                                                        className="w-full h-full rounded-full object-cover"
+                                                    />
+                                                ) : (
+                                                    getInitials(groupMembers[0])
+                                                )}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        // Single avatar
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm shrink-0 ${avatarColor}`}>
+                                            {conv.other_participant?.avatar_url ? (
+                                                <img
+                                                    src={conv.other_participant.avatar_url}
+                                                    alt={displayName || 'User'}
+                                                    className="w-full h-full rounded-full object-cover"
+                                                />
+                                            ) : (
+                                                initials
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Info */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-sm font-semibold text-gray-900 truncate">
+                                                {displayName}
                                             </p>
-                                            <span className="text-[10px] text-gray-400">
-                                                {new Date(conv.updated_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                            <span className="text-[11px] text-gray-400 shrink-0 ml-2">
+                                                {new Date(conv.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                         </div>
                                         <p className="text-xs text-gray-500 truncate mt-0.5">
-                                            {conv.is_group ? `${conv.title}` : (conv.other_participant?.job_title || 'Member')}
+                                            {conv.last_message || (conv.is_group ? memberNames : conv.other_participant?.job_title || 'Start chatting')}
                                         </p>
                                     </div>
                                 </div>
-                            </div>
-                        ))
+                            );
+                        })
                     )}
                 </div>
             </div>
@@ -327,29 +396,60 @@ function ChatWindow({ conversation, currentUser, apiClient }: { conversation: Co
             {/* Chat Header */}
             <div className="h-16 px-6 bg-white border-b border-gray-200 flex items-center justify-between shadow-sm z-10">
                 <div className="flex items-center space-x-3">
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-gray-600 text-sm font-bold border border-gray-200 overflow-hidden ${conversation.is_group ? 'bg-indigo-50 text-indigo-600' : 'bg-gray-100'}`}>
-                        {conversation.is_group ? (
-                            <Users size={18} />
-                        ) : conversation.other_participant?.avatar_url ? (
-                            <img
-                                src={conversation.other_participant.avatar_url}
-                                alt={conversation.other_participant.first_name || 'User'}
-                                className="w-full h-full object-cover"
-                            />
-                        ) : (
-                            conversation.other_participant?.first_name?.[0] || '?'
-                        )}
-                    </div>
+                    {/* Avatar Header */}
+                    {conversation.is_group && conversation.participants && conversation.participants.length >= 2 ? (
+                        // Stacked avatars for groups
+                        <div className="relative w-9 h-9 shrink-0">
+                            <div className={`absolute bottom-0 right-0 w-6 h-6 rounded-full flex items-center justify-center text-white font-semibold text-xs border-2 border-white ${getAvatarColor(conversation.participants[1].id)}`}>
+                                {conversation.participants[1].avatar_url ? (
+                                    <img
+                                        src={conversation.participants[1].avatar_url}
+                                        alt=""
+                                        className="w-full h-full rounded-full object-cover"
+                                    />
+                                ) : (
+                                    getInitials(conversation.participants[1])
+                                )}
+                            </div>
+                            <div className={`absolute top-0 left-0 w-6 h-6 rounded-full flex items-center justify-center text-white font-semibold text-xs border-2 border-white ${getAvatarColor(conversation.participants[0].id)}`}>
+                                {conversation.participants[0].avatar_url ? (
+                                    <img
+                                        src={conversation.participants[0].avatar_url}
+                                        alt=""
+                                        className="w-full h-full rounded-full object-cover"
+                                    />
+                                ) : (
+                                    getInitials(conversation.participants[0])
+                                )}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold border border-gray-200 overflow-hidden ${conversation.is_group ? 'bg-indigo-50 text-indigo-600' : getAvatarColor(conversation.other_participant?.id || 'id')}`}>
+                            {conversation.is_group ? (
+                                <Users size={18} />
+                            ) : conversation.other_participant?.avatar_url ? (
+                                <img
+                                    src={conversation.other_participant.avatar_url}
+                                    alt={conversation.other_participant.first_name || 'User'}
+                                    className="w-full h-full object-cover"
+                                />
+                            ) : (
+                                getInitials(conversation.other_participant)
+                            )}
+                        </div>
+                    )}
                     <div>
                         <h3 className="text-sm font-bold text-gray-900">
-                            {conversation.is_group ? conversation.title : (
-                                conversation.other_participant?.first_name
-                                    ? `${conversation.other_participant.first_name} ${conversation.other_participant.last_name || ''}`
-                                    : conversation.other_participant?.email
-                            )}
+                            {conversation.is_group
+                                ? conversation.title
+                                : getDisplayName(conversation.other_participant)
+                            }
                         </h3>
                         <p className="text-xs text-gray-500">
-                            {conversation.is_group ? 'Group Chat' : (conversation.other_participant?.job_title || 'Member')}
+                            {conversation.is_group
+                                ? getGroupMemberNames(conversation.participants)
+                                : (conversation.other_participant?.job_title || 'Member')
+                            }
                         </p>
                     </div>
                 </div>

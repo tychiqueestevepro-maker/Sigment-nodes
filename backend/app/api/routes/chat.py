@@ -47,16 +47,14 @@ async def get_conversations(
         conversations_out = []
         for conv in response.data:
             other_participant = None
+            all_participants = []
             participants = conv.get("conversation_participants", [])
             
-            # Find the participant that is NOT the current user
-            # For groups, we might want to return a list, but for now the model only has 'other_participant'
-            # We'll stick to finding one for display if it's 1-on-1, or maybe the first one for group?
-            # Ideally, we should update the model to support multiple participants, but let's keep it simple for now.
+            # Collect all participants except current user
             for p in participants:
                 u = p.get("users")
                 if u and str(u.get("id")) != str(current_user.id):
-                    other_participant = ParticipantInfo(
+                    participant_info = ParticipantInfo(
                         id=u.get("id"),
                         first_name=u.get("first_name"),
                         last_name=u.get("last_name"),
@@ -64,12 +62,16 @@ async def get_conversations(
                         email=u.get("email"),
                         avatar_url=u.get("avatar_url")
                     )
-                    break
+                    all_participants.append(participant_info)
+                    # Keep first one as other_participant for 1-on-1 chats
+                    if other_participant is None:
+                        other_participant = participant_info
             
             conversations_out.append(Conversation(
                 id=conv["id"],
                 updated_at=conv["updated_at"],
                 other_participant=other_participant,
+                participants=all_participants,
                 title=conv.get("title"),
                 is_group=conv.get("is_group", False)
             ))

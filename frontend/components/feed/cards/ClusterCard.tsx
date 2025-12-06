@@ -80,7 +80,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({ item }) => {
             <div className="p-5 pb-3">
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                        <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 border border-blue-200">
+                        <span className="bg-gray-100 text-gray-700 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 border border-gray-200">
                             <Layers size={12} /> CLUSTER
                         </span>
                         <span className="text-xs text-gray-500">
@@ -102,7 +102,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({ item }) => {
                     )}
                 </div>
 
-                <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-700 transition-colors">
+                <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-gray-700 transition-colors">
                     {item.title}
                 </h3>
 
