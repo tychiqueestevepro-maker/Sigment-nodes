@@ -3,9 +3,9 @@ Social Feed API Routes
 Endpoints pour le feed social avec pagination par curseur et filtrage par tag
 """
 from typing import Optional, List, Dict, Any
-from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
+from uuid import UUID, uuid4
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from pydantic import BaseModel, Field, validator
 from loguru import logger
 
 from app.api.dependencies import get_current_user, get_supabase_client
@@ -57,6 +57,89 @@ class EngagementResponse(BaseModel):
     success: bool
     action: str  # "liked", "unliked", "saved", "unsaved"
     new_count: int
+
+
+class MediaUploadResponse(BaseModel):
+    url: str
+    message: str
+
+
+# Allowed image MIME types for post media
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+
+
+# ============================================
+# ENDPOINT 0: Upload Media
+# ============================================
+
+@router.post("/media/upload", response_model=MediaUploadResponse)
+async def upload_post_media(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+    supabase = Depends(get_supabase_client)
+):
+    """
+    Upload an image for a post.
+    
+    - Accepts image files (JPEG, PNG, GIF, WebP)
+    - Max file size: 10MB
+    - Stores in Supabase Storage bucket 'post-media'
+    - Returns public URL
+    """
+    try:
+        # 1. Validate file type
+        if file.content_type not in ALLOWED_IMAGE_TYPES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid file type. Allowed: {', '.join(ALLOWED_IMAGE_TYPES)}"
+            )
+        
+        # 2. Read file content
+        file_content = await file.read()
+        
+        # 3. Validate file size
+        if len(file_content) > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File too large. Maximum size: {MAX_FILE_SIZE / (1024*1024)}MB"
+            )
+        
+        # 4. Generate unique filename: {org_id}/{user_id}/{uuid}.{ext}
+        user_id = str(current_user.id)
+        org_id = str(current_user.organization_id)
+        file_ext = file.filename.split(".")[-1] if file.filename else "jpg"
+        unique_filename = f"{org_id}/{user_id}/{uuid4()}.{file_ext}"
+        
+        logger.info(f"Uploading post media for user {user_id}: {unique_filename}")
+        
+        # 5. Upload to Supabase Storage
+        try:
+            upload_response = supabase.storage.from_("post-media").upload(
+                path=unique_filename,
+                file=file_content,
+                file_options={"content-type": file.content_type, "upsert": "true"}
+            )
+            logger.info(f"Upload response: {upload_response}")
+        except Exception as storage_error:
+            logger.error(f"Storage upload error: {storage_error}")
+            raise HTTPException(status_code=500, detail=f"Failed to upload to storage: {str(storage_error)}")
+        
+        # 6. Get public URL
+        public_url = supabase.storage.from_("post-media").get_public_url(unique_filename)
+        
+        logger.info(f"Media uploaded successfully. URL: {public_url}")
+        
+        return MediaUploadResponse(
+            url=public_url,
+            message="Media uploaded successfully"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading post media: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ============================================
@@ -385,6 +468,7 @@ async def get_post_by_id(
             "id": post["id"],
             "content": post["content"],
             "post_type": post["post_type"],
+            "media_urls": post.get("media_urls"),
             "user_id": post["user_id"],
             "user_info": {
                 "id": user_info.get("id"),
@@ -528,8 +612,17 @@ async def _check_user_engagement(post_id: str, user_id: str, table: str, supabas
 # ============================================
 
 class CreateCommentRequest(BaseModel):
-    content: str = Field(..., min_length=1, max_length=2000)
+    content: str = Field(..., max_length=2000)  # Can be empty if media_url or poll provided
     parent_comment_id: Optional[str] = None
+    media_url: Optional[str] = None  # Image URL for the comment
+    poll_data: Optional[Dict[str, Any]] = None  # Quick poll data: {question, options, color}
+    
+    @validator('content', always=True)
+    def content_or_media_required(cls, v, values):
+        # Content can be empty only if there's a media_url or poll
+        # But we can't check those here as they come after content
+        # So we just allow empty content and validate in endpoint
+        return v if v else ""
 
 
 class CommentResponse(BaseModel):
@@ -537,6 +630,8 @@ class CommentResponse(BaseModel):
     post_id: str
     user_id: str
     content: str
+    media_url: Optional[str] = None
+    poll_data: Optional[Dict[str, Any]] = None  # Quick poll data
     parent_comment_id: Optional[str]
     created_at: str
     updated_at: str
@@ -570,6 +665,10 @@ async def create_comment(
     try:
         user_id = str(current_user.id)
         
+        # Validate that either content, media_url, or poll_data is provided
+        if not request.content.strip() and not request.media_url and not request.poll_data:
+            raise HTTPException(status_code=400, detail="Comment must have content, an image, or a poll")
+        
         # Vérifier que le post existe
         post = supabase.table("posts").select("id").eq("id", post_id).execute()
         if not post.data or len(post.data) == 0:
@@ -583,12 +682,28 @@ async def create_comment(
             if not parent.data or len(parent.data) == 0:
                 raise HTTPException(status_code=404, detail="Parent comment not found")
         
+        # Prepare poll_data with initial votes structure if provided
+        poll_data_to_save = None
+        if request.poll_data:
+            poll_data_to_save = {
+                "question": request.poll_data.get("question", ""),
+                "options": [
+                    {"text": opt, "votes": 0} 
+                    for opt in request.poll_data.get("options", [])
+                ],
+                "color": request.poll_data.get("color", "#3B82F6"),
+                "voter_ids": [],
+                "total_votes": 0
+            }
+        
         # Créer le commentaire
         comment_data = {
             "post_id": post_id,
             "user_id": user_id,
             "content": request.content,
-            "parent_comment_id": request.parent_comment_id
+            "parent_comment_id": request.parent_comment_id,
+            "media_url": request.media_url,
+            "poll_data": poll_data_to_save
         }
         
         comment_response = supabase.table("post_comments").insert(comment_data).execute()
@@ -928,3 +1043,419 @@ async def _enrich_comment(comment: Dict, user_id: str, supabase, depth: int = 0,
     
     return result
 
+
+# ============================================
+# COMMENT POLL VOTE
+# ============================================
+
+class CommentPollVoteRequest(BaseModel):
+    option_index: int
+
+
+@router.post("/comments/{comment_id}/poll/vote")
+async def vote_comment_poll(
+    comment_id: str,
+    request: CommentPollVoteRequest,
+    current_user: dict = Depends(get_current_user),
+    supabase = Depends(get_supabase_client)
+):
+    """Vote on a poll within a comment"""
+    try:
+        user_id = str(current_user.id)
+        
+        # Fetch the comment
+        comment_response = supabase.table("post_comments").select(
+            "id, poll_data"
+        ).eq("id", comment_id).single().execute()
+        
+        if not comment_response.data:
+            raise HTTPException(status_code=404, detail="Comment not found")
+        
+        poll_data = comment_response.data.get("poll_data")
+        if not poll_data:
+            raise HTTPException(status_code=400, detail="This comment has no poll")
+        
+        # Check if user already voted
+        if user_id in poll_data.get("voter_ids", []):
+            raise HTTPException(status_code=400, detail="You have already voted on this poll")
+        
+        # Validate option index
+        options = poll_data.get("options", [])
+        if request.option_index < 0 or request.option_index >= len(options):
+            raise HTTPException(status_code=400, detail="Invalid option index")
+        
+        # Update the poll data
+        options[request.option_index]["votes"] = options[request.option_index].get("votes", 0) + 1
+        poll_data["options"] = options
+        poll_data["voter_ids"] = poll_data.get("voter_ids", []) + [user_id]
+        poll_data["total_votes"] = poll_data.get("total_votes", 0) + 1
+        
+        # Save updated poll data
+        update_response = supabase.table("post_comments").update({
+            "poll_data": poll_data
+        }).eq("id", comment_id).execute()
+        
+        if not update_response.data:
+            raise HTTPException(status_code=500, detail="Failed to update poll")
+        
+        logger.info(f"✅ User {user_id} voted on comment poll {comment_id}")
+        
+        return {"poll_data": poll_data}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error voting on comment poll: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================
+# POLLS SYSTEM - Models
+# ============================================
+
+class PollOptionCreate(BaseModel):
+    text: str = Field(..., min_length=1, max_length=200)
+
+
+class CreatePollRequest(BaseModel):
+    question: str = Field(..., min_length=1, max_length=500)
+    options: List[PollOptionCreate] = Field(..., min_items=2, max_items=10)
+    allow_multiple: bool = False
+    expires_in_hours: Optional[int] = None  # None = no expiration
+    color: Optional[str] = "#374151"  # Default gray
+
+
+class PollOptionResponse(BaseModel):
+    id: str
+    text: str
+    votes_count: int
+    percentage: float = 0.0
+    is_voted: bool = False
+
+
+class PollResponse(BaseModel):
+    id: str
+    post_id: str
+    question: str
+    options: List[PollOptionResponse]
+    allow_multiple: bool
+    total_votes: int
+    color: Optional[str] = "#374151"
+    expires_at: Optional[str] = None
+    is_expired: bool = False
+    user_voted: bool = False
+    user_votes: List[str] = []  # List of option IDs user voted for
+    created_at: str
+
+
+class VotePollRequest(BaseModel):
+    option_ids: List[str] = Field(..., min_items=1)
+
+
+# ============================================
+# ENDPOINT: Create Poll for a Post
+# ============================================
+
+@router.post("/posts/{post_id}/poll", response_model=PollResponse)
+async def create_poll(
+    post_id: str,
+    request: CreatePollRequest,
+    current_user: dict = Depends(get_current_user),
+    supabase = Depends(get_supabase_client)
+):
+    """
+    Create a poll attached to a post
+    Only the post author can create a poll
+    """
+    try:
+        user_id = str(current_user.id)
+        
+        # Verify post exists and user is the author
+        post = supabase.table("posts").select("id, user_id").eq("id", post_id).single().execute()
+        if not post.data:
+            raise HTTPException(status_code=404, detail="Post not found")
+        
+        if post.data["user_id"] != user_id:
+            raise HTTPException(status_code=403, detail="Only the post author can create a poll")
+        
+        # Check if poll already exists
+        existing = supabase.table("polls").select("id").eq("post_id", post_id).execute()
+        if existing.data:
+            raise HTTPException(status_code=400, detail="Poll already exists for this post")
+        
+        # Calculate expiration if provided
+        from datetime import datetime, timedelta
+        expires_at = None
+        if request.expires_in_hours:
+            expires_at = (datetime.utcnow() + timedelta(hours=request.expires_in_hours)).isoformat()
+        
+        # Create poll
+        poll_data = {
+            "post_id": post_id,
+            "question": request.question,
+            "allow_multiple": request.allow_multiple,
+            "color": request.color or "#374151",
+            "expires_at": expires_at
+        }
+        
+        poll_response = supabase.table("polls").insert(poll_data).execute()
+        if not poll_response.data:
+            raise HTTPException(status_code=500, detail="Failed to create poll")
+        
+        poll = poll_response.data[0]
+        
+        # Create options
+        options_data = [
+            {
+                "poll_id": poll["id"],
+                "option_text": opt.text,
+                "display_order": idx
+            }
+            for idx, opt in enumerate(request.options)
+        ]
+        
+        options_response = supabase.table("poll_options").insert(options_data).execute()
+        if not options_response.data:
+            raise HTTPException(status_code=500, detail="Failed to create poll options")
+        
+        # Update post to indicate it has a poll
+        supabase.table("posts").update({"has_poll": True}).eq("id", post_id).execute()
+        
+        logger.info(f"✅ Poll created: {poll['id']} for post {post_id}")
+        
+        # Return formatted response
+        options = [
+            PollOptionResponse(
+                id=opt["id"],
+                text=opt["option_text"],
+                votes_count=0,
+                percentage=0.0,
+                is_voted=False
+            )
+            for opt in options_response.data
+        ]
+        
+        return PollResponse(
+            id=poll["id"],
+            post_id=post_id,
+            question=poll["question"],
+            options=options,
+            allow_multiple=poll["allow_multiple"],
+            total_votes=0,
+            color=poll.get("color", "#374151"),
+            expires_at=poll.get("expires_at"),
+            is_expired=False,
+            user_voted=False,
+            user_votes=[],
+            created_at=poll["created_at"]
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error creating poll: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================
+# ENDPOINT: Get Poll by Post ID
+# ============================================
+
+@router.get("/posts/{post_id}/poll", response_model=PollResponse)
+async def get_poll(
+    post_id: str,
+    current_user: dict = Depends(get_current_user),
+    supabase = Depends(get_supabase_client)
+):
+    """
+    Get poll details for a post
+    """
+    try:
+        user_id = str(current_user.id)
+        
+        # Get poll
+        poll_response = supabase.table("polls").select("*").eq("post_id", post_id).single().execute()
+        if not poll_response.data:
+            raise HTTPException(status_code=404, detail="Poll not found")
+        
+        poll = poll_response.data
+        
+        # Get options
+        options_response = supabase.table("poll_options").select("*").eq(
+            "poll_id", poll["id"]
+        ).order("display_order").execute()
+        
+        options_data = options_response.data or []
+        
+        # Get user's votes
+        option_ids = [opt["id"] for opt in options_data]
+        user_votes = []
+        if option_ids:
+            votes_response = supabase.table("poll_votes").select("poll_option_id").eq(
+                "user_id", user_id
+            ).in_("poll_option_id", option_ids).execute()
+            user_votes = [v["poll_option_id"] for v in (votes_response.data or [])]
+        
+        # Check if expired
+        from datetime import datetime
+        is_expired = False
+        if poll.get("expires_at"):
+            expires_at = datetime.fromisoformat(poll["expires_at"].replace("Z", "+00:00"))
+            is_expired = datetime.now(expires_at.tzinfo) > expires_at
+        
+        # Calculate percentages
+        total = poll.get("total_votes", 0) or 0
+        options = [
+            PollOptionResponse(
+                id=opt["id"],
+                text=opt["option_text"],
+                votes_count=opt.get("votes_count", 0),
+                percentage=round((opt.get("votes_count", 0) / total * 100), 1) if total > 0 else 0.0,
+                is_voted=opt["id"] in user_votes
+            )
+            for opt in options_data
+        ]
+        
+        return PollResponse(
+            id=poll["id"],
+            post_id=post_id,
+            question=poll["question"],
+            options=options,
+            allow_multiple=poll.get("allow_multiple", False),
+            total_votes=total,
+            color=poll.get("color", "#374151"),
+            expires_at=poll.get("expires_at"),
+            is_expired=is_expired,
+            user_voted=len(user_votes) > 0,
+            user_votes=user_votes,
+            created_at=poll["created_at"]
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error fetching poll: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================
+# ENDPOINT: Vote on Poll
+# ============================================
+
+@router.post("/polls/{poll_id}/vote")
+async def vote_poll(
+    poll_id: str,
+    request: VotePollRequest,
+    current_user: dict = Depends(get_current_user),
+    supabase = Depends(get_supabase_client)
+):
+    """
+    Vote on a poll
+    """
+    try:
+        user_id = str(current_user.id)
+        
+        # Get poll
+        poll_response = supabase.table("polls").select("*, post_id").eq("id", poll_id).single().execute()
+        if not poll_response.data:
+            raise HTTPException(status_code=404, detail="Poll not found")
+        
+        poll = poll_response.data
+        
+        # Check if expired
+        from datetime import datetime
+        if poll.get("expires_at"):
+            expires_at = datetime.fromisoformat(poll["expires_at"].replace("Z", "+00:00"))
+            if datetime.now(expires_at.tzinfo) > expires_at:
+                raise HTTPException(status_code=400, detail="Poll has expired")
+        
+        # Get valid option IDs for this poll
+        options_response = supabase.table("poll_options").select("id").eq("poll_id", poll_id).execute()
+        valid_option_ids = {opt["id"] for opt in (options_response.data or [])}
+        
+        # Validate option IDs
+        for opt_id in request.option_ids:
+            if opt_id not in valid_option_ids:
+                raise HTTPException(status_code=400, detail=f"Invalid option ID: {opt_id}")
+        
+        # Check multiple vote restriction
+        if not poll.get("allow_multiple") and len(request.option_ids) > 1:
+            raise HTTPException(status_code=400, detail="This poll only allows one vote")
+        
+        # Get user's existing votes
+        existing_votes = supabase.table("poll_votes").select("id, poll_option_id").eq(
+            "user_id", user_id
+        ).in_("poll_option_id", list(valid_option_ids)).execute()
+        
+        existing_vote_ids = {v["poll_option_id"]: v["id"] for v in (existing_votes.data or [])}
+        
+        # Remove old votes if not allow_multiple
+        if not poll.get("allow_multiple") and existing_vote_ids:
+            for vote_id in existing_vote_ids.values():
+                supabase.table("poll_votes").delete().eq("id", vote_id).execute()
+        
+        # Add new votes
+        new_votes = []
+        for opt_id in request.option_ids:
+            if opt_id not in existing_vote_ids:
+                new_votes.append({
+                    "poll_option_id": opt_id,
+                    "user_id": user_id
+                })
+        
+        if new_votes:
+            supabase.table("poll_votes").insert(new_votes).execute()
+        
+        logger.info(f"✅ User {user_id} voted on poll {poll_id}")
+        
+        # Return updated poll
+        return await get_poll(poll["post_id"], current_user, supabase)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error voting on poll: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================
+# ENDPOINT: Unvote on Poll
+# ============================================
+
+@router.delete("/polls/{poll_id}/vote")
+async def unvote_poll(
+    poll_id: str,
+    current_user: dict = Depends(get_current_user),
+    supabase = Depends(get_supabase_client)
+):
+    """
+    Remove user's vote from a poll
+    """
+    try:
+        user_id = str(current_user.id)
+        
+        # Get poll
+        poll_response = supabase.table("polls").select("*, post_id").eq("id", poll_id).single().execute()
+        if not poll_response.data:
+            raise HTTPException(status_code=404, detail="Poll not found")
+        
+        poll = poll_response.data
+        
+        # Get option IDs for this poll
+        options_response = supabase.table("poll_options").select("id").eq("poll_id", poll_id).execute()
+        option_ids = [opt["id"] for opt in (options_response.data or [])]
+        
+        # Delete user's votes
+        if option_ids:
+            supabase.table("poll_votes").delete().eq("user_id", user_id).in_("poll_option_id", option_ids).execute()
+        
+        logger.info(f"✅ User {user_id} removed vote from poll {poll_id}")
+        
+        # Return updated poll
+        return await get_poll(poll["post_id"], current_user, supabase)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error removing vote: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

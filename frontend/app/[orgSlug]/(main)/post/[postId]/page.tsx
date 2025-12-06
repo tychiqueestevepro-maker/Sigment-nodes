@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
-import { ArrowLeft, Heart, MessageCircle, Share2, MoreHorizontal, Loader2, Search, Folder, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Heart, MessageCircle, Share2, MoreHorizontal, Loader2, Search, Folder, ChevronRight, X } from 'lucide-react';
 import { useApiClient } from '@/hooks/useApiClient';
 import { CommentSection } from '@/components/feed/comments';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -22,6 +22,7 @@ interface PostDetail {
     id: string;
     content: string;
     post_type: string;
+    media_urls?: string[];
     user_id: string;
     user_info?: PostUser;
     likes_count: number;
@@ -82,6 +83,7 @@ export default function PostDetailPage() {
     const [isLiked, setIsLiked] = useState(false);
     const [likesCount, setLikesCount] = useState(0);
     const [commentsCount, setCommentsCount] = useState(0);
+    const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
     // Fetch pillars for sidebar
     const { data: pillarsData = [] } = useQuery<Pillar[]>({
@@ -246,6 +248,22 @@ export default function PostDetailPage() {
                             <div className="text-gray-900 text-lg leading-relaxed whitespace-pre-wrap">
                                 {post.content || ''}
                             </div>
+
+                            {/* Media Images */}
+                            {post.media_urls && post.media_urls.length > 0 && (
+                                <div className="mt-4 rounded-xl overflow-hidden">
+                                    {post.media_urls.map((url, index) => (
+                                        <img
+                                            key={index}
+                                            src={url}
+                                            alt={`Post media ${index + 1}`}
+                                            className="w-full max-h-[500px] object-contain bg-gray-100 cursor-pointer hover:opacity-95 transition-opacity"
+                                            loading="lazy"
+                                            onClick={() => setLightboxImage(url)}
+                                        />
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         {/* Engagement Stats */}
@@ -352,6 +370,27 @@ export default function PostDetailPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Image Lightbox Modal */}
+            {lightboxImage && (
+                <div
+                    className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+                    onClick={() => setLightboxImage(null)}
+                >
+                    <button
+                        onClick={() => setLightboxImage(null)}
+                        className="absolute top-4 right-4 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
+                    >
+                        <X size={28} />
+                    </button>
+                    <img
+                        src={lightboxImage}
+                        alt="Full size"
+                        className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                </div>
+            )}
         </div>
     );
 }

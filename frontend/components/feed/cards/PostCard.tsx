@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
-import { Heart, MessageCircle, Share2, MoreHorizontal } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, X } from 'lucide-react';
 import { PostItem } from '@/types/feed';
+import { Poll } from '@/types/poll';
 import { CommentSection } from '@/components/feed/comments';
+import { PollCard } from '@/components/feed/poll';
 import { useApiClient } from '@/hooks/useApiClient';
 
 interface PostCardProps {
@@ -31,6 +33,20 @@ export const PostCard: React.FC<PostCardProps> = ({ item }) => {
     const [isLiked, setIsLiked] = useState(item.is_liked || false);
     const [likesCount, setLikesCount] = useState(item.likes_count || 0);
     const [commentsCount, setCommentsCount] = useState(item.comments_count || 0);
+    const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+    const [poll, setPoll] = useState<Poll | null>(null);
+    const [loadingPoll, setLoadingPoll] = useState(false);
+
+    // Load poll if post has one
+    useEffect(() => {
+        if (item.has_poll && !poll && !loadingPoll) {
+            setLoadingPoll(true);
+            apiClient.get<Poll>(`/feed/posts/${item.id}/poll`)
+                .then(setPoll)
+                .catch(console.error)
+                .finally(() => setLoadingPoll(false));
+        }
+    }, [item.has_poll, item.id]);
 
     const userInfo = item.user_info || {};
     const firstName = userInfo.first_name || '';
@@ -147,6 +163,53 @@ export const PostCard: React.FC<PostCardProps> = ({ item }) => {
                     {item.content || ''}
                 </div>
 
+                {/* Media Images */}
+                {item.media_urls && item.media_urls.length > 0 && (
+                    <div className="mb-4 rounded-xl overflow-hidden border border-gray-100">
+                        {item.media_urls.length === 1 ? (
+                            <img
+                                src={item.media_urls[0]}
+                                alt="Post media"
+                                className="w-full max-h-[400px] object-cover cursor-pointer hover:opacity-95 transition-opacity"
+                                loading="lazy"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setLightboxImage(item.media_urls![0]);
+                                }}
+                            />
+                        ) : (
+                            <div className="grid grid-cols-2 gap-1">
+                                {item.media_urls.slice(0, 4).map((url, index) => (
+                                    <img
+                                        key={index}
+                                        src={url}
+                                        alt={`Post media ${index + 1}`}
+                                        className="w-full h-48 object-cover cursor-pointer hover:opacity-95 transition-opacity"
+                                        loading="lazy"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setLightboxImage(url);
+                                        }}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Poll */}
+                {item.has_poll && (
+                    <div className="mb-4" onClick={(e) => e.stopPropagation()}>
+                        {loadingPoll ? (
+                            <div className="bg-gray-50 rounded-xl p-4 text-center text-gray-400">
+                                Loading poll...
+                            </div>
+                        ) : poll ? (
+                            <PollCard poll={poll} onVote={setPoll} />
+                        ) : null}
+                    </div>
+                )}
+
                 {/* Action Bar */}
                 <div className="flex items-center gap-6 pt-4 border-t border-gray-100">
                     {/* Likes */}
@@ -197,6 +260,33 @@ export const PostCard: React.FC<PostCardProps> = ({ item }) => {
                     />
                 </div>
             </div>
+
+            {/* Image Lightbox Modal */}
+            {lightboxImage && (
+                <div
+                    className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setLightboxImage(null);
+                    }}
+                >
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setLightboxImage(null);
+                        }}
+                        className="absolute top-4 right-4 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
+                    >
+                        <X size={28} />
+                    </button>
+                    <img
+                        src={lightboxImage}
+                        alt="Full size"
+                        className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                </div>
+            )}
         </div>
     );
 };

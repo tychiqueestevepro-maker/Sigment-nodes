@@ -5,13 +5,16 @@ import { formatDistanceToNow } from 'date-fns';
 import { Heart, MessageCircle, Share2, ChevronDown, ChevronUp } from 'lucide-react';
 import { Comment } from '@/types/comments';
 import { CommentForm } from './CommentForm';
+import { CommentPoll } from '@/components/feed/poll';
 
 interface CommentItemProps {
     comment: Comment;
     depth?: number;
-    onReply: (parentId: string, content: string) => Promise<void>;
+    onReply: (parentId: string, content: string, mediaUrl?: string) => Promise<void>;
     onLike: (commentId: string) => Promise<void>;
     maxDepth?: number; // Maximum depth for inline display, after that it becomes "View more replies"
+    onImageClick?: (url: string) => void; // Callback pour ouvrir l'image en lightbox
+    currentUserId?: string; // For poll voting
 }
 
 // Palette de couleurs pour les avatars
@@ -29,7 +32,9 @@ export const CommentItem: React.FC<CommentItemProps> = ({
     depth = 0,
     onReply,
     onLike,
-    maxDepth = 10 // Permettre beaucoup plus de niveaux
+    maxDepth = 10, // Permettre beaucoup plus de niveaux
+    onImageClick,
+    currentUserId
 }) => {
     const [showReplyForm, setShowReplyForm] = useState(false);
     const [showReplies, setShowReplies] = useState(true); // Réponses visibles par défaut
@@ -74,8 +79,8 @@ export const CommentItem: React.FC<CommentItemProps> = ({
         }
     };
 
-    const handleReplySubmit = async (content: string) => {
-        await onReply(comment.id, content);
+    const handleReplySubmit = async (content: string, mediaUrl?: string) => {
+        await onReply(comment.id, content, mediaUrl);
         setShowReplyForm(false);
         setShowReplies(true); // S'assurer que les réponses sont visibles après avoir répondu
     };
@@ -137,6 +142,30 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                     <div className="text-gray-800 text-sm leading-relaxed mb-2 whitespace-pre-wrap">
                         {comment.content}
                     </div>
+
+                    {/* Media Image */}
+                    {comment.media_url && (
+                        <div
+                            className="mb-2 rounded-lg overflow-hidden border border-gray-200 max-w-xs cursor-pointer hover:opacity-95 transition-opacity"
+                            onClick={() => onImageClick?.(comment.media_url!)}
+                        >
+                            <img
+                                src={comment.media_url}
+                                alt="Comment media"
+                                className="w-full max-h-48 object-cover"
+                                loading="lazy"
+                            />
+                        </div>
+                    )}
+
+                    {/* Poll */}
+                    {comment.poll_data && (
+                        <CommentPoll
+                            commentId={comment.id}
+                            pollData={comment.poll_data}
+                            currentUserId={currentUserId}
+                        />
+                    )}
 
                     {/* Action Bar */}
                     <div className="flex items-center gap-4 text-gray-500">
@@ -218,6 +247,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                                     onReply={onReply}
                                     onLike={onLike}
                                     maxDepth={maxDepth}
+                                    onImageClick={onImageClick}
                                 />
                             ))}
                         </div>

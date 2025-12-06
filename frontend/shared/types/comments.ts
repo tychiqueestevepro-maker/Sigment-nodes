@@ -8,11 +8,26 @@ export interface CommentUser {
     avatar_url?: string;
 }
 
+export interface CommentPollOption {
+    text: string;
+    votes: number;
+}
+
+export interface CommentPollData {
+    question: string;
+    options: CommentPollOption[];
+    color: string;
+    voter_ids: string[];
+    total_votes: number;
+}
+
 export interface Comment {
     id: string;
     post_id: string;
     user_id: string;
     content: string;
+    media_url?: string;
+    poll_data?: CommentPollData;
     parent_comment_id: string | null;
     created_at: string;
     updated_at: string;
@@ -26,6 +41,12 @@ export interface Comment {
 export interface CreateCommentRequest {
     content: string;
     parent_comment_id?: string;
+    media_url?: string;
+    poll_data?: {
+        question: string;
+        options: string[];
+        color: string;
+    };
 }
 
 export interface CommentsResponse {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
     Send,
@@ -10,6 +10,8 @@ import {
     Folder,
     ChevronRight,
     Layers,
+    X,
+    Loader2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useApiClient } from '@/hooks/useApiClient';
@@ -18,6 +20,8 @@ import { FeedItemRenderer } from '@/components/feed/FeedItemRenderer';
 import { useFeed } from '@/hooks/useFeed';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useUser } from '@/contexts';
+import { PollCreator } from '@/components/feed/poll';
+import { CreatePollOption } from '@/types/poll';
 
 // Image Plus icon inline
 const ImagePlus = ({ size }: { size: number }) => (
@@ -55,6 +59,17 @@ interface GalaxyFolder {
 
 export default function HomePage() {
     const [noteContent, setNoteContent] = useState('');
+    const [selectedImage, setSelectedImage] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
+    const [showPollCreator, setShowPollCreator] = useState(false);
+    const [pollData, setPollData] = useState<{
+        question: string;
+        options: CreatePollOption[];
+        allow_multiple: boolean;
+        expires_in_hours?: number;
+    } | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const queryClient = useQueryClient();
     const api = useApiClient();
     const { user } = useUser();
@@ -84,26 +99,108 @@ export default function HomePage() {
         color: getColorForPillar(pillar.name),
     }));
 
-    const handleSubmitNote = async () => {
-        if (!noteContent.trim()) {
-            toast.error('Please enter some content');
+    // Handle image selection
+    const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Validate file type
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+            toast.error('Please select a valid image (JPEG, PNG, GIF, or WebP)');
             return;
         }
 
+        // Validate file size (10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            toast.error('Image is too large. Maximum size is 10MB');
+            return;
+        }
+
+        setSelectedImage(file);
+        setImagePreview(URL.createObjectURL(file));
+    };
+
+    // Remove selected image
+    const handleRemoveImage = () => {
+        setSelectedImage(null);
+        if (imagePreview) {
+            URL.revokeObjectURL(imagePreview);
+        }
+        setImagePreview(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
+    const handleSubmitNote = async () => {
+        // Allow post if: has text, has image, OR has valid poll
+        if (!noteContent.trim() && !selectedImage && !pollData) {
+            toast.error('Please enter some content, add an image, or create a poll');
+            return;
+        }
+
+        setIsUploading(true);
         try {
-            await api.post('/feed/posts', {
-                content: noteContent,
-                post_type: 'standard',
+            let mediaUrls: string[] = [];
+
+            // Upload image if selected
+            if (selectedImage) {
+                const formData = new FormData();
+                formData.append('file', selectedImage);
+
+                const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                const token = localStorage.getItem('access_token');
+                const orgId = localStorage.getItem('sigment_org_id');
+
+                const uploadResponse = await fetch(`${apiBaseUrl}/api/v1/feed/media/upload`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        ...(orgId && { 'X-Organization-Id': orgId }),
+                    },
+                    body: formData,
+                });
+
+                if (!uploadResponse.ok) {
+                    const errorData = await uploadResponse.json();
+                    throw new Error(errorData.detail || 'Failed to upload image');
+                }
+
+                const uploadData = await uploadResponse.json();
+                mediaUrls = [uploadData.url];
+            }
+
+            // Create post with media_urls
+            const postResponse = await api.post<{ id: string }>('/feed/posts', {
+                content: noteContent || (pollData ? pollData.question : 'Check out this image!'),
+                post_type: pollData ? 'poll' : 'standard',
+                media_urls: mediaUrls.length > 0 ? mediaUrls : undefined,
             });
+
+            // If poll data exists, create the poll
+            if (pollData && postResponse.id) {
+                try {
+                    await api.post(`/feed/posts/${postResponse.id}/poll`, pollData);
+                } catch (pollError) {
+                    console.error('Error creating poll:', pollError);
+                    // Post was created, but poll failed - still show success
+                }
+            }
 
             toast.success('Post published successfully!');
             setNoteContent('');
+            handleRemoveImage();
+            setShowPollCreator(false);
+            setPollData(null);
 
             // Invalidate query to refresh the feed
             queryClient.invalidateQueries({ queryKey: ['unifiedFeed'] });
         } catch (error) {
             console.error('Error publishing post:', error);
             toast.error(error instanceof Error ? error.message : 'Failed to publish post');
+        } finally {
+            setIsUploading(false);
         }
     };
 
@@ -141,23 +238,87 @@ export default function HomePage() {
                                     onChange={(e) => setNoteContent(e.target.value)}
                                     className="w-full bg-transparent border-none focus:ring-0 text-lg placeholder-gray-400 resize-none min-h-[80px] outline-none"
                                 />
+
+                                {/* Poll Creator */}
+                                {showPollCreator && (
+                                    <PollCreator
+                                        onPollChange={setPollData}
+                                        onClose={() => {
+                                            setShowPollCreator(false);
+                                            setPollData(null);
+                                        }}
+                                    />
+                                )}
+
+                                {/* Image Preview */}
+                                {imagePreview && (
+                                    <div className="relative mt-3 rounded-xl overflow-hidden border border-gray-200">
+                                        <img
+                                            src={imagePreview}
+                                            alt="Preview"
+                                            className="w-full max-h-64 object-cover"
+                                        />
+                                        <button
+                                            onClick={handleRemoveImage}
+                                            className="absolute top-2 right-2 p-1.5 bg-black/70 hover:bg-black rounded-full text-white transition-colors"
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    </div>
+                                )}
+
                                 <div className="flex items-center justify-between mt-2 pt-4 border-t border-gray-50">
                                     <div className="flex gap-2 text-gray-600">
-                                        <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                                        {/* Hidden file input */}
+                                        <input
+                                            type="file"
+                                            ref={fileInputRef}
+                                            onChange={handleImageSelect}
+                                            accept="image/jpeg,image/png,image/gif,image/webp"
+                                            className="hidden"
+                                        />
+                                        <button
+                                            onClick={() => fileInputRef.current?.click()}
+                                            disabled={showPollCreator}
+                                            className={`p-2 hover:bg-gray-100 rounded-full transition-colors ${selectedImage ? 'text-green-600 bg-green-50' : ''} ${showPollCreator ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            title="Add image"
+                                        >
                                             <ImagePlus size={20} />
                                         </button>
-                                        <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                                        <button
+                                            onClick={() => {
+                                                setShowPollCreator(!showPollCreator);
+                                                if (!showPollCreator) {
+                                                    // Clear image when opening poll
+                                                    handleRemoveImage();
+                                                } else {
+                                                    setPollData(null);
+                                                }
+                                            }}
+                                            className={`p-2 hover:bg-gray-100 rounded-full transition-colors ${showPollCreator ? 'text-blue-600 bg-blue-50' : ''}`}
+                                            title="Add poll"
+                                        >
                                             <BarChart2 size={20} />
                                         </button>
-                                        <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                                        <button className="p-2 hover:bg-gray-100 rounded-full transition-colors" title="Schedule (coming soon)">
                                             <Calendar size={20} />
                                         </button>
                                     </div>
                                     <button
                                         onClick={handleSubmitNote}
-                                        className="bg-black text-white px-6 py-2 rounded-full font-bold text-sm hover:bg-gray-800 transition-all flex items-center gap-2"
+                                        disabled={isUploading}
+                                        className="bg-black text-white px-6 py-2 rounded-full font-bold text-sm hover:bg-gray-800 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        Post <Send size={14} />
+                                        {isUploading ? (
+                                            <>
+                                                <Loader2 size={14} className="animate-spin" />
+                                                Posting...
+                                            </>
+                                        ) : (
+                                            <>
+                                                Post <Send size={14} />
+                                            </>
+                                        )}
                                     </button>
                                 </div>
                             </div>

@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Loader2, ChevronDown } from 'lucide-react';
+import { Loader2, ChevronDown, X } from 'lucide-react';
 import { Comment } from '@/types/comments';
 import { CommentItem } from './CommentItem';
 import { CommentForm } from './CommentForm';
 import { useApiClient } from '@/hooks/useApiClient';
+import { useUser } from '@/contexts';
 
 interface CommentSectionProps {
     postId: string;
@@ -21,11 +22,13 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
     onToggle
 }) => {
     const apiClient = useApiClient();
+    const { user } = useUser();
     const [comments, setComments] = useState<Comment[]>([]);
     const [totalCount, setTotalCount] = useState(initialCount);
     const [isLoading, setIsLoading] = useState(false);
     const [hasMore, setHasMore] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
     // Fetch comments when section opens
     useEffect(() => {
@@ -56,11 +59,15 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
         }
     };
 
-    const handleCreateComment = async (content: string) => {
+    const handleCreateComment = async (content: string, mediaUrl?: string, pollData?: { question: string; options: string[]; color: string }) => {
         try {
             const newComment = await apiClient.post<Comment>(
                 `/feed/posts/${postId}/comments`,
-                { content }
+                {
+                    content,
+                    media_url: mediaUrl,
+                    poll_data: pollData
+                }
             );
 
             // Add new comment at the top
@@ -72,11 +79,16 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
         }
     };
 
-    const handleReply = async (parentId: string, content: string) => {
+    const handleReply = async (parentId: string, content: string, mediaUrl?: string, pollData?: { question: string; options: string[]; color: string }) => {
         try {
             const newReply = await apiClient.post<Comment>(
                 `/feed/posts/${postId}/comments`,
-                { content, parent_comment_id: parentId }
+                {
+                    content,
+                    parent_comment_id: parentId,
+                    media_url: mediaUrl,
+                    poll_data: pollData
+                }
             );
 
             // Find parent and add reply
@@ -159,6 +171,8 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                             comment={comment}
                             onReply={handleReply}
                             onLike={handleLikeComment}
+                            onImageClick={setLightboxImage}
+                            currentUserId={user?.id}
                         />
                     ))}
 
@@ -179,6 +193,27 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                             )}
                         </button>
                     )}
+                </div>
+            )}
+
+            {/* Image Lightbox Modal */}
+            {lightboxImage && (
+                <div
+                    className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4"
+                    onClick={() => setLightboxImage(null)}
+                >
+                    <button
+                        onClick={() => setLightboxImage(null)}
+                        className="absolute top-4 right-4 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
+                    >
+                        <X size={28} />
+                    </button>
+                    <img
+                        src={lightboxImage}
+                        alt="Full size"
+                        className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    />
                 </div>
             )}
         </div>

@@ -52,6 +52,8 @@ export interface PostItem extends BaseFeedItem {
     type: 'POST';
     content: string;
     post_type: string;
+    media_urls?: string[];
+    has_poll?: boolean;
     user_id: string;
     user_info?: {
         first_name?: string;

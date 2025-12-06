@@ -67,6 +67,8 @@ class PostFeedItem(BaseModel):
     id: str
     content: str
     post_type: str
+    media_urls: Optional[List[str]] = None
+    has_poll: bool = False
     user_id: str
     user_info: Optional[dict] = None
     likes_count: int
@@ -339,6 +341,8 @@ async def get_unified_feed(
                 id=p["id"],
                 content=p["content"],
                 post_type=p["post_type"],
+                media_urls=p.get("media_urls"),
+                has_poll=p.get("has_poll", False),
                 user_id=p["user_id"],
                 user_info={
                     "first_name": user_info.get("first_name"),
