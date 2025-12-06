@@ -20,10 +20,12 @@ router = APIRouter(prefix="/feed", tags=["Social Feed"])
 # ============================================
 
 class CreatePostRequest(BaseModel):
-    content: str = Field(..., min_length=1, max_length=5000)
+    content: Optional[str] = Field(default="", max_length=5000)
     media_urls: Optional[List[str]] = None
     post_type: str = Field(default="standard", pattern="^(standard|announcement|poll|event)$")
     tag_names: Optional[List[str]] = None  # Tags à associer au post
+    scheduled_at: Optional[str] = None  # ISO datetime string for scheduling
+    status: Optional[str] = "published"  # draft, scheduled, published
 
 
 class PostResponse(BaseModel):
@@ -33,6 +35,8 @@ class PostResponse(BaseModel):
     content: str
     media_urls: Optional[List[str]]
     post_type: str
+    status: Optional[str] = "published"
+    scheduled_at: Optional[str] = None
     likes_count: int
     comments_count: int
     shares_count: int
@@ -45,6 +49,7 @@ class PostResponse(BaseModel):
     user_info: Optional[Dict[str, Any]] = None
     is_liked: Optional[bool] = False
     is_saved: Optional[bool] = False
+    poll: Optional[Dict[str, Any]] = None
 
 
 class FeedResponse(BaseModel):
@@ -168,7 +173,9 @@ async def create_post(
             "media_urls": request.media_urls or [],
             "post_type": request.post_type,
             "virality_score": 50.0,  # Initial score avec Cold Start Boost
-            "virality_level": "local"
+            "virality_level": "local",
+            "status": request.status or "published",
+            "scheduled_at": request.scheduled_at
         }
         
         post_response = supabase.table("posts").insert(post_data).execute()
@@ -192,6 +199,174 @@ async def create_post(
         
     except Exception as e:
         logger.error(f"❌ Error creating post: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+# ============================================
+# ENDPOINT: Get Scheduled Posts
+# ============================================
+
+@router.get("/posts/scheduled", response_model=List[PostResponse])
+async def get_scheduled_posts(
+    current_user: dict = Depends(get_current_user),
+    supabase = Depends(get_supabase_client)
+):
+    """Retrieve scheduled posts for current user"""
+    try:
+        user_id = str(current_user.id)
+        
+        response = supabase.table("posts").select(
+            "*, users(first_name, last_name, email, avatar_url)"
+        ).eq("user_id", user_id).eq("status", "scheduled").order("scheduled_at", desc=False).execute()
+        
+        if not response.data:
+            return []
+            
+        # Fetch polls for these posts
+        post_ids = [p["id"] for p in response.data]
+        polls_map = {}
+        if post_ids:
+            try:
+                polls_resp = supabase.table("polls").select("*, poll_options(*)").in_("post_id", post_ids).execute()
+                for pl in (polls_resp.data or []):
+                    # Format options for frontend
+                    raw_options = pl.get("poll_options") or []
+                    # Sort options
+                    raw_options.sort(key=lambda x: x.get("display_order", 0))
+                    
+                    # Transform options to match PollOptionResponse format roughly or simple dict
+                    options = [
+                        {
+                            "id": opt["id"],
+                            "text": opt["option_text"], # Frontend expects 'text' usually in UI components or 'option_text'
+                            "votes_count": 0, # No votes yet for scheduled
+                            "percentage": 0,
+                            "is_voted": False
+                        }
+                        for opt in raw_options
+                    ]
+                    
+                    pl["options"] = options
+                    polls_map[pl["post_id"]] = pl
+            except Exception as poll_error:
+                logger.warning(f"Failed to fetch polls for scheduled posts: {poll_error}")
+
+        posts = []
+        for p in response.data:
+            user_info = p.get("users") or {}
+            
+            # Get associated poll
+            poll_data = polls_map.get(p["id"])
+            if poll_data:
+                 # Ensure structure matches what CreatePollExpects or PollResponse
+                 # Frontend needs: question, options, allow_multiple, expires_at
+                 pass
+
+            # Use PostResponse model
+            posts.append(PostResponse(
+                id=p["id"],
+                user_id=p["user_id"],
+                organization_id=p["organization_id"],
+                content=p["content"],
+                media_urls=p.get("media_urls"),
+                post_type=p["post_type"],
+                status=p.get("status", "scheduled"),
+                scheduled_at=p.get("scheduled_at"),
+                likes_count=p.get("likes_count", 0),
+                comments_count=p.get("comments_count", 0),
+                shares_count=p.get("shares_count", 0),
+                saves_count=p.get("saves_count", 0),
+                virality_score=p.get("virality_score", 0),
+                virality_level=p.get("virality_level", "local"),
+                created_at=p["created_at"],
+                poll=poll_data, # Add poll data
+                user_info={
+                    "first_name": user_info.get("first_name"),
+                    "last_name": user_info.get("last_name"),
+                    "email": user_info.get("email"),
+                    "avatar_url": user_info.get("avatar_url"),
+                }
+            ))
+            
+        return posts
+        
+    except Exception as e:
+        logger.error(f"❌ Error fetching scheduled posts: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+# ============================================
+# ENDPOINT: Delete Post
+# ============================================
+@router.delete("/posts/{post_id}")
+async def delete_post(
+    post_id: str,
+    current_user: dict = Depends(get_current_user),
+    supabase = Depends(get_supabase_client)
+):
+    """Delete a post"""
+    try:
+        user_id = str(current_user.id)
+        # Verify ownership
+        post_resp = supabase.table("posts").select("user_id").eq("id", post_id).single().execute()
+        if not post_resp.data:
+             raise HTTPException(status_code=404, detail="Post not found")
+             
+        if post_resp.data["user_id"] != user_id:
+            raise HTTPException(status_code=403, detail="Not authorized")
+            
+        supabase.table("posts").delete().eq("id", post_id).execute()
+        return {"status": "success"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting post {post_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================
+# ENDPOINT: Update Post (Schedule/Content)
+# ============================================
+class UpdatePostRequest(BaseModel):
+    content: Optional[str] = None
+    media_urls: Optional[List[str]] = None
+    scheduled_at: Optional[str] = None
+    status: Optional[str] = None
+
+@router.patch("/posts/{post_id}")
+async def update_post(
+    post_id: str,
+    request: UpdatePostRequest,
+    current_user: dict = Depends(get_current_user),
+    supabase = Depends(get_supabase_client)
+):
+    """Update post content or schedule"""
+    try:
+        user_id = str(current_user.id)
+        # Verify ownership
+        post_resp = supabase.table("posts").select("user_id").eq("id", post_id).single().execute()
+        if not post_resp.data:
+             raise HTTPException(status_code=404, detail="Post not found")
+
+        if post_resp.data["user_id"] != user_id:
+            raise HTTPException(status_code=403, detail="Not authorized")
+            
+        # Pydantic v2: model_dump, v1: dict
+        try:
+            updates = {k: v for k, v in request.model_dump(exclude_unset=True).items()}
+        except AttributeError:
+             updates = {k: v for k, v in request.dict(exclude_unset=True).items()}
+
+        if updates:
+            supabase.table("posts").update(updates).eq("id", post_id).execute()
+            
+        return {"status": "success"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating post {post_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

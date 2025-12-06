@@ -314,7 +314,7 @@ async def get_unified_feed(
         # ============================================
         posts_response = supabase.table("posts").select(
             "*, users(first_name, last_name, email, avatar_url)"
-        ).eq("organization_id", organization_id).neq("post_type", "linked_idea").gte("created_at", cutoff_30d.isoformat()).order("created_at", desc=True).limit(limit).execute()
+        ).eq("organization_id", organization_id).neq("post_type", "linked_idea").neq("status", "scheduled").gte("created_at", cutoff_30d.isoformat()).order("created_at", desc=True).limit(limit).execute()
         
         # Fetch user's likes and saves for all posts in one query
         post_ids = [p["id"] for p in posts_response.data]

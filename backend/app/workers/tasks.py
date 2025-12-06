@@ -504,3 +504,53 @@ def publish_note_to_feed_task(self, note_id: str):
     except Exception as e:
         logger.error(f"❌ Error publishing note {note_id} to feed: {e}")
         raise self.retry(exc=e, countdown=2 ** self.request.retries, max_retries=3)
+
+
+# ============================================
+# TASK: Publish Scheduled Posts (Cron)
+# ============================================
+
+@celery_app.task(name="publish_scheduled_posts")
+def publish_scheduled_posts_task():
+    """
+    Periodic task to check for scheduled posts and publish them.
+    Updates status to 'published' and created_at to scheduled_at.
+    """
+    try:
+        from datetime import datetime
+        logger.info("⏳ Checking for scheduled posts to publish...")
+        
+        now = datetime.utcnow().isoformat()
+        
+        # 1. Fetch posts ready to be published
+        response = supabase.table("posts").select("id, scheduled_at").eq("status", "scheduled").lte("scheduled_at", now).execute()
+        
+        posts = response.data or []
+        
+        if not posts:
+            return {"count": 0}
+            
+        count = 0
+        from app.workers.social_feed_tasks import calculate_virality_score_task
+        
+        for post in posts:
+            try:
+                # 2. Update status AND created_at (to ensure it appears at the correct time in feed)
+                supabase.table("posts").update({
+                    "status": "published",
+                    "created_at": post["scheduled_at"] # Sync created_at with scheduled time
+                }).eq("id", post["id"]).execute()
+                
+                # 3. Trigger virality (Cold start)
+                calculate_virality_score_task.delay(post["id"])
+                
+                logger.info(f"🚀 Published scheduled post {post['id']} (scheduled for {post['scheduled_at']})")
+                count += 1
+            except Exception as e:
+                logger.error(f"Failed to publish post {post['id']}: {e}")
+                
+        return {"count": count}
+        
+    except Exception as e:
+        logger.error(f"❌ Error in publish_scheduled_posts_task: {e}")
+        raise

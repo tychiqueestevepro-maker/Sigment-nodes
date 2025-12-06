@@ -66,7 +66,7 @@ export const CommentPoll: React.FC<CommentPollProps> = ({
 
     return (
         <div
-            className="rounded-lg p-3 border mt-2"
+            className="rounded-lg p-3 border mt-2 mb-3"
             style={{
                 borderColor: pollColor,
                 backgroundColor: `${pollColor}08`
