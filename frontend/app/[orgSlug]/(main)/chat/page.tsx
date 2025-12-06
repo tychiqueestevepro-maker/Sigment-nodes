@@ -17,6 +17,7 @@ import {
 import toast from 'react-hot-toast';
 import { MemberPicker } from '@/components/shared/MemberPicker';
 import { useApiClient } from '@/hooks/useApiClient';
+import { SharedPostCard } from '@/components/feed/share';
 
 // --- Types ---
 
@@ -44,6 +45,8 @@ interface Message {
     conversation_id: string;
     sender_id: string;
     content: string;
+    shared_post_id?: string;
+    shared_post?: any; // Will be fetched if shared_post_id exists
     is_read: boolean;
     created_at: string;
 }
@@ -485,7 +488,15 @@ function ChatWindow({ conversation, currentUser, apiClient }: { conversation: Co
                                         }
                                     `}
                                 >
-                                    <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                                    {/* Shared Post Card */}
+                                    {msg.shared_post && (
+                                        <div className="mb-2" onClick={(e) => e.stopPropagation()}>
+                                            <SharedPostCard post={msg.shared_post} />
+                                        </div>
+                                    )}
+                                    {msg.content && (
+                                        <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                                    )}
                                     <p className={`text-[10px] mt-1 ${isMe ? 'text-gray-400' : 'text-gray-400'} text-right opacity-70`}>
                                         {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </p>

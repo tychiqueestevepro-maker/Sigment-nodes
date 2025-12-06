@@ -147,7 +147,7 @@ async def create_group_conversation(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{conversation_id}/messages", response_model=List[Message])
+@router.get("/{conversation_id}/messages")
 async def get_messages(
     conversation_id: UUID,
     limit: int = 50,
@@ -155,7 +155,7 @@ async def get_messages(
     current_user: CurrentUser = Depends(get_current_user)
 ):
     """
-    Get messages for a conversation.
+    Get messages for a conversation, with shared post data if applicable.
     """
     try:
         response = supabase.table("direct_messages")\
@@ -164,8 +164,53 @@ async def get_messages(
             .order("created_at", desc=True)\
             .range(offset, offset + limit - 1)\
             .execute()
+        
+        if not response.data:
+            return []
             
-        return response.data if response.data else []
+        messages = response.data
+        
+        # Collect shared post IDs
+        shared_post_ids = [
+            msg["shared_post_id"] for msg in messages 
+            if msg.get("shared_post_id")
+        ]
+        
+        # Fetch shared posts if any
+        shared_posts_map = {}
+        if shared_post_ids:
+            try:
+                posts_resp = supabase.table("posts").select(
+                    "id, content, media_urls, post_type, likes_count, comments_count, user_id, users(first_name, last_name, avatar_url)"
+                ).in_("id", shared_post_ids).execute()
+                
+                for post in (posts_resp.data or []):
+                    user_info = post.get("users") or {}
+                    shared_posts_map[post["id"]] = {
+                        "id": post["id"],
+                        "content": post.get("content", ""),
+                        "media_urls": post.get("media_urls"),
+                        "post_type": post.get("post_type", "standard"),
+                        "likes_count": post.get("likes_count", 0),
+                        "comments_count": post.get("comments_count", 0),
+                        "user_info": {
+                            "first_name": user_info.get("first_name"),
+                            "last_name": user_info.get("last_name"),
+                            "avatar_url": user_info.get("avatar_url"),
+                        }
+                    }
+            except Exception as post_error:
+                logger.warning(f"Failed to fetch shared posts: {post_error}")
+        
+        # Enrich messages with shared post data
+        enriched_messages = []
+        for msg in messages:
+            enriched = {**msg}
+            if msg.get("shared_post_id") and msg["shared_post_id"] in shared_posts_map:
+                enriched["shared_post"] = shared_posts_map[msg["shared_post_id"]]
+            enriched_messages.append(enriched)
+            
+        return enriched_messages
 
     except Exception as e:
         logger.error(f"Error fetching messages: {e}")
@@ -182,12 +227,19 @@ async def send_message(
     Send a message to a conversation.
     """
     try:
-        # Insert message
-        response = supabase.table("direct_messages").insert({
+        # Build message payload
+        message_data = {
             "conversation_id": str(conversation_id),
             "sender_id": str(current_user.id),
-            "content": message.content
-        }).execute()
+            "content": message.content or ""
+        }
+        
+        # Add shared post reference if provided
+        if message.shared_post_id:
+            message_data["shared_post_id"] = str(message.shared_post_id)
+
+        # Insert message
+        response = supabase.table("direct_messages").insert(message_data).execute()
         
         if not response.data:
              raise HTTPException(status_code=403, detail="Could not send message (check permissions)")

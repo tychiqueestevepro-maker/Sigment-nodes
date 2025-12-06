@@ -8,6 +8,7 @@ import { PostItem } from '@/types/feed';
 import { Poll } from '@/types/poll';
 import { CommentSection } from '@/components/feed/comments';
 import { PollCard } from '@/components/feed/poll';
+import { SharePostModal } from '@/components/feed/share';
 import { useApiClient } from '@/hooks/useApiClient';
 
 interface PostCardProps {
@@ -36,6 +37,7 @@ export const PostCard: React.FC<PostCardProps> = ({ item }) => {
     const [lightboxImage, setLightboxImage] = useState<string | null>(null);
     const [poll, setPoll] = useState<Poll | null>(null);
     const [loadingPoll, setLoadingPoll] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
 
     // Load poll if post has one
     useEffect(() => {
@@ -88,17 +90,9 @@ export const PostCard: React.FC<PostCardProps> = ({ item }) => {
         }
     };
 
-    const handleShare = async (e: React.MouseEvent) => {
-        e.stopPropagation(); // Empêcher la navigation vers le détail
-
-        try {
-            await navigator.clipboard.writeText(
-                `${window.location.origin}/${orgSlug}/post/${item.id}`
-            );
-            // TODO: toast notification
-        } catch (error) {
-            console.error('Failed to copy link');
-        }
+    const handleShare = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setShowShareModal(true);
     };
 
     const handleCommentClick = (e: React.MouseEvent) => {
@@ -286,6 +280,15 @@ export const PostCard: React.FC<PostCardProps> = ({ item }) => {
                         onClick={(e) => e.stopPropagation()}
                     />
                 </div>
+            )}
+
+            {/* Share Post Modal */}
+            {showShareModal && (
+                <SharePostModal
+                    postId={item.id}
+                    postContent={item.content || ''}
+                    onClose={() => setShowShareModal(false)}
+                />
             )}
         </div>
     );

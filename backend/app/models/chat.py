@@ -27,12 +27,15 @@ class GroupConversationCreate(BaseModel):
     participant_ids: List[UUID]
 
 class MessageCreate(BaseModel):
-    content: str
+    content: Optional[str] = ""
+    shared_post_id: Optional[UUID] = None
 
 class Message(BaseModel):
     id: UUID
     conversation_id: UUID
     sender_id: UUID
-    content: str
+    content: Optional[str] = ""
+    shared_post_id: Optional[UUID] = None
     created_at: datetime
     is_read: bool = False
+
