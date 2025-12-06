@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useUser } from '@/contexts/UserContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     MessageSquare,
@@ -113,6 +114,7 @@ export default function ChatPage() {
     const { user } = useUser();
     const { organization } = useOrganization();
     const apiClient = useApiClient();
+    const queryClient = useQueryClient();
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
     const [isLoadingConversations, setIsLoadingConversations] = useState(true);
@@ -184,14 +186,31 @@ export default function ChatPage() {
     };
 
     // Mark conversation as read (update local state immediately)
+    // Mark conversation as read (update local state immediately)
     const markAsRead = (conversationId: string) => {
-        setConversations(prev =>
-            prev.map(conv =>
+        // Update local conversations state
+        setConversations(prev => {
+            const updated = prev.map(conv =>
                 conv.id === conversationId
                     ? { ...conv, has_unread: false }
                     : conv
-            )
-        );
+            );
+
+            // Check if any *other* conversation has unread messages
+            const hasAnyUnread = updated.some(c => c.has_unread);
+
+            // Optimistically update the sidebar query data
+            if (user?.id) {
+                // We optimistically set it to what we think it is based on visible conversations.
+                // If there are invisible unread conversations, the invalidation below will fix it shortly.
+                queryClient.setQueryData(['chatUnreadStatus', user.id], { has_unread: hasAnyUnread });
+            }
+
+            return updated;
+        });
+
+        // Always invalidate to ensure truth from server
+        queryClient.invalidateQueries({ queryKey: ['chatUnreadStatus'] });
     };
 
     const selectedConversation = conversations.find(c => c.id === selectedConversationId);

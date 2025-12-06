@@ -102,6 +102,45 @@ async def get_conversations(
         logger.error(f"Error fetching conversations: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/unread-status")
+async def get_unread_status(current_user: CurrentUser = Depends(get_current_user)):
+    """
+    Check if the user has any unread messages across all conversations.
+    """
+    try:
+        # Get user's conversations and last_read_at, joining with conversations to get updated_at
+        response = supabase.table("conversation_participants")\
+            .select("conversation_id, last_read_at, conversations!inner(updated_at)")\
+            .eq("user_id", str(current_user.id))\
+            .is_("deleted_at", "null")\
+            .execute()
+            
+        if not response.data:
+            return {"has_unread": False}
+            
+        for item in response.data:
+            last_read_at = item.get("last_read_at")
+            conversation = item.get("conversations")
+            
+            if not conversation:
+                continue
+                
+            updated_at = conversation.get("updated_at")
+            
+            if not updated_at:
+                continue
+            
+            if last_read_at is None:
+                return {"has_unread": True}
+            
+            if updated_at > last_read_at:
+                return {"has_unread": True}
+                
+        return {"has_unread": False}
+    except Exception as e:
+        logger.error(f"Error checking unread status: {e}")
+        return {"has_unread": False}
+
 
 @router.post("/start", response_model=UUID)
 async def start_conversation(

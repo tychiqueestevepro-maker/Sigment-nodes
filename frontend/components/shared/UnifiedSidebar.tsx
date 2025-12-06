@@ -3,6 +3,8 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useParams, useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import { useApiClient } from '@/hooks/useApiClient';
 import { useUser } from '@/contexts'; // Assurez-vous que useUser expose le 'role' ou 'membership'
 import {
     Home, Orbit, FileCheck, BarChart2, MessageCircle, Users,
@@ -34,7 +36,21 @@ export const UnifiedSidebar: React.FC = () => {
 
     const orgSlug = params?.orgSlug as string;
     // Récupération du rôle (ajustez selon votre structure UserContext)
+    // Récupération du rôle (ajustez selon votre structure UserContext)
     const userRole = user?.role || 'MEMBER';
+    const api = useApiClient();
+
+    // Fetch unread status for chat
+    const { data: unreadStatus } = useQuery({
+        queryKey: ['chatUnreadStatus', user?.id],
+        queryFn: async () => {
+            if (!user) return { has_unread: false };
+            return api.get<{ has_unread: boolean }>('/chat/unread-status');
+        },
+        // Poll every 1 minute to keep it relatively fresh without overloading
+        refetchInterval: 60000,
+        enabled: !!user,
+    });
 
     // Configuration centralisée des menus
     const menuConfig: MenuItem[] = useMemo(() => [
@@ -103,7 +119,12 @@ export const UnifiedSidebar: React.FC = () => {
                                 href={item.href}
                                 className={`flex items-center gap-3 w-full px-3 py-2 text-sm font-medium rounded-md transition-all ${isActive ? 'bg-gray-100 text-black font-semibold' : 'text-gray-600 hover:bg-gray-50'} ${!isOpen ? 'justify-center' : ''}`}
                             >
-                                <span className={isActive ? 'text-black' : 'text-gray-500'}>{item.icon}</span>
+                                <div className="relative">
+                                    <span className={isActive ? 'text-black' : 'text-gray-500'}>{item.icon}</span>
+                                    {item.label === 'Chat' && unreadStatus?.has_unread && (
+                                        <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-black rounded-full border-2 border-white translate-x-1/3 -translate-y-1/3" />
+                                    )}
+                                </div>
                                 {isOpen && <span>{item.label}</span>}
                             </Link>
                         );
