@@ -52,24 +52,24 @@ export const SharedPostCard: React.FC<SharedPostCardProps> = ({ post }) => {
     return (
         <div
             onClick={handleClick}
-            className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-all"
+            className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-all"
             style={{ width: '280px' }}
         >
             {/* Header with badge and share icon */}
             <div className="px-4 pt-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    {/* Icon circle */}
-                    <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center">
+                    {/* Icon circle - noir/gris */}
+                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
                         {isPoll ? (
-                            <BarChart2 size={14} className="text-emerald-600" />
+                            <BarChart2 size={14} className="text-gray-700" />
                         ) : hasMedia ? (
-                            <ImageIcon size={14} className="text-emerald-600" />
+                            <ImageIcon size={14} className="text-gray-700" />
                         ) : (
-                            <Zap size={14} className="text-emerald-600" />
+                            <Zap size={14} className="text-gray-700" />
                         )}
                     </div>
-                    {/* Badge text */}
-                    <span className="text-xs font-bold text-emerald-600 uppercase tracking-wide">
+                    {/* Badge text - noir */}
+                    <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">
                         {getBadge()}
                     </span>
                 </div>
@@ -141,9 +141,9 @@ export const SharedPostCard: React.FC<SharedPostCardProps> = ({ post }) => {
                     </span>
                 </div>
 
-                {/* Impact badge */}
-                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full uppercase tracking-wide">
-                    {isPoll ? 'Poll' : hasMedia ? 'Media' : 'High Impact'}
+                {/* Badge - noir/blanc */}
+                <span className="text-[10px] font-bold text-gray-700 bg-gray-100 px-2 py-1 rounded-full uppercase tracking-wide">
+                    {isPoll ? 'Poll' : hasMedia ? 'Media' : 'Post'}
                 </span>
             </div>
         </div>

@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, X, User as UserIcon, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useUser } from '@/contexts/UserContext';
 
 interface Member {
     id: string;
@@ -23,6 +25,7 @@ interface MemberPickerProps {
 
 export function MemberPicker({ isOpen, onClose, onSelect, multiple, onSelectMultiple }: MemberPickerProps) {
     const { organization } = useOrganization();
+    const { user } = useUser();
     const [members, setMembers] = useState<Member[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -43,7 +46,9 @@ export function MemberPicker({ isOpen, onClose, onSelect, multiple, onSelectMult
             const res = await fetch(`/api/v1/organizations/${organization!.slug}/members`);
             if (res.ok) {
                 const data = await res.json();
-                setMembers(data);
+                // Filter out the current user - can't message yourself
+                const filtered = data.filter((m: Member) => m.id !== user?.id);
+                setMembers(filtered);
             }
         } catch (error) {
             console.error('Failed to fetch members', error);
@@ -78,7 +83,9 @@ export function MemberPicker({ isOpen, onClose, onSelect, multiple, onSelectMult
         m.job_title?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    return (
+    if (typeof document === 'undefined') return null;
+
+    return createPortal(
         <AnimatePresence>
             {isOpen && (
                 <>
@@ -88,7 +95,7 @@ export function MemberPicker({ isOpen, onClose, onSelect, multiple, onSelectMult
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50"
+                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9999]"
                     />
 
                     {/* Modal */}
@@ -96,9 +103,9 @@ export function MemberPicker({ isOpen, onClose, onSelect, multiple, onSelectMult
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
+                        className="fixed inset-0 flex items-center justify-center z-[9999] pointer-events-none p-4"
                     >
-                        <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-gray-100 overflow-hidden pointer-events-auto flex flex-col max-h-[80vh]">
+                        <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-gray-100 overflow-hidden pointer-events-auto flex flex-col max-h-[80vh]">
                             {/* Header */}
                             <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-white">
                                 <h3 className="font-semibold text-gray-900">{multiple ? 'New Group Chat' : 'New Message'}</h3>
@@ -199,6 +206,7 @@ export function MemberPicker({ isOpen, onClose, onSelect, multiple, onSelectMult
                     </motion.div>
                 </>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
 }

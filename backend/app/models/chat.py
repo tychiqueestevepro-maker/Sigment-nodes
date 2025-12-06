@@ -18,6 +18,7 @@ class Conversation(BaseModel):
     participants: List[ParticipantInfo] = []  # For groups: all participants except current user
     title: Optional[str] = None
     is_group: bool = False
+    has_unread: bool = False
 
 class ConversationCreate(BaseModel):
     target_user_id: UUID
@@ -29,6 +30,15 @@ class GroupConversationCreate(BaseModel):
 class MessageCreate(BaseModel):
     content: Optional[str] = ""
     shared_post_id: Optional[UUID] = None
+    attachment_url: Optional[str] = None
+    attachment_type: Optional[str] = None
+    attachment_name: Optional[str] = None
+
+class ReadReceipt(BaseModel):
+    user_id: UUID
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    read_at: datetime
 
 class Message(BaseModel):
     id: UUID
@@ -36,6 +46,10 @@ class Message(BaseModel):
     sender_id: UUID
     content: Optional[str] = ""
     shared_post_id: Optional[UUID] = None
+    attachment_url: Optional[str] = None
+    attachment_type: Optional[str] = None
+    attachment_name: Optional[str] = None
     created_at: datetime
     is_read: bool = False
+    read_by: List[ReadReceipt] = []
 

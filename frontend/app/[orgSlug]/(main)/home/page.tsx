@@ -456,7 +456,7 @@ export default function HomePage() {
                                     {showSchedulePicker && (
                                         <div className="absolute top-full mt-2 left-0 z-50">
                                             <SchedulePicker
-                                                onSchedule={(date) => {
+                                                onSchedule={(date: Date) => {
                                                     setScheduledDate(date);
                                                     setShowSchedulePicker(false);
                                                 }}
