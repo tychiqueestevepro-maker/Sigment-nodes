@@ -9,6 +9,7 @@ import { useApiClient } from '@/hooks/useApiClient';
 import { CommentSection } from '@/components/feed/comments';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { PollCard } from '@/components/feed/poll';
+import { SharePostModal } from '@/components/feed/share';
 
 // Types
 interface PostUser {
@@ -87,6 +88,7 @@ export default function PostDetailPage() {
 
     const [lightboxImage, setLightboxImage] = useState<string | null>(null);
     const [poll, setPoll] = useState<any>(null);
+    const [showShareModal, setShowShareModal] = useState(false);
 
     // Fetch pillars for sidebar
     const { data: pillarsData = [] } = useQuery<Pillar[]>({
@@ -158,12 +160,8 @@ export default function PostDetailPage() {
         }
     };
 
-    const handleShare = async () => {
-        try {
-            await navigator.clipboard.writeText(window.location.href);
-        } catch (error) {
-            console.error('Failed to copy link');
-        }
+    const handleShare = () => {
+        setShowShareModal(true);
     };
 
     const handleBack = () => {
@@ -410,6 +408,15 @@ export default function PostDetailPage() {
                         onClick={(e) => e.stopPropagation()}
                     />
                 </div>
+            )}
+
+            {/* Share Post Modal */}
+            {showShareModal && post && (
+                <SharePostModal
+                    postId={post.id}
+                    postContent={post.content || ''}
+                    onClose={() => setShowShareModal(false)}
+                />
             )}
         </div>
     );

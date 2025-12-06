@@ -197,8 +197,31 @@ async def get_messages(
                             "first_name": user_info.get("first_name"),
                             "last_name": user_info.get("last_name"),
                             "avatar_url": user_info.get("avatar_url"),
-                        }
+                        },
+                        "poll": None
                     }
+                
+                # Fetch polls for poll-type posts
+                poll_post_ids = [
+                    post["id"] for post in (posts_resp.data or []) 
+                    if post.get("post_type") == "poll"
+                ]
+                
+                if poll_post_ids:
+                    polls_resp = supabase.table("polls").select(
+                        "id, post_id, question, allow_multiple, poll_options(id, option_text, display_order)"
+                    ).in_("post_id", poll_post_ids).execute()
+                    
+                    for poll in (polls_resp.data or []):
+                        post_id = poll.get("post_id")
+                        if post_id and post_id in shared_posts_map:
+                            options = poll.get("poll_options") or []
+                            options.sort(key=lambda x: x.get("display_order", 0))
+                            shared_posts_map[post_id]["poll"] = {
+                                "question": poll.get("question", ""),
+                                "options": [{"text": opt.get("option_text", "")} for opt in options]
+                            }
+                            
             except Exception as post_error:
                 logger.warning(f"Failed to fetch shared posts: {post_error}")
         

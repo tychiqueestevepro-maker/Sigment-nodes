@@ -470,37 +470,42 @@ function ChatWindow({ conversation, currentUser, apiClient }: { conversation: Co
                 ) : (
                     messages.map((msg, index) => {
                         const isMe = msg.sender_id === currentUser.id;
-                        const showTime = true; // Could optimize to show time only periodically
+                        const hasSharedPost = !!msg.shared_post;
+                        const hasTextContent = !!msg.content;
 
                         return (
                             <motion.div
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 key={msg.id}
-                                className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
+                                className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
                             >
-                                <div
-                                    className={`
-                                        max-w-[70%] px-5 py-3 text-sm shadow-sm
-                                        ${isMe
-                                            ? 'bg-black text-white rounded-2xl rounded-tr-sm'
-                                            : 'bg-white text-gray-900 border border-gray-100 rounded-2xl rounded-tl-sm'
-                                        }
-                                    `}
-                                >
-                                    {/* Shared Post Card */}
-                                    {msg.shared_post && (
-                                        <div className="mb-2" onClick={(e) => e.stopPropagation()}>
-                                            <SharedPostCard post={msg.shared_post} />
-                                        </div>
-                                    )}
-                                    {msg.content && (
+                                {/* Shared Post Card - Displayed separately, not in bubble */}
+                                {hasSharedPost && (
+                                    <div className="mb-1" onClick={(e) => e.stopPropagation()}>
+                                        <SharedPostCard post={msg.shared_post} />
+                                    </div>
+                                )}
+
+                                {/* Text message bubble - Only if there's text content */}
+                                {hasTextContent && (
+                                    <div
+                                        className={`
+                                            max-w-[70%] px-5 py-3 text-sm shadow-sm
+                                            ${isMe
+                                                ? 'bg-black text-white rounded-2xl rounded-tr-sm'
+                                                : 'bg-white text-gray-900 border border-gray-100 rounded-2xl rounded-tl-sm'
+                                            }
+                                        `}
+                                    >
                                         <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                                    )}
-                                    <p className={`text-[10px] mt-1 ${isMe ? 'text-gray-400' : 'text-gray-400'} text-right opacity-70`}>
-                                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </p>
-                                </div>
+                                    </div>
+                                )}
+
+                                {/* Timestamp */}
+                                <p className="text-[10px] mt-1 text-gray-400 opacity-70">
+                                    {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </p>
                             </motion.div>
                         );
                     })
