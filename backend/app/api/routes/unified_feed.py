@@ -75,6 +75,7 @@ class PostFeedItem(BaseModel):
     comments_count: int
     saves_count: Optional[int] = 0
     shares_count: Optional[int] = 0
+    virality_score: float = 0.0  # For algorithmic ranking
     is_liked: bool = False
     is_saved: bool = False
     is_mine: bool
@@ -354,6 +355,7 @@ async def get_unified_feed(
                 comments_count=p.get("comments_count", 0),
                 saves_count=p.get("saves_count", 0),
                 shares_count=p.get("shares_count", 0),
+                virality_score=p.get("virality_score", 0.0),  # Use worker-calculated score
                 is_liked=(p["id"] in user_likes),
                 is_saved=(p["id"] in user_saves),
                 is_mine=(p["user_id"] == user_id),
@@ -362,13 +364,77 @@ async def get_unified_feed(
             ))
 
         # ============================================
-        # 4. MERGE & SORT
+        # 4. MERGE & SORT (ALGORITHMIC RANKING)
         # ============================================
-        # Sort by sort_date DESC
-        items.sort(key=lambda x: str(x.sort_date), reverse=True)
+        # Advanced ranking algorithm using existing analyzed data:
+        # - Clusters: velocity_score (0-100)
+        # - Notes: ai_relevance_score (0-10) -> normalized to 0-100
+        # - Posts: virality_score (0-100)
+        # Plus a freshness boost based on content age
+        
+        def calculate_feed_score(item) -> float:
+            """
+            Calculate composite score for ranking.
+            Score = base_score (normalized 0-100) + freshness_boost (0-30)
+            """
+            base_score = 0.0
+            
+            # Get base score based on item type
+            if item.type == "CLUSTER":
+                # Use velocity_score directly (already 0-100 scale)
+                base_score = item.velocity_score or 0.0
+            elif item.type == "NOTE":
+                # Normalize ai_relevance_score from 0-10 to 0-100
+                ai_score = item.ai_relevance_score or 0.0
+                base_score = ai_score * 10  # Convert 0-10 to 0-100
+            elif item.type == "POST":
+                # Use virality_score directly (calculated by worker, 0-100+ scale)
+                base_score = item.virality_score or 0.0
+                base_score = min(base_score, 100)  # Cap at 100 for normalization
+            
+            # Calculate freshness boost (newer = higher boost)
+            # Max 30 points for content < 1 hour old, decreasing over 48h
+            try:
+                if isinstance(item.sort_date, str):
+                    item_date = datetime.fromisoformat(item.sort_date.replace('Z', '+00:00'))
+                else:
+                    item_date = item.sort_date
+                    
+                # Make cutoff timezone-aware to match item_date
+                now = datetime.utcnow()
+                if item_date.tzinfo is not None:
+                    from datetime import timezone
+                    now = now.replace(tzinfo=timezone.utc)
+                    
+                age_hours = (now - item_date).total_seconds() / 3600
+                
+                if age_hours <= 1:
+                    freshness_boost = 30  # Max boost for very recent
+                elif age_hours <= 6:
+                    freshness_boost = 25
+                elif age_hours <= 12:
+                    freshness_boost = 20
+                elif age_hours <= 24:
+                    freshness_boost = 15
+                elif age_hours <= 48:
+                    freshness_boost = 10
+                else:
+                    freshness_boost = 0  # No boost for older content
+            except Exception:
+                freshness_boost = 0
+            
+            # Combined score
+            total_score = base_score + freshness_boost
+            
+            return total_score
+        
+        # Sort by calculated score DESC (higher score = higher in feed)
+        items.sort(key=calculate_feed_score, reverse=True)
         
         # Apply limit
         items = items[:limit]
+        
+        logger.info(f"📊 Feed sorted by algorithm: {len(items)} items ranked")
 
     except Exception as e:
         logger.error(f"❌ Python Feed Fetch failed: {e}")

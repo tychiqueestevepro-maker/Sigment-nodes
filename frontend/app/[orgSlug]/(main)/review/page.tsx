@@ -32,6 +32,8 @@ import {
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useApiClient } from '@/hooks/useApiClient';
+import { useRouter, useParams } from 'next/navigation';
+import { GroupPicker } from '@/components/shared/GroupPicker';
 
 // Helper function to get color for pillar category
 function getColorForCategory(category: string): string {
@@ -70,6 +72,10 @@ export default function ReviewPage() {
     const [timelineProgress, setTimelineProgress] = useState(100);
     const [isPlaying, setIsPlaying] = useState(false);
     const [selectedReviewNode, setSelectedReviewNode] = useState<any>(null);
+    const [isGroupPickerOpen, setIsGroupPickerOpen] = useState(false);
+    const router = useRouter();
+    const params = useParams();
+    const orgSlug = params?.orgSlug as string;
     const apiClient = useApiClient();
 
     // Fetch review notes from API
@@ -532,7 +538,10 @@ export default function ReviewPage() {
                         <Archive size={18} />
                         {archiveMutation.isPending ? 'Archiving...' : 'Archive'}
                     </button>
-                    <button className="px-6 py-3 rounded-xl font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors flex items-center gap-2">
+                    <button
+                        onClick={() => setIsGroupPickerOpen(true)}
+                        className="px-6 py-3 rounded-xl font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors flex items-center gap-2"
+                    >
                         <Users size={18} />
                         Share with Group
                     </button>
@@ -602,13 +611,22 @@ export default function ReviewPage() {
                                 </div>
                             </div>
                         </div>
-                        <div className="p-6 border-t border-gray-100 space-y-3">
-                            <button className="w-full py-3 bg-black text-white rounded-xl font-medium hover:bg-gray-800">View Full Thread</button>
-                            <button className="w-full py-3 border border-gray-200 text-gray-500 rounded-xl font-medium hover:bg-red-50 hover:text-red-600 hover:border-red-200 flex items-center justify-center gap-2"><Ban size={18} /> Refused</button>
-                        </div>
+
                     </>
                 )}
             </div>
+
+            {/* Group Picker Modal */}
+            <GroupPicker
+                isOpen={isGroupPickerOpen}
+                onClose={() => setIsGroupPickerOpen(false)}
+                onSelect={(groupId) => {
+                    setIsGroupPickerOpen(false);
+                    // Redirect to groups page with the selected group
+                    router.push(`/${orgSlug}/groups?selected=${groupId}`);
+                }}
+                noteId={selectedReview?.id}
+            />
         </div>
     );
 };

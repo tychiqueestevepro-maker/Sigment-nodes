@@ -30,6 +30,7 @@ import {
 import { useApiClient } from '@/hooks/useApiClient';
 import { useUser } from '@/contexts';
 import { useRouter, useParams } from 'next/navigation';
+import { GroupPicker } from '@/components/shared/GroupPicker';
 
 // Helper function to get color for pillar category
 function getColorForCategory(category: string): string {
@@ -68,6 +69,7 @@ export default function ArchivePage() {
     const [timelineProgress, setTimelineProgress] = useState(100);
     const [isPlaying, setIsPlaying] = useState(false);
     const [selectedArchiveNode, setSelectedArchiveNode] = useState<any>(null);
+    const [isGroupPickerOpen, setIsGroupPickerOpen] = useState(false);
     const apiClient = useApiClient();
     const { user } = useUser();
     const router = useRouter();
@@ -548,7 +550,10 @@ export default function ArchivePage() {
                         <ArchiveRestore size={18} />
                         {unarchiveMutation.isPending ? 'Restoring...' : 'Restore to Review'}
                     </button>
-                    <button className="px-6 py-3 rounded-xl font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors flex items-center gap-2">
+                    <button
+                        onClick={() => setIsGroupPickerOpen(true)}
+                        className="px-6 py-3 rounded-xl font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors flex items-center gap-2"
+                    >
                         <Users size={18} />
                         Share with Group
                     </button>
@@ -614,20 +619,21 @@ export default function ArchivePage() {
                                 </div>
                             </div>
                         </div>
-                        <div className="p-6 border-t border-gray-100 space-y-3">
-                            <button
-                                onClick={handleUnarchive}
-                                disabled={unarchiveMutation.isPending}
-                                className="w-full py-3 bg-amber-500 text-white rounded-xl font-medium hover:bg-amber-600 disabled:opacity-50 flex items-center justify-center gap-2"
-                            >
-                                <ArchiveRestore size={18} />
-                                {unarchiveMutation.isPending ? 'Restoring...' : 'Restore to Review'}
-                            </button>
-                            <button className="w-full py-3 border border-gray-200 text-gray-500 rounded-xl font-medium hover:bg-red-50 hover:text-red-600 hover:border-red-200 flex items-center justify-center gap-2"><Ban size={18} /> Delete Permanently</button>
-                        </div>
+
                     </>
                 )}
             </div>
+
+            {/* Group Picker Modal */}
+            <GroupPicker
+                isOpen={isGroupPickerOpen}
+                onClose={() => setIsGroupPickerOpen(false)}
+                onSelect={(groupId) => {
+                    setIsGroupPickerOpen(false);
+                    router.push(`/${orgSlug}/groups?selected=${groupId}`);
+                }}
+                noteId={selectedArchive?.id}
+            />
         </div>
     );
 };

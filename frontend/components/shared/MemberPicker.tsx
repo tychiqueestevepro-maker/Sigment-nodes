@@ -21,9 +21,12 @@ interface MemberPickerProps {
     onSelect: (memberId: string) => void;
     multiple?: boolean;
     onSelectMultiple?: (memberIds: string[], title: string) => void;
+    excludeIds?: string[];
+    title?: string;
+    hideGroupName?: boolean; // Hide the group name input when name is already set
 }
 
-export function MemberPicker({ isOpen, onClose, onSelect, multiple, onSelectMultiple }: MemberPickerProps) {
+export function MemberPicker({ isOpen, onClose, onSelect, multiple, onSelectMultiple, excludeIds = [], title, hideGroupName = false }: MemberPickerProps) {
     const { organization } = useOrganization();
     const { user } = useUser();
     const [members, setMembers] = useState<Member[]>([]);
@@ -46,8 +49,8 @@ export function MemberPicker({ isOpen, onClose, onSelect, multiple, onSelectMult
             const res = await fetch(`/api/v1/organizations/${organization!.slug}/members`);
             if (res.ok) {
                 const data = await res.json();
-                // Filter out the current user - can't message yourself
-                const filtered = data.filter((m: Member) => m.id !== user?.id);
+                // Filter out the current user and any excluded IDs
+                const filtered = data.filter((m: Member) => m.id !== user?.id && !excludeIds.includes(m.id));
                 setMembers(filtered);
             }
         } catch (error) {
@@ -72,8 +75,11 @@ export function MemberPicker({ isOpen, onClose, onSelect, multiple, onSelectMult
     };
 
     const handleCreateGroup = () => {
-        if (onSelectMultiple && selectedIds.size > 0 && groupTitle.trim()) {
-            onSelectMultiple(Array.from(selectedIds), groupTitle);
+        if (onSelectMultiple && selectedIds.size > 0) {
+            // If hideGroupName, we don't need a title, pass empty string
+            if (hideGroupName || groupTitle.trim()) {
+                onSelectMultiple(Array.from(selectedIds), groupTitle);
+            }
         }
     };
 
@@ -108,14 +114,14 @@ export function MemberPicker({ isOpen, onClose, onSelect, multiple, onSelectMult
                         <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-gray-100 overflow-hidden pointer-events-auto flex flex-col max-h-[80vh]">
                             {/* Header */}
                             <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-white">
-                                <h3 className="font-semibold text-gray-900">{multiple ? 'New Group Chat' : 'New Message'}</h3>
+                                <h3 className="font-semibold text-gray-900">{title || (multiple ? 'New Group Chat' : 'New Message')}</h3>
                                 <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full text-gray-500">
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
 
-                            {/* Group Name Input (Only if multiple) */}
-                            {multiple && (
+                            {/* Group Name Input (Only if multiple and not hidden) */}
+                            {multiple && !hideGroupName && (
                                 <div className="p-4 border-b border-gray-100 bg-gray-50/50">
                                     <label className="block text-xs font-medium text-gray-500 mb-1">Group Name</label>
                                     <input
@@ -123,7 +129,7 @@ export function MemberPicker({ isOpen, onClose, onSelect, multiple, onSelectMult
                                         placeholder="e.g. Marketing Team"
                                         value={groupTitle}
                                         onChange={(e) => setGroupTitle(e.target.value)}
-                                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-gray-300 transition-all"
+                                        className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-gray-300 transition-all"
                                     />
                                 </div>
                             )}
@@ -195,10 +201,10 @@ export function MemberPicker({ isOpen, onClose, onSelect, multiple, onSelectMult
                                 <div className="p-4 border-t border-gray-100 bg-gray-50">
                                     <button
                                         onClick={handleCreateGroup}
-                                        disabled={selectedIds.size === 0 || !groupTitle.trim()}
+                                        disabled={selectedIds.size === 0 || (!hideGroupName && !groupTitle.trim())}
                                         className="w-full py-2.5 bg-black text-white rounded-xl font-medium shadow-sm hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                     >
-                                        Create Group ({selectedIds.size})
+                                        {hideGroupName ? `Add Members (${selectedIds.size})` : `Create Group (${selectedIds.size})`}
                                     </button>
                                 </div>
                             )}
