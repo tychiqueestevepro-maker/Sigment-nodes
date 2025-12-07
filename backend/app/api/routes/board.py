@@ -1,7 +1,7 @@
 """
 Board & Galaxy View API Routes
 """
-from fastapi import APIRouter, Query, Depends
+from fastapi import APIRouter, Query, Depends, HTTPException
 from typing import Optional
 from loguru import logger
 from app.services.supabase_client import get_supabase
@@ -670,3 +670,253 @@ async def get_cluster_details(cluster_id: str, current_user: CurrentUser = Depen
         import traceback
         traceback.print_exc()
         raise
+
+
+@router.get("/archived-notes")
+async def get_archived_notes(current_user: CurrentUser = Depends(get_current_user)):
+    """
+    Get all notes with 'archived' status for the Archive page.
+    Only accessible by OWNER and BOARD members.
+    Filtered by current user's organization.
+    
+    Returns notes that have been archived by executives.
+    """
+    try:
+        # Check role access - only OWNER and BOARD can access archives
+        if current_user.role not in ['OWNER', 'BOARD']:
+            logger.warning(f"⚠️ User {current_user.user_id} with role {current_user.role} attempted to access archives")
+            return {"error": "Access denied. Only Board members and Owners can access archives."}, 403
+        
+        supabase = get_supabase()
+        
+        # Query notes with archived status, including cluster info AND user info
+        try:
+            response = supabase.table("notes").select(
+                """
+                id,
+                content_raw,
+                content_clarified,
+                title_clarified,
+                created_at,
+                processed_at,
+                ai_relevance_score,
+                ai_reasoning,
+                ai_team_capacity,
+                cluster_id,
+                user_id,
+                organization_id,
+                users(id, first_name, last_name, email, avatar_url),
+                clusters(id, title, pillar_id, organization_id, created_at, pillars(id, name, organization_id))
+                """
+            ).eq("status", "archived").eq("organization_id", str(current_user.organization_id)).order("created_at", desc=True).execute()
+        except Exception as query_error:
+            logger.warning(f"⚠️ Query with new columns failed, using fallback: {query_error}")
+            response = supabase.table("notes").select(
+                """
+                id,
+                content_raw,
+                content_clarified,
+                title_clarified,
+                created_at,
+                processed_at,
+                ai_relevance_score,
+                cluster_id,
+                user_id,
+                organization_id,
+                users(id, first_name, last_name, email, avatar_url),
+                clusters(id, title, pillar_id, organization_id, created_at, pillars(id, name, organization_id))
+                """
+            ).eq("status", "archived").eq("organization_id", str(current_user.organization_id)).order("created_at", desc=True).execute()
+        
+        if not response.data:
+            return []
+        
+        # Transform data for frontend (same logic as review-notes)
+        archived_notes = []
+        for note in response.data:
+            cluster_info = note.get("clusters", {})
+            pillar_info = cluster_info.get("pillars", {}) if cluster_info else {}
+            user_info = note.get("users", {})
+            
+            # Security check
+            if cluster_info and str(cluster_info.get("organization_id")) != str(current_user.organization_id):
+                continue
+            
+            # Build author name
+            first_name = user_info.get("first_name", "") if user_info else ""
+            last_name = user_info.get("last_name", "") if user_info else ""
+            author_name = f"{first_name} {last_name}".strip()
+            if not author_name:
+                author_name = user_info.get("email", "Unknown").split("@")[0] if user_info else "Unknown"
+            
+            avatar_url = user_info.get("avatar_url")
+            
+            # Title logic
+            title_clarified = note.get("title_clarified", "")
+            clarified = note.get("content_clarified", "")
+            raw_content = note.get("content_raw", "")
+            
+            if title_clarified:
+                title = title_clarified
+            elif clarified:
+                title = clarified[:100] + "..." if len(clarified) > 100 else clarified
+            else:
+                title = raw_content[:100] + "..." if len(raw_content) > 100 else raw_content
+            
+            updated_at = note.get("processed_at") or note.get("created_at")
+            created_at = note.get("created_at")
+            if cluster_info and cluster_info.get("created_at"):
+                created_at = cluster_info.get("created_at")
+            
+            # Team capacity simulation (same as review-notes)
+            team_capacity = note.get("ai_team_capacity")
+            if isinstance(team_capacity, str):
+                import json
+                try:
+                    team_capacity = json.loads(team_capacity)
+                except:
+                    team_capacity = None
+            
+            if not team_capacity:
+                score = note.get("ai_relevance_score", 0)
+                if score >= 8.5:
+                    team_capacity = {
+                        "team_size": 5,
+                        "profiles": ["Product Lead", "Senior Dev", "UX Designer", "Data Scientist"],
+                        "feasibility": "Complex",
+                        "feasibility_reason": "High-impact initiative requiring dedicated cross-functional team."
+                    }
+                elif score >= 6.5:
+                    team_capacity = {
+                        "team_size": 3,
+                        "profiles": ["Product Manager", "Fullstack Dev", "Designer"],
+                        "feasibility": "Moderate",
+                        "feasibility_reason": "Can be integrated into existing roadmap with current resources."
+                    }
+                else:
+                    team_capacity = {
+                        "team_size": 1,
+                        "profiles": ["Junior Dev"],
+                        "feasibility": "Easy",
+                        "feasibility_reason": "Low complexity, good for backlog or hackathon."
+                    }
+            
+            archived_notes.append({
+                "id": note["id"],
+                "title": title,
+                "content": raw_content,
+                "content_clarified": clarified,
+                "category": pillar_info.get("name", "UNCATEGORIZED") if pillar_info else "UNCATEGORIZED",
+                "status": "Archived",
+                "author": author_name,
+                "author_id": note.get("user_id"),
+                "author_avatar": avatar_url,
+                "date": created_at,
+                "updated_at": updated_at,
+                "relevance_score": note.get("ai_relevance_score", 0),
+                "ai_reasoning": note.get("ai_reasoning"),
+                "team_capacity": team_capacity,
+                "cluster_id": note.get("cluster_id"),
+                "cluster_title": cluster_info.get("title") if cluster_info else None,
+            })
+        
+        logger.info(f"✅ Retrieved {len(archived_notes)} archived notes (org: {current_user.organization_id})")
+        
+        return archived_notes
+        
+    except Exception as e:
+        logger.error(f"❌ Error fetching archived notes: {e}")
+        raise
+
+
+@router.post("/archive-note/{note_id}")
+async def archive_note(note_id: str, current_user: CurrentUser = Depends(get_current_user)):
+    """
+    Archive a note (move from review to archived status).
+    Only accessible by OWNER and BOARD members.
+    """
+    try:
+        # Check role access
+        if current_user.role not in ['OWNER', 'BOARD']:
+            logger.warning(f"⚠️ User {current_user.id} with role {current_user.role} attempted to archive note")
+            raise HTTPException(status_code=403, detail="Access denied. Only Board members and Owners can archive notes.")
+        
+        supabase = get_supabase()
+        organization_id = str(current_user.organization_id)
+        
+        # Verify the note exists and belongs to the organization
+        note_response = supabase.table("notes").select("id, status, organization_id").eq("id", note_id).eq("organization_id", organization_id).single().execute()
+        
+        if not note_response.data:
+            logger.warning(f"⚠️ Note {note_id} not found or not accessible")
+            raise HTTPException(status_code=404, detail="Note not found")
+        
+        # Update the note status to archived
+        update_response = supabase.table("notes").update({
+            "status": "archived"
+        }).eq("id", note_id).eq("organization_id", organization_id).execute()
+        
+        if not update_response.data:
+            logger.error(f"❌ Failed to archive note {note_id}")
+            raise HTTPException(status_code=500, detail="Failed to archive note")
+        
+        logger.info(f"✅ Note {note_id} archived by user {current_user.id}")
+        
+        return {
+            "success": True,
+            "message": "Note archived successfully",
+            "note_id": note_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error archiving note {note_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/unarchive-note/{note_id}")
+async def unarchive_note(note_id: str, current_user: CurrentUser = Depends(get_current_user)):
+    """
+    Unarchive a note (move from archived back to review status).
+    Only accessible by OWNER and BOARD members.
+    """
+    try:
+        # Check role access
+        if current_user.role not in ['OWNER', 'BOARD']:
+            logger.warning(f"⚠️ User {current_user.id} with role {current_user.role} attempted to unarchive note")
+            raise HTTPException(status_code=403, detail="Access denied. Only Board members and Owners can unarchive notes.")
+        
+        supabase = get_supabase()
+        organization_id = str(current_user.organization_id)
+        
+        # Verify the note exists and belongs to the organization
+        note_response = supabase.table("notes").select("id, status, organization_id").eq("id", note_id).eq("organization_id", organization_id).single().execute()
+        
+        if not note_response.data:
+            logger.warning(f"⚠️ Note {note_id} not found or not accessible")
+            raise HTTPException(status_code=404, detail="Note not found")
+        
+        # Update the note status back to review
+        update_response = supabase.table("notes").update({
+            "status": "review"
+        }).eq("id", note_id).eq("organization_id", organization_id).execute()
+        
+        if not update_response.data:
+            logger.error(f"❌ Failed to unarchive note {note_id}")
+            raise HTTPException(status_code=500, detail="Failed to unarchive note")
+        
+        logger.info(f"✅ Note {note_id} unarchived by user {current_user.id}")
+        
+        return {
+            "success": True,
+            "message": "Note restored to review successfully",
+            "note_id": note_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error unarchiving note {note_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+

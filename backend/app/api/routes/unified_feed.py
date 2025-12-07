@@ -157,7 +157,7 @@ async def get_unified_feed(
             try:
                 p_notes = supabase.table("notes").select(
                     "id, content_clarified, content_raw, user_id, created_at, cluster_id, status"
-                ).in_("cluster_id", cluster_ids).in_("status", ["processed", "review", "approved", "refused"]).order("created_at", desc=True).limit(len(cluster_ids) * 3).execute()
+                ).in_("cluster_id", cluster_ids).in_("status", ["processed", "review", "approved", "refused", "archived"]).order("created_at", desc=True).limit(len(cluster_ids) * 3).execute()
                 
                 for n in p_notes.data:
                     cid = n["cluster_id"]
@@ -212,7 +212,7 @@ async def get_unified_feed(
             try:
                 small_notes = supabase.table("notes").select(
                     "*, pillars(name, color), title_clarified"
-                ).in_("cluster_id", small_cluster_ids).in_("status", ["processed", "review", "approved", "refused"]).execute()
+                ).in_("cluster_id", small_cluster_ids).in_("status", ["processed", "review", "approved", "refused", "archived"]).execute()
                 small_notes_data = small_notes.data or []
             except Exception as e:
                 logger.warning(f"Failed to fetch small cluster notes: {e}")
@@ -220,11 +220,11 @@ async def get_unified_feed(
         # ============================================
         # 2. FETCH NOTES (Orphan OR Mine)
         # ============================================
-        # Include all notes that have been actioned (processed, review, approved, refused)
+        # Include all notes that have been actioned (processed, review, approved, refused, archived)
         # These represent ideas at various stages of their lifecycle
         notes_response = supabase.table("notes").select(
             "*, pillars(name, color), title_clarified"
-        ).eq("organization_id", organization_id).in_("status", ["processed", "review", "approved", "refused"]).or_(
+        ).eq("organization_id", organization_id).in_("status", ["processed", "review", "approved", "refused", "archived"]).or_(
             f"cluster_id.is.null,user_id.eq.{user_id}"
         ).order("created_at", desc=True).limit(limit).execute()
         

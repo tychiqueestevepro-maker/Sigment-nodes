@@ -67,8 +67,18 @@ export const UnifiedSidebar: React.FC = () => {
         { label: "Groups", icon: <Users size={18} />, href: `/${orgSlug}/groups` },
     ], [orgSlug]);
 
+    // Storage section items (OWNER/BOARD only)
+    const storageConfig: MenuItem[] = useMemo(() => [
+        { label: "Archived", icon: <Archive size={18} />, href: `/${orgSlug}/archive`, roles: ['OWNER', 'BOARD'] },
+    ], [orgSlug]);
+
+
     // Filtrage des items basé sur le rôle
     const filteredMenu = menuConfig.filter(item =>
+        !item.roles || item.roles.includes(userRole)
+    );
+
+    const filteredStorage = storageConfig.filter(item =>
         !item.roles || item.roles.includes(userRole)
     );
 
@@ -129,6 +139,30 @@ export const UnifiedSidebar: React.FC = () => {
                             </Link>
                         );
                     })}
+
+                    {/* STORAGE Section */}
+                    {filteredStorage.length > 0 && (
+                        <div className="mt-6">
+                            {isOpen && (
+                                <div className="px-3 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                    Storage
+                                </div>
+                            )}
+                            {filteredStorage.map((item) => {
+                                const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`);
+                                return (
+                                    <Link
+                                        key={item.label}
+                                        href={item.href}
+                                        className={`flex items-center gap-3 w-full px-3 py-2 text-sm font-medium rounded-md transition-all ${isActive ? 'bg-gray-100 text-black font-semibold' : 'text-gray-600 hover:bg-gray-50'} ${!isOpen ? 'justify-center' : ''}`}
+                                    >
+                                        <span className={isActive ? 'text-black' : 'text-gray-500'}>{item.icon}</span>
+                                        {isOpen && <span>{item.label}</span>}
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
 
                 {/* User Profile Section */}

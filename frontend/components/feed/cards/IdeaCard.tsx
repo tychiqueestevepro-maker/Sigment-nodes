@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
-import { Layers, CheckCircle2, XCircle, Eye, Heart, MessageCircle, Share2 } from 'lucide-react';
+import { Layers, CheckCircle2, XCircle, Eye, Heart, MessageCircle, Share2, Archive } from 'lucide-react';
 import { NoteItem } from '@/types/feed';
 import { CommentSection } from '@/components/feed/comments';
 import { useApiClient } from '@/hooks/useApiClient';
@@ -21,6 +21,8 @@ function getStatusConfig(status: string): { label: string; color: string; bg: st
             return { label: 'Approved', color: 'text-green-700', bg: 'bg-green-50 border-green-200', icon: <CheckCircle2 size={10} /> };
         case 'refused':
             return { label: 'Refused', color: 'text-red-600', bg: 'bg-red-50 border-red-200', icon: <XCircle size={10} /> };
+        case 'archived':
+            return { label: 'Archived', color: 'text-gray-600', bg: 'bg-gray-100 border-gray-300', icon: <Archive size={10} /> };
         default:
             return null; // No badge for 'processed'
     }
