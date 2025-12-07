@@ -18,7 +18,7 @@ import {
     LogOut,
     Eye,
     X,
-    Folder,
+    Layers, // Replaces Folder
     Lightbulb,
     Crown,
     ChevronRight,
@@ -281,7 +281,7 @@ export default function GroupsPage() {
                                         className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
                                         style={{ backgroundColor: group.color + '20' }}
                                     >
-                                        <Folder className="w-5 h-5" style={{ color: group.color }} />
+                                        <Layers className="w-5 h-5" style={{ color: group.color }} />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-1">
@@ -355,6 +355,19 @@ function GroupView({ group, currentUser, apiClient, onRefresh }: GroupViewProps)
     const [isPlaying, setIsPlaying] = useState(false);
     const [selectedReviewNode, setSelectedReviewNode] = useState<any>(null);
     const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+    const [showEditModal, setShowEditModal] = useState(false);
+
+    const handleUpdateGroup = async (name: string, description: string, color: string) => {
+        try {
+            await apiClient.put(`/idea-groups/${group.id}`, { name, description, color });
+            toast.success('Group updated');
+            setShowEditModal(false);
+            onRefresh();
+        } catch (error) {
+            console.error('Error updating group:', error);
+            toast.error('Failed to update group');
+        }
+    };
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const isCreator = group.created_by === currentUser?.id;
@@ -505,7 +518,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh }: GroupViewProps)
                         className="w-10 h-10 rounded-lg flex items-center justify-center"
                         style={{ backgroundColor: group.color + '20' }}
                     >
-                        <Folder className="w-5 h-5" style={{ color: group.color }} />
+                        <Layers className="w-5 h-5" style={{ color: group.color }} />
                     </div>
                     <div>
                         <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1">
@@ -553,6 +566,17 @@ function GroupView({ group, currentUser, apiClient, onRefresh }: GroupViewProps)
                             <>
                                 <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
                                 <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-20">
+                                    {isCreator && (
+                                        <button
+                                            onClick={() => {
+                                                setShowMenu(false);
+                                                setShowEditModal(true);
+                                            }}
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                                        >
+                                            <Edit3 size={16} /> Rename Group
+                                        </button>
+                                    )}
                                     <button
                                         onClick={() => { setShowMembersModal(true); setShowMenu(false); }}
                                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
@@ -645,7 +669,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh }: GroupViewProps)
                         <div className="w-72 border-r border-gray-200 bg-white flex flex-col shrink-0">
                             <div className="p-4 border-b border-gray-100 bg-gray-50/30">
                                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                                    <Folder size={12} /> Linked Ideas ({items.length})
+                                    <Layers size={12} /> Linked Ideas ({items.length})
                                 </h3>
                             </div>
                             <div className="flex-1 overflow-y-auto p-3 space-y-2">
@@ -970,6 +994,13 @@ function GroupView({ group, currentUser, apiClient, onRefresh }: GroupViewProps)
                 </div>
             )}
 
+            {showEditModal && (
+                <EditGroupModal
+                    group={group}
+                    onClose={() => setShowEditModal(false)}
+                    onUpdate={handleUpdateGroup}
+                />
+            )}
             {/* Members Modal */}
             <AnimatePresence>
                 {showMembersModal && (
@@ -1222,6 +1253,113 @@ function CreateGroupModal({ onClose, onCreate }: CreateGroupModalProps) {
                             </button>
                         </div>
                     </div>
+                </div>
+            </motion.div>
+        </>
+    );
+}
+
+interface EditGroupModalProps {
+    group: IdeaGroup;
+    onClose: () => void;
+    onUpdate: (name: string, description: string, color: string) => void;
+}
+
+function EditGroupModal({ group, onClose, onUpdate }: EditGroupModalProps) {
+    const [name, setName] = useState(group.name);
+    const [description, setDescription] = useState(group.description || '');
+    const [color, setColor] = useState(group.color);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#0ea5e9', '#6b7280'];
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!name.trim()) return;
+        setIsSubmitting(true);
+        await onUpdate(name, description, color);
+        setIsSubmitting(false);
+    };
+
+    return (
+        <>
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
+                onClick={onClose}
+            />
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none p-4"
+            >
+                <div className="bg-white w-full max-w-md rounded-2xl shadow-xl pointer-events-auto">
+                    <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+                        <h3 className="font-semibold text-gray-900">Edit Group</h3>
+                        <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full">
+                            <X className="w-5 h-5 text-gray-500" />
+                        </button>
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="p-4 space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Group Name</label>
+                            <input
+                                type="text"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                                placeholder="e.g. Marketing Team"
+                                autoFocus
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <textarea
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                placeholder="What's this group about?"
+                                rows={2}
+                                className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none outline-none"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Color</label>
+                            <div className="flex gap-2 flex-wrap">
+                                {colors.map(c => (
+                                    <button
+                                        key={c}
+                                        type="button"
+                                        onClick={() => setColor(c)}
+                                        className={`w-7 h-7 rounded-full transition-transform ${color === c ? 'ring-2 ring-offset-2 ring-black scale-110' : 'hover:scale-105'}`}
+                                        style={{ backgroundColor: c }}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 pt-4">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="flex-1 px-4 py-2.5 text-gray-700 bg-gray-100 rounded-xl font-medium hover:bg-gray-200"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={!name.trim() || isSubmitting}
+                                className="flex-1 px-4 py-2.5 bg-black text-white rounded-xl font-medium hover:bg-gray-800 disabled:opacity-50"
+                            >
+                                {isSubmitting ? 'Saving...' : 'Save Changes'}
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </motion.div>
         </>

@@ -10,9 +10,8 @@ from loguru import logger
 from app.services.supabase_client import supabase
 from app.api.dependencies import CurrentUser, get_current_user, require_board_or_owner
 from app.models.idea_groups import (
-    IdeaGroup, IdeaGroupCreate, IdeaGroupUpdate,
-    GroupMemberInfo, GroupItem, GroupItemCreate,
-    GroupMessage, GroupMessageCreate, AddMemberRequest
+    IdeaGroupCreate, IdeaGroupUpdate, AddMemberRequest, GroupMessageCreate,
+    GroupItemCreate, IdeaGroup, GroupMemberInfo, GroupMessage, GroupItem
 )
 
 router = APIRouter()
@@ -282,6 +281,69 @@ async def update_idea_group(
         raise
     except Exception as e:
         logger.error(f"Error updating idea group: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+from datetime import datetime, timezone
+
+@router.put("/{group_id}", response_model=IdeaGroup)
+async def update_group(
+    group_id: UUID,
+    payload: IdeaGroupUpdate,
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """
+    Update group details (name, color, description).
+    Only the creator/owner can update.
+    """
+    try:
+        # Verify ownership
+        group = supabase.table("idea_groups").select("created_by").eq("id", str(group_id)).single().execute()
+        if not group.data:
+            raise HTTPException(status_code=404, detail="Group not found")
+            
+        if group_id and group.data["created_by"] != str(current_user.id):
+             raise HTTPException(status_code=403, detail="Only the group creator can update it")
+
+        update_data = {}
+        if payload.name is not None:
+            update_data["name"] = payload.name
+        if payload.description is not None:
+            update_data["description"] = payload.description
+        if payload.color is not None:
+             update_data["color"] = payload.color
+        
+        update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+        response = supabase.table("idea_groups")\
+            .update(update_data)\
+            .eq("id", str(group_id))\
+            .execute()
+            
+        if not response.data:
+             raise HTTPException(status_code=500, detail="Failed to update group")
+             
+        updated_grp = response.data[0]
+        # Return basic info
+        return IdeaGroup(
+             id=updated_grp["id"],
+             organization_id=updated_grp["organization_id"],
+             name=updated_grp["name"],
+             description=updated_grp["description"],
+             color=updated_grp["color"],
+             created_by=updated_grp["created_by"],
+             created_at=updated_grp["created_at"],
+             updated_at=updated_grp["updated_at"],
+             member_count=0, 
+             item_count=0, 
+             members=[], 
+             is_admin=True
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating group: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
