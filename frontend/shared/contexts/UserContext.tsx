@@ -39,11 +39,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
                     // Fetch fresh user data from API to get updated avatar_url and other fields
                     if (accessToken) {
                         try {
-                            const response = await fetch('/api/v1/users/me', {
-                                headers: {
-                                    'Authorization': `Bearer ${accessToken}`
-                                }
-                            })
+                            const orgId = localStorage.getItem('sigment_org_id')
+                            const headers: Record<string, string> = {
+                                'Authorization': `Bearer ${accessToken}`
+                            }
+                            if (orgId) {
+                                headers['X-Organization-Id'] = orgId
+                            }
+
+                            const response = await fetch('/api/v1/users/me', { headers })
 
                             if (response.ok) {
                                 const freshUserData = await response.json()

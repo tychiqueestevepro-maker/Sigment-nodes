@@ -89,9 +89,7 @@ export default function HomePage() {
         queryKey: ['pillars', organizationId], // Add organizationId to key to refetch on change
         queryFn: async () => {
             if (!organizationId) return [];
-            console.log('Fetching pillars for org:', organizationId);
             const data = await api.get<Pillar[]>('/board/pillars');
-            console.log('Pillars fetched:', data);
             return data;
         },
         enabled: !!organizationId, // Only run when organizationId is available
@@ -456,7 +454,7 @@ export default function HomePage() {
                                     {showSchedulePicker && (
                                         <div className="absolute top-full mt-2 left-0 z-50">
                                             <SchedulePicker
-                                                onSchedule={(date: Date) => {
+                                                onSchedule={(date: Date | null) => {
                                                     setScheduledDate(date);
                                                     setShowSchedulePicker(false);
                                                 }}

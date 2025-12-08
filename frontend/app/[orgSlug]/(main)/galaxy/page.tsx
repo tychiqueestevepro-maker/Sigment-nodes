@@ -193,9 +193,7 @@ function GalaxyViewPageContent() {
     const { data: pillars = [], error: pillarsError } = useQuery<Pillar[]>({
         queryKey: ['pillars', organizationId], // Add orgId to key
         queryFn: async () => {
-            console.log('Fetching pillars...');
             const data = await apiClient.get<Pillar[]>('/board/pillars');
-            console.log('Pillars fetched:', data);
             return data;
         },
         enabled: !!organizationId, // Only fetch when orgId is available
@@ -205,9 +203,7 @@ function GalaxyViewPageContent() {
     const { data: clusters = [], error: clustersError, refetch: refetchGalaxy } = useQuery<Cluster[]>({
         queryKey: ['galaxy', organizationId], // Add orgId to key
         queryFn: async () => {
-            console.log('Fetching galaxy data...');
             const data = await apiClient.get<Cluster[]>('/board/galaxy');
-            console.log('Galaxy data fetched:', data);
             return data;
         },
         enabled: !!organizationId, // Only fetch when orgId is available

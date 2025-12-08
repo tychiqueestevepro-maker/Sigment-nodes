@@ -138,15 +138,6 @@ export default function ReviewPage() {
             };
         }
 
-        console.log("🔍 Review Data Debug:", {
-            id: selectedReview.id,
-            score: selectedReview.relevance_score,
-            created: selectedReview.date,
-            updated: selectedReview.updated_at,
-            author: selectedReview.author,
-            avatar: selectedReview.author_avatar
-        });
-
         // Use real data from the selected review
         // AI score is 0-10, convert to 0-100 for percentage
         const rawScore = selectedReview.relevance_score || 0;
