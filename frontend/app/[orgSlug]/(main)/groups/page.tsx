@@ -217,17 +217,13 @@ export default function GroupsPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user]);
 
-    // Mark group as read when selected
+    // Mark group as read when selected (only call API, don't update state to avoid re-render loop)
     useEffect(() => {
         if (selectedGroupId) {
-            // Update local state immediately to remove unread indicator
-            setGroups(prev => prev.map(g =>
-                g.id === selectedGroupId ? { ...g, has_unread: false } : g
-            ));
-            // Also update on server
-            apiClient.post(`/idea-groups/${selectedGroupId}/mark-read`, {}).catch(console.error);
+            apiClient.post(`/idea-groups/${selectedGroupId}/mark-read`, {}).catch(() => { });
         }
-    }, [selectedGroupId, apiClient]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedGroupId]);
 
 
 

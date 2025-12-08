@@ -92,39 +92,42 @@ async def get_idea_groups(
             
             item_count = items_resp.count if hasattr(items_resp, 'count') and items_resp.count else len(items_resp.data or [])
             
-            # Calculate has_unread for this group
+            # Calculate has_unread for this group (with fallback if column doesn't exist)
             has_unread = False
-            
-            # Get user's last_read_at for this group
-            membership_resp = supabase.table("idea_group_members")\
-                .select("last_read_at")\
-                .eq("idea_group_id", group_id)\
-                .eq("user_id", str(current_user.id))\
-                .single()\
-                .execute()
-            
-            if membership_resp.data:
-                last_read_at = membership_resp.data.get("last_read_at")
-                
-                # Get the last message in this group that was NOT sent by current user
-                last_msg_resp = supabase.table("idea_group_messages")\
-                    .select("created_at, sender_id")\
+            try:
+                # Get user's last_read_at for this group
+                membership_resp = supabase.table("idea_group_members")\
+                    .select("last_read_at")\
                     .eq("idea_group_id", group_id)\
-                    .neq("sender_id", str(current_user.id))\
-                    .order("created_at", desc=True)\
+                    .eq("user_id", str(current_user.id))\
                     .limit(1)\
                     .execute()
                 
-                if last_msg_resp.data:
-                    last_msg = last_msg_resp.data[0]
-                    msg_created_at = last_msg["created_at"]
+                if membership_resp.data and len(membership_resp.data) > 0:
+                    last_read_at = membership_resp.data[0].get("last_read_at")
                     
-                    if last_read_at is None:
-                        # Never read - has unread
-                        has_unread = True
-                    elif msg_created_at > last_read_at:
-                        # Message created after last read
-                        has_unread = True
+                    # Get the last message in this group that was NOT sent by current user
+                    last_msg_resp = supabase.table("idea_group_messages")\
+                        .select("created_at, sender_id")\
+                        .eq("idea_group_id", group_id)\
+                        .neq("sender_id", str(current_user.id))\
+                        .order("created_at", desc=True)\
+                        .limit(1)\
+                        .execute()
+                    
+                    if last_msg_resp.data and len(last_msg_resp.data) > 0:
+                        last_msg = last_msg_resp.data[0]
+                        msg_created_at = last_msg["created_at"]
+                        
+                        if last_read_at is None:
+                            # Never read - has unread
+                            has_unread = True
+                        elif msg_created_at > last_read_at:
+                            # Message created after last read
+                            has_unread = True
+            except Exception as e:
+                # If last_read_at column doesn't exist or other error, just skip
+                logger.debug(f"Could not calculate has_unread for group {group_id}: {e}")
             
             groups_out.append(IdeaGroup(
                 id=group["id"],
