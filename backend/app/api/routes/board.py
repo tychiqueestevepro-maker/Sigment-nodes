@@ -12,7 +12,8 @@ router = APIRouter()
 
 
 @router.get("/galaxy")
-async def get_galaxy_view(
+@router.get("/galaxy")
+def get_galaxy_view(
     current_user: CurrentUser = Depends(get_current_user),
     min_relevance: Optional[float] = Query(None, ge=0, le=10, description="Minimum relevance score"),
     pillar_id: Optional[str] = Query(None, description="Filter by pillar ID"),
@@ -129,7 +130,7 @@ async def get_galaxy_view(
 
 
 @router.get("/pillars")
-async def get_pillars(current_user: CurrentUser = Depends(get_current_user)):
+def get_pillars(current_user: CurrentUser = Depends(get_current_user)):
     """
     Get all available pillars for filtering.
     Filtered by current user's organization.
@@ -184,7 +185,7 @@ async def get_pillars(current_user: CurrentUser = Depends(get_current_user)):
 
 
 @router.get("/cluster/{cluster_id}/history")
-async def get_cluster_history(cluster_id: str, current_user: CurrentUser = Depends(get_current_user)):
+def get_cluster_history(cluster_id: str, current_user: CurrentUser = Depends(get_current_user)):
     """
     Get the complete history of a cluster with all snapshots (Time Machine).
     Enforces organization boundaries.
@@ -305,7 +306,7 @@ async def get_cluster_history(cluster_id: str, current_user: CurrentUser = Depen
 
 
 @router.get("/review-notes")
-async def get_review_notes(current_user: CurrentUser = Depends(get_current_user)):
+def get_review_notes(current_user: CurrentUser = Depends(get_current_user)):
     """
     Get all notes with 'review' status for the Review Queue page.
     Filtered by current user's organization.
@@ -467,7 +468,7 @@ async def get_review_notes(current_user: CurrentUser = Depends(get_current_user)
 
 
 @router.get("/cluster/{cluster_id}/details")
-async def get_cluster_details(cluster_id: str, current_user: CurrentUser = Depends(get_current_user)):
+def get_cluster_details(cluster_id: str, current_user: CurrentUser = Depends(get_current_user)):
     """
     Get complete details for a single cluster (Node Details panel in Galaxy View).
     
@@ -673,7 +674,7 @@ async def get_cluster_details(cluster_id: str, current_user: CurrentUser = Depen
 
 
 @router.get("/archived-notes")
-async def get_archived_notes(current_user: CurrentUser = Depends(get_current_user)):
+def get_archived_notes(current_user: CurrentUser = Depends(get_current_user)):
     """
     Get all notes with 'archived' status for the Archive page.
     Only accessible by OWNER and BOARD members.

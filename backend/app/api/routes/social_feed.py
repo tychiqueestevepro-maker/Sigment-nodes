@@ -79,7 +79,7 @@ MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 # ============================================
 
 @router.post("/media/upload", response_model=MediaUploadResponse)
-async def upload_post_media(
+def upload_post_media(
     file: UploadFile = File(...),
     current_user: dict = Depends(get_current_user),
     supabase = Depends(get_supabase_client)
@@ -101,7 +101,7 @@ async def upload_post_media(
             )
         
         # 2. Read file content
-        file_content = await file.read()
+        file_content = file.file.read()
         
         # 3. Validate file size
         if len(file_content) > MAX_FILE_SIZE:
@@ -152,7 +152,7 @@ async def upload_post_media(
 # ============================================
 
 @router.post("/posts", response_model=PostResponse)
-async def create_post(
+def create_post(
     request: CreatePostRequest,
     current_user: dict = Depends(get_current_user),
     supabase = Depends(get_supabase_client)
@@ -188,7 +188,7 @@ async def create_post(
         
         # Associate tags (if provided)
         if request.tag_names and len(request.tag_names) > 0:
-            await _associate_tags_to_post(post_id, organization_id, request.tag_names, supabase)
+            _associate_tags_to_post(post_id, organization_id, request.tag_names, supabase)
         
         # Trigger virality calculation (async)
         trigger_virality_recalculation(post_id)
@@ -208,7 +208,7 @@ async def create_post(
 # ============================================
 
 @router.get("/posts/scheduled", response_model=List[PostResponse])
-async def get_scheduled_posts(
+def get_scheduled_posts(
     current_user: dict = Depends(get_current_user),
     supabase = Depends(get_supabase_client)
 ):
@@ -301,7 +301,7 @@ async def get_scheduled_posts(
 # ENDPOINT: Delete Post
 # ============================================
 @router.delete("/posts/{post_id}")
-async def delete_post(
+def delete_post(
     post_id: str,
     current_user: dict = Depends(get_current_user),
     supabase = Depends(get_supabase_client)
@@ -336,7 +336,7 @@ class UpdatePostRequest(BaseModel):
     status: Optional[str] = None
 
 @router.patch("/posts/{post_id}")
-async def update_post(
+def update_post(
     post_id: str,
     request: UpdatePostRequest,
     current_user: dict = Depends(get_current_user),
@@ -375,7 +375,8 @@ async def update_post(
 # ============================================
 
 @router.get("/", response_model=FeedResponse)
-async def get_social_feed(
+@router.get("/", response_model=FeedResponse)
+def get_social_feed(
     limit: int = Query(default=20, ge=1, le=100),
     last_seen_score: Optional[float] = Query(default=None, description="Cursor pagination: last virality_score seen"),
     current_user: dict = Depends(get_current_user),
@@ -398,11 +399,12 @@ async def get_social_feed(
         
         # Call RPC function pour performance optimale
         feed_response = supabase.rpc(
-            "get_social_feed",
+            "get_social_feed_optimized",
             {
                 "p_user_org_id": organization_id,
                 "p_limit": limit + 1,  # +1 pour détecter s'il y a plus de résultats
-                "p_last_seen_score": last_seen_score
+                "p_last_seen_score": last_seen_score,
+                "p_current_user_id": user_id
             }
         ).execute()
         
@@ -418,11 +420,8 @@ async def get_social_feed(
         if has_more and len(posts_data) > 0:
             next_cursor = posts_data[-1]["virality_score"]
         
-        # Enrich posts with tags and user info
-        enriched_posts = await _enrich_posts(posts_data, user_id, supabase)
-        
         return FeedResponse(
-            posts=enriched_posts,
+            posts=posts_data,
             next_cursor=next_cursor,
             has_more=has_more
         )
@@ -437,7 +436,8 @@ async def get_social_feed(
 # ============================================
 
 @router.get("/tag/{tag_name}", response_model=FeedResponse)
-async def get_feed_by_tag(
+@router.get("/tag/{tag_name}", response_model=FeedResponse)
+def get_feed_by_tag(
     tag_name: str,
     limit: int = Query(default=20, ge=1, le=100),
     last_seen_score: Optional[float] = Query(default=None),
@@ -446,10 +446,6 @@ async def get_feed_by_tag(
 ):
     """
     Récupère le feed filtré par tag avec la logique "Local OR Viral"
-    
-    **Filtrage:**
-    - Posts avec le tag spécifié
-    - ET (Posts de mon organisation OU posts viraux)
     """
     try:
         organization_id = str(current_user.organization_id)
@@ -457,12 +453,13 @@ async def get_feed_by_tag(
         
         # Call RPC function
         feed_response = supabase.rpc(
-            "get_feed_by_tag",
+            "get_feed_by_tag_optimized",
             {
                 "p_user_org_id": organization_id,
                 "p_tag_name": tag_name,
                 "p_limit": limit + 1,
-                "p_last_seen_score": last_seen_score
+                "p_last_seen_score": last_seen_score,
+                "p_current_user_id": user_id
             }
         ).execute()
         
@@ -478,11 +475,8 @@ async def get_feed_by_tag(
         if has_more and len(posts_data) > 0:
             next_cursor = posts_data[-1]["virality_score"]
         
-        # Enrich posts
-        enriched_posts = await _enrich_posts(posts_data, user_id, supabase)
-        
         return FeedResponse(
-            posts=enriched_posts,
+            posts=posts_data,
             next_cursor=next_cursor,
             has_more=has_more
         )
@@ -497,7 +491,7 @@ async def get_feed_by_tag(
 # ============================================
 
 @router.post("/posts/{post_id}/like", response_model=EngagementResponse)
-async def toggle_like_post(
+def toggle_like_post(
     post_id: str,
     current_user: dict = Depends(get_current_user),
     supabase = Depends(get_supabase_client)
@@ -546,7 +540,7 @@ async def toggle_like_post(
 # ============================================
 
 @router.post("/posts/{post_id}/save", response_model=EngagementResponse)
-async def toggle_save_post(
+def toggle_save_post(
     post_id: str,
     current_user: dict = Depends(get_current_user),
     supabase = Depends(get_supabase_client)
@@ -595,7 +589,7 @@ async def toggle_save_post(
 # ============================================
 
 @router.get("/posts/{post_id}")
-async def get_post_by_id(
+def get_post_by_id(
     post_id: str,
     current_user: dict = Depends(get_current_user),
     supabase = Depends(get_supabase_client)
@@ -674,7 +668,7 @@ async def get_post_by_id(
 # ============================================
 
 @router.get("/tags/trending")
-async def get_trending_tags(
+def get_trending_tags(
     limit: int = Query(default=10, ge=1, le=50),
     current_user: dict = Depends(get_current_user),
     supabase = Depends(get_supabase_client)
@@ -700,7 +694,7 @@ async def get_trending_tags(
 # HELPER FUNCTIONS
 # ============================================
 
-async def _associate_tags_to_post(post_id: str, organization_id: str, tag_names: List[str], supabase):
+def _associate_tags_to_post(post_id: str, organization_id: str, tag_names: List[str], supabase):
     """
     Associe des tags à un post (crée les tags s'ils n'existent pas)
     """
@@ -733,53 +727,7 @@ async def _associate_tags_to_post(post_id: str, organization_id: str, tag_names:
         }).execute()
 
 
-async def _enrich_posts(posts_data: List[Dict], user_id: str, supabase) -> List[PostResponse]:
-    """
-    Enrichit les posts avec les tags, user info, et état like/save
-    """
-    enriched = []
-    
-    for post in posts_data:
-        post_id = post["id"]
-        
-        # Get tags
-        tags_response = supabase.table("post_tags").select(
-            "tags(id, name, trend_score)"
-        ).eq("post_id", post_id).execute()
-        
-        tags = [pt["tags"] for pt in (tags_response.data or []) if pt.get("tags")]
-        
-        # Get user info
-        user_response = supabase.table("users").select(
-            "id, email, first_name, last_name, avatar_url"
-        ).eq("id", post["user_id"]).single().execute()
-        
-        user_info = user_response.data if user_response.data else {}
-        
-        # Check if liked/saved by current user
-        is_liked = await _check_user_engagement(post_id, user_id, "post_likes", supabase)
-        is_saved = await _check_user_engagement(post_id, user_id, "post_saves", supabase)
-        
-        enriched.append(PostResponse(
-            **post,
-            tags=tags,
-            user_info=user_info,
-            is_liked=is_liked,
-            is_saved=is_saved
-        ))
-    
-    return enriched
 
-
-async def _check_user_engagement(post_id: str, user_id: str, table: str, supabase) -> bool:
-    """
-    Vérifie si un user a liké/sauvegardé un post
-    """
-    response = supabase.table(table).select("id").eq(
-        "post_id", post_id
-    ).eq("user_id", user_id).execute()
-    
-    return response.data and len(response.data) > 0
 
 
 # ============================================
@@ -828,7 +776,7 @@ class CommentsListResponse(BaseModel):
 # ============================================
 
 @router.post("/posts/{post_id}/comments", response_model=CommentResponse)
-async def create_comment(
+def create_comment(
     post_id: str,
     request: CreateCommentRequest,
     current_user: dict = Depends(get_current_user),
@@ -920,7 +868,7 @@ async def create_comment(
 # ============================================
 
 @router.get("/posts/{post_id}/comments", response_model=CommentsListResponse)
-async def get_post_comments(
+def get_post_comments(
     post_id: str,
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
@@ -929,41 +877,35 @@ async def get_post_comments(
     supabase = Depends(get_supabase_client)
 ):
     """
-    Récupère les commentaires racines d'un post (parent_comment_id IS NULL)
+    Récupère les commentaires racines d'un post (avec réponses imbriquées)
     """
     try:
         user_id = str(current_user.id)
         
-        # Get total count
-        count_response = supabase.table("post_comments").select(
-            "id", count="exact"
-        ).eq("post_id", post_id).is_("parent_comment_id", "null").execute()
-        
-        total_count = count_response.count or 0
-        
-        # Get comments
-        order_desc = sort == "recent"
-        
-        comments_response = supabase.table("post_comments").select("*").eq(
-            "post_id", post_id
-        ).is_(
-            "parent_comment_id", "null"
-        ).order(
-            "created_at", desc=order_desc
-        ).range(offset, offset + limit - 1).execute()
+        # Get comments via RPC
+        comments_response = supabase.rpc(
+            "get_comments_with_replies",
+            {
+                "p_post_id": post_id,
+                "p_current_user_id": user_id,
+                "p_limit": limit,
+                "p_offset": offset
+            }
+        ).execute()
         
         comments_data = comments_response.data or []
         
-        # Enrich with user info, replies count, and likes
-        enriched_comments = []
-        for comment in comments_data:
-            enriched = await _enrich_comment(comment, user_id, supabase)
-            enriched_comments.append(enriched)
+        # We need total count separately or we approximate
+        # For full correctness we can query total count
+        count_response = supabase.table("post_comments").select(
+            "id", count="exact"
+        ).eq("post_id", post_id).is_("parent_comment_id", "null").execute()
+        total_count = count_response.count or 0
         
-        has_more = (offset + limit) < total_count
+        has_more = (offset + len(comments_data)) < total_count
         
         return CommentsListResponse(
-            comments=enriched_comments,
+            comments=comments_data,
             total_count=total_count,
             has_more=has_more
         )
@@ -978,7 +920,7 @@ async def get_post_comments(
 # ============================================
 
 @router.get("/comments/{comment_id}/replies", response_model=CommentsListResponse)
-async def get_comment_replies(
+def get_comment_replies(
     comment_id: str,
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
@@ -991,13 +933,25 @@ async def get_comment_replies(
     try:
         user_id = str(current_user.id)
         
-        # Vérifier que le commentaire parent existe
-        parent = supabase.table("post_comments").select("id").eq(
-            "id", comment_id
-        ).execute()
-        
-        if not parent.data or len(parent.data) == 0:
+        # Verify parent comment exists
+        # Optional: strictly speaking if we just query replies and get empty list it's fine, 
+        # but 404 is better if parent doesn't exist.
+        parent = supabase.table("post_comments").select("id").eq("id", comment_id).execute()
+        if not parent.data:
             raise HTTPException(status_code=404, detail="Comment not found")
+
+        # Get replies via RPC
+        replies_response = supabase.rpc(
+            "get_comment_replies_optimized",
+            {
+                "p_comment_id": comment_id,
+                "p_current_user_id": user_id,
+                "p_limit": limit,
+                "p_offset": offset
+            }
+        ).execute()
+
+        replies_data = replies_response.data or []
         
         # Get total count
         count_response = supabase.table("post_comments").select(
@@ -1006,29 +960,14 @@ async def get_comment_replies(
         
         total_count = count_response.count or 0
         
-        # Get replies
-        replies_response = supabase.table("post_comments").select("*").eq(
-            "parent_comment_id", comment_id
-        ).order("created_at", desc=False).range(offset, offset + limit - 1).execute()
-        
-        replies_data = replies_response.data or []
-        
-        # Enrich with user info
-        enriched_replies = []
-        for reply in replies_data:
-            enriched = await _enrich_comment(reply, user_id, supabase)
-            enriched_replies.append(enriched)
-        
-        has_more = (offset + limit) < total_count
+        has_more = (offset + len(replies_data)) < total_count
         
         return CommentsListResponse(
-            comments=enriched_replies,
+            comments=replies_data,
             total_count=total_count,
             has_more=has_more
         )
         
-    except HTTPException:
-        raise
     except Exception as e:
         logger.error(f"❌ Error fetching replies: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -1039,7 +978,7 @@ async def get_comment_replies(
 # ============================================
 
 @router.post("/comments/{comment_id}/like", response_model=EngagementResponse)
-async def toggle_like_comment(
+def toggle_like_comment(
     comment_id: str,
     current_user: dict = Depends(get_current_user),
     supabase = Depends(get_supabase_client)
@@ -1100,7 +1039,7 @@ async def toggle_like_comment(
 # ============================================
 
 @router.delete("/comments/{comment_id}")
-async def delete_comment(
+def delete_comment(
     comment_id: str,
     current_user: dict = Depends(get_current_user),
     supabase = Depends(get_supabase_client)
@@ -1145,78 +1084,7 @@ async def delete_comment(
 # HELPER: Enrich Comment
 # ============================================
 
-async def _enrich_comment(comment: Dict, user_id: str, supabase, depth: int = 0, max_depth: int = 5) -> CommentResponse:
-    """
-    Enrichit un commentaire avec user info, likes count, replies count ET les réponses imbriquées
-    
-    Args:
-        comment: Le commentaire brut
-        user_id: L'ID de l'utilisateur actuel (pour is_liked)
-        supabase: Client Supabase
-        depth: Niveau de profondeur actuel
-        max_depth: Profondeur maximum pour les réponses imbriquées
-    """
-    comment_id = comment["id"]
-    
-    # Get user info
-    user_response = supabase.table("users").select(
-        "id, email, first_name, last_name, avatar_url"
-    ).eq("id", comment["user_id"]).single().execute()
-    
-    user_info = user_response.data if user_response.data else {}
-    
-    # Count likes (with error handling if table doesn't exist)
-    likes_count = 0
-    is_liked = False
-    try:
-        likes_response = supabase.table("comment_likes").select(
-            "id", count="exact"
-        ).eq("comment_id", comment_id).execute()
-        likes_count = likes_response.count or 0
-        
-        # Check if current user liked
-        is_liked_response = supabase.table("comment_likes").select("id").eq(
-            "comment_id", comment_id
-        ).eq("user_id", user_id).execute()
-        is_liked = bool(is_liked_response.data and len(is_liked_response.data) > 0)
-    except Exception as e:
-        logger.warning(f"Could not fetch comment likes (table may not exist): {e}")
-        likes_count = 0
-        is_liked = False
-    
-    # Count replies
-    replies_response = supabase.table("post_comments").select(
-        "id", count="exact"
-    ).eq("parent_comment_id", comment_id).execute()
-    
-    replies_count = replies_response.count or 0
-    
-    # Fetch nested replies recursively (jusqu'à max_depth)
-    replies = []
-    if depth < max_depth and replies_count > 0:
-        try:
-            nested_replies_response = supabase.table("post_comments").select("*").eq(
-                "parent_comment_id", comment_id
-            ).order("created_at", desc=False).limit(50).execute()
-            
-            for nested_reply in (nested_replies_response.data or []):
-                enriched_reply = await _enrich_comment(
-                    nested_reply, user_id, supabase, depth + 1, max_depth
-                )
-                replies.append(enriched_reply.model_dump())
-        except Exception as e:
-            logger.warning(f"Could not fetch nested replies: {e}")
-    
-    result = CommentResponse(
-        **comment,
-        user_info=user_info,
-        likes_count=likes_count,
-        is_liked=is_liked,
-        replies_count=replies_count,
-        replies=replies if replies else None
-    )
-    
-    return result
+
 
 
 # ============================================
@@ -1228,7 +1096,7 @@ class CommentPollVoteRequest(BaseModel):
 
 
 @router.post("/comments/{comment_id}/poll/vote")
-async def vote_comment_poll(
+def vote_comment_poll(
     comment_id: str,
     request: CommentPollVoteRequest,
     current_user: dict = Depends(get_current_user),
@@ -1332,7 +1200,7 @@ class VotePollRequest(BaseModel):
 # ============================================
 
 @router.post("/posts/{post_id}/poll", response_model=PollResponse)
-async def create_poll(
+def create_poll(
     post_id: str,
     request: CreatePollRequest,
     current_user: dict = Depends(get_current_user),
@@ -1437,7 +1305,7 @@ async def create_poll(
 # ============================================
 
 @router.get("/posts/{post_id}/poll", response_model=PollResponse)
-async def get_poll(
+def get_poll(
     post_id: str,
     current_user: dict = Depends(get_current_user),
     supabase = Depends(get_supabase_client)
@@ -1518,7 +1386,7 @@ async def get_poll(
 # ============================================
 
 @router.post("/polls/{poll_id}/vote")
-async def vote_poll(
+def vote_poll(
     poll_id: str,
     request: VotePollRequest,
     current_user: dict = Depends(get_current_user),
@@ -1584,7 +1452,7 @@ async def vote_poll(
         logger.info(f"✅ User {user_id} voted on poll {poll_id}")
         
         # Return updated poll
-        return await get_poll(poll["post_id"], current_user, supabase)
+        return get_poll(poll["post_id"], current_user, supabase)
         
     except HTTPException:
         raise
@@ -1598,7 +1466,7 @@ async def vote_poll(
 # ============================================
 
 @router.delete("/polls/{poll_id}/vote")
-async def unvote_poll(
+def unvote_poll(
     poll_id: str,
     current_user: dict = Depends(get_current_user),
     supabase = Depends(get_supabase_client)
@@ -1627,7 +1495,7 @@ async def unvote_poll(
         logger.info(f"✅ User {user_id} removed vote from poll {poll_id}")
         
         # Return updated poll
-        return await get_poll(poll["post_id"], current_user, supabase)
+        return get_poll(poll["post_id"], current_user, supabase)
         
     except HTTPException:
         raise

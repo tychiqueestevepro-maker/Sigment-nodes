@@ -10,7 +10,8 @@ from app.models.chat import Conversation, ConversationCreate, GroupConversationC
 router = APIRouter()
 
 @router.get("/", response_model=List[Conversation])
-async def get_conversations(
+@router.get("/", response_model=List[Conversation])
+def get_conversations(
     current_user: CurrentUser = Depends(get_current_user),
     limit: int = 50,
     offset: int = 0
@@ -21,139 +22,68 @@ async def get_conversations(
     Target: <50ms response time.
     """
     try:
-        # Try optimized RPC first
-        try:
-            response = supabase.rpc(
-                'get_conversations_optimized',
-                {
-                    'p_user_id': str(current_user.id),
-                    'p_organization_id': str(current_user.organization_id),
-                    'p_limit': limit,
-                    'p_offset': offset
-                }
-            ).execute()
-            
-            if response.data:
-                conversations_out = []
-                for conv in response.data:
-                    # Parse other_participant from JSONB
-                    other_part = conv.get('other_participant')
-                    other_participant = None
-                    if other_part:
-                        other_participant = ParticipantInfo(
-                            id=other_part.get('id'),
-                            first_name=other_part.get('first_name'),
-                            last_name=other_part.get('last_name'),
-                            job_title=other_part.get('job_title'),
-                            email=other_part.get('email'),
-                            avatar_url=other_part.get('avatar_url')
-                        )
-                    
-                    # Parse participants array from JSONB
-                    participants_data = conv.get('participants') or []
-                    all_participants = [
-                        ParticipantInfo(
-                            id=p.get('id'),
-                            first_name=p.get('first_name'),
-                            last_name=p.get('last_name'),
-                            job_title=p.get('job_title'),
-                            email=p.get('email'),
-                            avatar_url=p.get('avatar_url')
-                        )
-                        for p in participants_data
-                    ]
-                    
-                    conversations_out.append(Conversation(
-                        id=conv['id'],
-                        updated_at=conv['updated_at'],
-                        other_participant=other_participant,
-                        participants=all_participants,
-                        title=conv.get('title'),
-                        is_group=conv.get('is_group', False),
-                        has_unread=conv.get('has_unread', False),
-                        last_message=conv.get('last_message')
-                    ))
-                
-                logger.info(f"📬 Conversations (optimized): {len(conversations_out)} returned")
-                return conversations_out
+        # Optimized RPC 
+        response = supabase.rpc(
+            'get_conversations_optimized',
+            {
+                'p_user_id': str(current_user.id),
+                'p_organization_id': str(current_user.organization_id),
+                'p_limit': limit,
+                'p_offset': offset
+            }
+        ).execute()
         
-        except Exception as rpc_error:
-            logger.warning(f"⚠️ RPC not available, using fallback: {rpc_error}")
-        
-        # Fallback to original implementation
-        user_convs = supabase.table("conversation_participants")\
-            .select("conversation_id, last_read_at")\
-            .eq("user_id", str(current_user.id))\
-            .is_("deleted_at", "null")\
-            .execute()
-            
-        if not user_convs.data:
-            return []
-        
-        last_read_map = {item["conversation_id"]: item.get("last_read_at") for item in user_convs.data}
-        my_conversation_ids = list(last_read_map.keys())
-
-        response = supabase.table("conversations")\
-            .select("id, updated_at, title, is_group, conversation_participants(user_id, deleted_at, users(id, first_name, last_name, job_title, email, avatar_url))")\
-            .in_("id", my_conversation_ids)\
-            .order("updated_at", desc=True)\
-            .range(offset, offset + limit - 1)\
-            .execute()
-            
-        if not response.data:
-            return []
-            
-        conversations_out = []
-        for conv in response.data:
-            other_participant = None
-            all_participants = []
-            participants = conv.get("conversation_participants", [])
-            
-            for p in participants:
-                if p.get("deleted_at") is not None:
-                    continue
-                    
-                u = p.get("users")
-                if u and str(u.get("id")) != str(current_user.id):
-                    participant_info = ParticipantInfo(
-                        id=u.get("id"),
-                        first_name=u.get("first_name"),
-                        last_name=u.get("last_name"),
-                        job_title=u.get("job_title"),
-                        email=u.get("email"),
-                        avatar_url=u.get("avatar_url")
+        if response.data:
+            conversations_out = []
+            for conv in response.data:
+                # Parse other_participant from JSONB
+                other_part = conv.get('other_participant')
+                other_participant = None
+                if other_part:
+                    other_participant = ParticipantInfo(
+                        id=other_part.get('id'),
+                        first_name=other_part.get('first_name'),
+                        last_name=other_part.get('last_name'),
+                        job_title=other_part.get('job_title'),
+                        email=other_part.get('email'),
+                        avatar_url=other_part.get('avatar_url')
                     )
-                    all_participants.append(participant_info)
-                    if other_participant is None:
-                        other_participant = participant_info
+                
+                # Parse participants array from JSONB
+                participants_data = conv.get('participants') or []
+                all_participants = [
+                    ParticipantInfo(
+                        id=p.get('id'),
+                        first_name=p.get('first_name'),
+                        last_name=p.get('last_name'),
+                        job_title=p.get('job_title'),
+                        email=p.get('email'),
+                        avatar_url=p.get('avatar_url')
+                    )
+                    for p in participants_data
+                ]
+                
+                conversations_out.append(Conversation(
+                    id=conv['id'],
+                    updated_at=conv['updated_at'],
+                    other_participant=other_participant,
+                    participants=all_participants,
+                    title=conv.get('title'),
+                    is_group=conv.get('is_group', False),
+                    has_unread=conv.get('has_unread', False),
+                    last_message=conv.get('last_message')
+                ))
             
-            conv_id = conv["id"]
-            last_read_at = last_read_map.get(conv_id)
-            updated_at = conv["updated_at"]
-            has_unread = False
-            if last_read_at is None:
-                has_unread = True
-            elif updated_at and last_read_at:
-                has_unread = updated_at > last_read_at
+            return conversations_out
             
-            conversations_out.append(Conversation(
-                id=conv["id"],
-                updated_at=conv["updated_at"],
-                other_participant=other_participant,
-                participants=all_participants,
-                title=conv.get("title"),
-                is_group=conv.get("is_group", False),
-                has_unread=has_unread
-            ))
-            
-        return conversations_out
+        return []
 
     except Exception as e:
         logger.error(f"Error fetching conversations: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/unread-status")
-async def get_unread_status(current_user: CurrentUser = Depends(get_current_user)):
+def get_unread_status(current_user: CurrentUser = Depends(get_current_user)):
     """
     Check if the user has any unread messages across all conversations.
     """
@@ -193,7 +123,7 @@ async def get_unread_status(current_user: CurrentUser = Depends(get_current_user
 
 
 @router.post("/start", response_model=UUID)
-async def start_conversation(
+def start_conversation(
     payload: ConversationCreate,
     current_user: CurrentUser = Depends(get_current_user)
 ):
@@ -276,7 +206,7 @@ async def start_conversation(
 
 
 @router.post("/group", response_model=UUID)
-async def create_group_conversation(
+def create_group_conversation(
     payload: GroupConversationCreate,
     current_user: CurrentUser = Depends(get_current_user)
 ):
@@ -309,7 +239,8 @@ async def create_group_conversation(
 
 
 @router.get("/{conversation_id}/messages")
-async def get_messages(
+@router.get("/{conversation_id}/messages")
+def get_messages(
     conversation_id: UUID,
     limit: int = 50,
     offset: int = 0,
@@ -321,129 +252,29 @@ async def get_messages(
     Target: <30ms response time.
     """
     try:
-        # Try optimized RPC first
-        try:
-            response = supabase.rpc(
-                'get_messages_optimized',
-                {
-                    'p_conversation_id': str(conversation_id),
-                    'p_user_id': str(current_user.id),
-                    'p_limit': limit,
-                    'p_offset': offset
-                }
-            ).execute()
+        # Optimized RPC
+        response = supabase.rpc(
+            'get_messages_optimized',
+            {
+                'p_conversation_id': str(conversation_id),
+                'p_user_id': str(current_user.id),
+                'p_limit': limit,
+                'p_offset': offset
+            }
+        ).execute()
+        
+        if response.data is not None:
+            return response.data
             
-            if response.data is not None:
-                logger.info(f"📨 Messages (optimized): {len(response.data)} returned")
-                return response.data
-        
-        except Exception as rpc_error:
-            logger.warning(f"⚠️ Messages RPC not available, using fallback: {rpc_error}")
-        
-        # Fallback to original implementation
-        participant = supabase.table("conversation_participants")\
-            .select("messages_visible_from")\
-            .eq("conversation_id", str(conversation_id))\
-            .eq("user_id", str(current_user.id))\
-            .execute()
-        
-        messages_visible_from = None
-        if participant.data and participant.data[0].get("messages_visible_from"):
-            messages_visible_from = participant.data[0]["messages_visible_from"]
-        
-        query = supabase.table("direct_messages")\
-            .select("*")\
-            .eq("conversation_id", str(conversation_id))
-        
-        if messages_visible_from:
-            query = query.gte("created_at", messages_visible_from)
-        
-        response = query\
-            .order("created_at", desc=True)\
-            .range(offset, offset + limit - 1)\
-            .execute()
-        
-        if not response.data:
-            return []
-            
-        messages = response.data
-        
-        # Collect shared post IDs
-        shared_post_ids = [
-            msg["shared_post_id"] for msg in messages 
-            if msg.get("shared_post_id")
-        ]
-        
-        # Fetch shared posts if any
-        shared_posts_map = {}
-        if shared_post_ids:
-            try:
-                posts_resp = supabase.table("posts").select(
-                    "id, content, media_urls, post_type, likes_count, comments_count, user_id, users(first_name, last_name, avatar_url)"
-                ).in_("id", shared_post_ids).execute()
-                
-                for post in (posts_resp.data or []):
-                    user_info = post.get("users") or {}
-                    shared_posts_map[post["id"]] = {
-                        "id": post["id"],
-                        "content": post.get("content", ""),
-                        "media_urls": post.get("media_urls"),
-                        "post_type": post.get("post_type", "standard"),
-                        "likes_count": post.get("likes_count", 0),
-                        "comments_count": post.get("comments_count", 0),
-                        "user_info": {
-                            "first_name": user_info.get("first_name"),
-                            "last_name": user_info.get("last_name"),
-                            "avatar_url": user_info.get("avatar_url"),
-                        },
-                        "poll": None
-                    }
-                    
-            except Exception as post_error:
-                logger.warning(f"Failed to fetch shared posts: {post_error}")
-        
-        # Get participants for read receipts
-        other_participants = supabase.table("conversation_participants")\
-            .select("user_id, last_read_at, users(first_name, last_name)")\
-            .eq("conversation_id", str(conversation_id))\
-            .neq("user_id", str(current_user.id))\
-            .execute()
-        
-        participants_data = other_participants.data or []
-
-        # Enrich messages
-        enriched_messages = []
-        for msg in messages:
-            enriched = {**msg}
-            
-            if msg.get("shared_post_id") and msg["shared_post_id"] in shared_posts_map:
-                enriched["shared_post"] = shared_posts_map[msg["shared_post_id"]]
-            
-            read_by = []
-            if msg["sender_id"] == str(current_user.id):
-                msg_time = msg["created_at"]
-                for p in participants_data:
-                    if p.get("last_read_at") and p.get("last_read_at") >= msg_time:
-                        u_info = p.get("users") or {}
-                        read_by.append({
-                            "user_id": p["user_id"],
-                            "first_name": u_info.get("first_name"),
-                            "last_name": u_info.get("last_name"),
-                            "read_at": p["last_read_at"]
-                        })
-            
-            enriched["read_by"] = read_by
-            enriched_messages.append(enriched)
-            
-        return enriched_messages
-
+        return []
+    
     except Exception as e:
         logger.error(f"Error fetching messages: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/{conversation_id}/messages", response_model=Message)
-async def send_message(
+def send_message(
     conversation_id: UUID,
     message: MessageCreate,
     current_user: CurrentUser = Depends(get_current_user)
@@ -483,7 +314,7 @@ async def send_message(
 
 
 @router.post("/{conversation_id}/read")
-async def mark_conversation_as_read(
+def mark_conversation_as_read(
     conversation_id: UUID,
     current_user: CurrentUser = Depends(get_current_user)
 ):
@@ -506,7 +337,7 @@ async def mark_conversation_as_read(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{conversation_id}/members")
-async def add_member_to_group(
+def add_member_to_group(
     conversation_id: UUID,
     member_id: UUID = Body(..., embed=True),
     current_user: CurrentUser = Depends(get_current_user)
@@ -593,7 +424,7 @@ async def add_member_to_group(
 
 
 @router.patch("/{conversation_id}")
-async def rename_group(
+def rename_group(
     conversation_id: UUID,
     title: str = Body(..., embed=True),
     current_user: CurrentUser = Depends(get_current_user)
@@ -645,7 +476,7 @@ async def rename_group(
 
 
 @router.post("/upload")
-async def upload_chat_attachment(
+def upload_chat_attachment(
     file: str = Body(...),  # base64 encoded
     filename: str = Body(...),
     content_type: str = Body(...),
@@ -689,7 +520,7 @@ async def upload_chat_attachment(
 
 
 @router.delete("/{conversation_id}")
-async def delete_conversation(
+def delete_conversation(
     conversation_id: UUID,
     current_user: CurrentUser = Depends(get_current_user)
 ):

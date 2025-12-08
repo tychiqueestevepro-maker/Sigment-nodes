@@ -66,7 +66,7 @@ export const UnifiedSidebar: React.FC = () => {
 
     // Configuration centralisée des menus
     const menuConfig: MenuItem[] = useMemo(() => [
-        { label: "Home", icon: <Home size={18} />, href: `/${orgSlug}/home` },
+        { label: "Home", icon: <Home size={18} />, href: `/${orgSlug}` },
         // Items Owner/Board
         { label: "Galaxy View", icon: <Orbit size={18} />, href: `/${orgSlug}/galaxy`, roles: ['OWNER', 'BOARD'] },
         { label: "Review", icon: <FileCheck size={18} />, href: `/${orgSlug}/review`, roles: ['OWNER', 'BOARD'] },

@@ -15,7 +15,8 @@ from app.api.dependencies import CurrentUser, get_current_user, require_board_or
 router = APIRouter()
 
 @router.get("/", response_model=List[NoteResponse])
-async def get_notes(
+@router.get("/", response_model=List[NoteResponse])
+def get_notes(
     current_user: CurrentUser = Depends(get_current_user),
     limit: int = 50,
     offset: int = 0
@@ -42,7 +43,8 @@ async def get_notes(
 
 
 @router.post("/", response_model=NoteResponse)
-async def create_note(
+@router.post("/", response_model=NoteResponse)
+def create_note(
     note: NoteCreate,
     current_user: Optional[CurrentUser] = Depends(get_optional_user)
 ):
@@ -88,7 +90,8 @@ async def create_note(
 
 
 @router.post("/sync", response_model=List[NoteResponse])
-async def sync_notes(
+@router.post("/sync", response_model=List[NoteResponse])
+def sync_notes(
     payload: NoteSync,
     current_user: CurrentUser = Depends(get_current_user)
 ):
@@ -123,7 +126,8 @@ async def sync_notes(
 
 
 @router.get("/{note_id}", response_model=NoteResponse)
-async def get_note(
+@router.get("/{note_id}", response_model=NoteResponse)
+def get_note(
     note_id: UUID,
     current_user: CurrentUser = Depends(get_current_user)
 ):
@@ -154,7 +158,8 @@ async def get_note(
 
 
 @router.patch("/{note_id}", response_model=NoteResponse)
-async def update_note(
+@router.patch("/{note_id}", response_model=NoteResponse)
+def update_note(
     note_id: UUID, 
     update: NoteUpdate,
     background_tasks: BackgroundTasks,
@@ -249,7 +254,8 @@ async def update_note(
 
 
 @router.get("/{note_id}/timeline", response_model=List[NoteEvent])
-async def get_note_timeline(
+@router.get("/{note_id}/timeline", response_model=List[NoteEvent])
+def get_note_timeline(
     note_id: UUID,
     current_user: CurrentUser = Depends(get_current_user)
 ):
@@ -287,7 +293,8 @@ async def get_note_timeline(
 
 
 @router.delete("/{note_id}")
-async def delete_note(
+@router.delete("/{note_id}")
+def delete_note(
     note_id: UUID,
     current_user: CurrentUser = Depends(require_board_or_owner)
 ):
@@ -320,7 +327,8 @@ async def delete_note(
 
 
 @router.get("/user/{user_id}")
-async def get_user_notes(
+@router.get("/user/{user_id}")
+def get_user_notes(
     user_id: str,
     current_user: CurrentUser = Depends(get_current_user)
 ):

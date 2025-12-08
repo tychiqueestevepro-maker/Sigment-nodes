@@ -41,17 +41,17 @@ class CurrentUser(BaseModel):
         return self.role.upper() == "MEMBER"
 
 
-from async_lru import alru_cache
+from functools import lru_cache
 
-@alru_cache(maxsize=1000, ttl=60)  # Cache for 60 seconds
-async def get_cached_user(token: str):
+@lru_cache(maxsize=1000)  # LRU Cache for sync functions
+def get_cached_user(token: str):
     """
     Cached wrapper for Supabase Auth getUser
     Reduces API calls for frequent requests from the same user
     """
     return supabase.auth.get_user(token)
 
-async def get_current_user(
+def get_current_user(
     request: Request,
     authorization: str = Header(None)
 ) -> CurrentUser:
@@ -89,7 +89,7 @@ async def get_current_user(
             )
             
         # Use Cached Supabase Auth to get user from token
-        user_response = await get_cached_user(token)
+        user_response = get_cached_user(token)
         
         if not user_response or not user_response.user:
             raise HTTPException(
@@ -183,7 +183,7 @@ async def get_current_user(
     )
 
 
-async def require_board_or_owner(
+def require_board_or_owner(
     request: Request,
     authorization: str = Header(None)
 ) -> CurrentUser:
@@ -192,7 +192,7 @@ async def require_board_or_owner(
     Properly chains with get_current_user for authentication
     """
     # First authenticate the user
-    current_user = await get_current_user(request, authorization)
+    current_user = get_current_user(request, authorization)
     
     if not current_user.is_board_or_owner():
         raise HTTPException(
@@ -203,7 +203,7 @@ async def require_board_or_owner(
     return current_user
 
 
-async def require_owner(
+def require_owner(
     request: Request,
     authorization: str = Header(None)
 ) -> CurrentUser:
@@ -212,7 +212,7 @@ async def require_owner(
     Properly chains with get_current_user for authentication
     """
     # First authenticate the user
-    current_user = await get_current_user(request, authorization)
+    current_user = get_current_user(request, authorization)
     
     if not current_user.is_owner():
         raise HTTPException(
@@ -223,7 +223,7 @@ async def require_owner(
     return current_user
 
 
-async def get_optional_user(
+def get_optional_user(
     request: Request,
     authorization: str = Header(None)
 ) -> Optional[CurrentUser]:
@@ -234,6 +234,6 @@ async def get_optional_user(
         return None
     
     try:
-        return await get_current_user(request, authorization)
+        return get_current_user(request, authorization)
     except HTTPException:
         return None

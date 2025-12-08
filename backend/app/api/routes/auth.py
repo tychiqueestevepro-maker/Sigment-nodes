@@ -39,7 +39,7 @@ class AuthResponse(BaseModel):
 
 
 @router.post("/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
-async def signup(data: SignupRequest):
+def signup(data: SignupRequest):
     """
     Create a new user account with organization using Supabase Auth
     
@@ -182,7 +182,7 @@ async def signup(data: SignupRequest):
 
 
 @router.post("/login", response_model=AuthResponse)
-async def login(data: LoginRequest):
+def login(data: LoginRequest):
     """
     Authenticate user using Supabase Auth and return user + organization data
     
@@ -301,7 +301,7 @@ async def login(data: LoginRequest):
 
 
 @router.post("/logout")
-async def logout():
+def logout():
     """
     Logout user
     In production, this should invalidate the JWT token

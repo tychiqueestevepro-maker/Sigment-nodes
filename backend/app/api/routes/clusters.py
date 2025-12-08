@@ -12,7 +12,7 @@ router = APIRouter()
 
 
 @router.get("/")
-async def get_clusters(pillar_id: Optional[UUID] = None):
+def get_clusters(pillar_id: Optional[UUID] = None):
     """
     Get all clusters, optionally filtered by pillar
     """
@@ -32,7 +32,7 @@ async def get_clusters(pillar_id: Optional[UUID] = None):
 
 
 @router.get("/{cluster_id}")
-async def get_cluster(cluster_id: UUID):
+def get_cluster(cluster_id: UUID):
     """
     Get cluster details with notes
     """
@@ -52,7 +52,7 @@ async def get_cluster(cluster_id: UUID):
 
 
 @router.get("/{cluster_id}/snapshots")
-async def get_cluster_snapshots(
+def get_cluster_snapshots(
     cluster_id: UUID,
     limit: int = Query(default=50, le=100)
 ):
@@ -73,7 +73,7 @@ async def get_cluster_snapshots(
 
 
 @router.get("/{cluster_id}/timeline")
-async def get_cluster_timeline(cluster_id: UUID):
+def get_cluster_timeline(cluster_id: UUID):
     """
     Get cluster evolution timeline (simplified for time-lapse slider)
     Returns key snapshots with timestamp
