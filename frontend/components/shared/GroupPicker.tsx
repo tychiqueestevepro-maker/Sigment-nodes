@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, X, Loader2, Plus, Folder, Users, ChevronRight } from 'lucide-react';
+import { Search, X, Loader2, Plus, Layers, Users, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApiClient } from '@/hooks/useApiClient';
 import { MemberPicker } from './MemberPicker';
@@ -33,8 +33,8 @@ export function GroupPicker({ isOpen, onClose, onSelect, noteId, clusterId }: Gr
     const [isLoading, setIsLoading] = useState(false);
     const [showCreateFlow, setShowCreateFlow] = useState(false);
     const [newGroupName, setNewGroupName] = useState('');
-    const [newGroupDescription, setNewGroupDescription] = useState('');
     const [newGroupColor, setNewGroupColor] = useState('#6366f1');
+    const [assignedGroupIds, setAssignedGroupIds] = useState<Set<string>>(new Set());
     const [showMemberPicker, setShowMemberPicker] = useState(false);
 
     const colors = [
@@ -47,12 +47,33 @@ export function GroupPicker({ isOpen, onClose, onSelect, noteId, clusterId }: Gr
             fetchGroups();
             setSearchQuery('');
             setShowCreateFlow(false);
+            setShowMemberPicker(false);
             // Reset create form
             setNewGroupName('');
-            setNewGroupDescription('');
             setNewGroupColor('#6366f1');
         }
     }, [isOpen]);
+
+    useEffect(() => {
+        const fetchAssigned = async () => {
+            if (!noteId && !clusterId) return;
+            try {
+                const params = new URLSearchParams();
+                if (noteId) params.append('note_id', noteId);
+                if (clusterId) params.append('cluster_id', clusterId);
+                const ids = await apiClient.get<string[]>(`/idea-groups/containing?${params.toString()}`);
+                setAssignedGroupIds(new Set(ids));
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        if (isOpen) {
+            fetchAssigned();
+        } else {
+            setAssignedGroupIds(new Set());
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen, noteId, clusterId]);
 
     const fetchGroups = async () => {
         setIsLoading(true);
@@ -84,11 +105,10 @@ export function GroupPicker({ isOpen, onClose, onSelect, noteId, clusterId }: Gr
     };
 
     const handleCreateGroup = async (memberIds: string[]) => {
-        setShowMemberPicker(false);
         try {
             const groupId = await apiClient.post<string>('/idea-groups', {
                 name: newGroupName,
-                description: newGroupDescription,
+                description: '',
                 color: newGroupColor,
                 member_ids: memberIds
             });
@@ -104,6 +124,7 @@ export function GroupPicker({ isOpen, onClose, onSelect, noteId, clusterId }: Gr
             toast.success('Group created');
             onSelect(groupId);
         } catch (error: any) {
+            setShowMemberPicker(false);
             toast.error(error.message || 'Failed to create group');
         }
     };
@@ -116,7 +137,7 @@ export function GroupPicker({ isOpen, onClose, onSelect, noteId, clusterId }: Gr
     if (typeof document === 'undefined') return null;
 
     // If showing member picker for new group creation
-    if (showMemberPicker) {
+    if (isOpen && showMemberPicker) {
         return (
             <MemberPicker
                 isOpen={true}
@@ -132,6 +153,9 @@ export function GroupPicker({ isOpen, onClose, onSelect, noteId, clusterId }: Gr
             />
         );
     }
+
+    // Don't render anything if not open
+    if (!isOpen) return null;
 
     return createPortal(
         <AnimatePresence>
@@ -181,18 +205,7 @@ export function GroupPicker({ isOpen, onClose, onSelect, noteId, clusterId }: Gr
                                         />
                                     </div>
 
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Description
-                                        </label>
-                                        <textarea
-                                            value={newGroupDescription}
-                                            onChange={(e) => setNewGroupDescription(e.target.value)}
-                                            placeholder="What's this group about?"
-                                            rows={2}
-                                            className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none outline-none"
-                                        />
-                                    </div>
+
 
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -262,32 +275,40 @@ export function GroupPicker({ isOpen, onClose, onSelect, noteId, clusterId }: Gr
                                             </div>
                                         ) : (
                                             <div className="space-y-1">
-                                                {filteredGroups.map(group => (
-                                                    <button
-                                                        key={group.id}
-                                                        onClick={() => handleSelectGroup(group.id)}
-                                                        className="w-full p-3 flex items-center space-x-3 hover:bg-gray-50 rounded-xl transition-colors text-left group"
-                                                    >
-                                                        <div
-                                                            className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-                                                            style={{ backgroundColor: group.color + '20' }}
+                                                {filteredGroups.map(group => {
+                                                    const isAssigned = assignedGroupIds.has(group.id);
+                                                    return (
+                                                        <button
+                                                            key={group.id}
+                                                            onClick={() => !isAssigned && handleSelectGroup(group.id)}
+                                                            disabled={isAssigned}
+                                                            className={`w-full p-3 flex items-center space-x-3 rounded-xl transition-colors text-left group ${isAssigned ? 'opacity-50 cursor-not-allowed bg-gray-50' : 'hover:bg-gray-50'
+                                                                }`}
                                                         >
-                                                            <Folder className="w-5 h-5" style={{ color: group.color }} />
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className="font-medium text-gray-900 truncate">{group.name}</div>
-                                                            <div className="text-xs text-gray-500 truncate flex items-center gap-2">
-                                                                <span className="flex items-center gap-1">
-                                                                    <Users size={12} />
-                                                                    {group.member_count}
-                                                                </span>
-                                                                <span>·</span>
-                                                                <span>{group.item_count} ideas</span>
+                                                            <div
+                                                                className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+                                                                style={{ backgroundColor: group.color + '20' }}
+                                                            >
+                                                                <Layers className="w-5 h-5" style={{ color: group.color }} />
                                                             </div>
-                                                        </div>
-                                                        <ChevronRight size={16} className="text-gray-300 group-hover:text-gray-600" />
-                                                    </button>
-                                                ))}
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="font-medium text-gray-900 truncate">
+                                                                    {group.name}
+                                                                    {isAssigned && <span className="ml-2 text-xs text-gray-400 font-normal italic">(Joined)</span>}
+                                                                </div>
+                                                                <div className="text-xs text-gray-500 truncate flex items-center gap-2">
+                                                                    <span className="flex items-center gap-1">
+                                                                        <Users size={12} />
+                                                                        {group.member_count}
+                                                                    </span>
+                                                                    <span>·</span>
+                                                                    <span>{group.item_count} ideas</span>
+                                                                </div>
+                                                            </div>
+                                                            {!isAssigned && <ChevronRight size={16} className="text-gray-300 group-hover:text-gray-600" />}
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
                                         )}
                                     </div>

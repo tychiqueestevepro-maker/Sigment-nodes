@@ -628,9 +628,9 @@ export default function ArchivePage() {
             <GroupPicker
                 isOpen={isGroupPickerOpen}
                 onClose={() => setIsGroupPickerOpen(false)}
-                onSelect={(groupId) => {
+                onSelect={() => {
                     setIsGroupPickerOpen(false);
-                    router.push(`/${orgSlug}/groups?selected=${groupId}`);
+                    // Stay on detail view, user can navigate via sidebar
                 }}
                 noteId={selectedArchive?.id}
             />

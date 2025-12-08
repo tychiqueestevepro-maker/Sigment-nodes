@@ -97,7 +97,7 @@ export const UnifiedSidebar: React.FC = () => {
             <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
             <ProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
 
-            <aside className={`flex flex-col h-full bg-white border-r border-gray-100 transition-all duration-300 relative ${isOpen ? 'w-[260px]' : 'w-[70px]'}`}>
+            <aside className={`flex flex-col h-full bg-white border-r border-gray-100 transition-all duration-300 relative z-[100] ${isOpen ? 'w-[260px]' : 'w-[70px]'}`}>
                 {/* Header Logo */}
                 <div className={`h-16 flex items-center ${isOpen ? '' : 'justify-center'}`}>
                     {isOpen ? (

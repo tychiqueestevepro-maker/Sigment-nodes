@@ -114,6 +114,37 @@ async def get_idea_groups(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/containing", response_model=List[UUID])
+async def get_groups_containing_item(
+    note_id: Optional[UUID] = None,
+    cluster_id: Optional[UUID] = None,
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """
+    Get list of group IDs that contain the specified item.
+    """
+    try:
+        if not note_id and not cluster_id:
+            return []
+            
+        query = supabase.table("idea_group_items").select("idea_group_id")
+        
+        if note_id:
+            query = query.eq("note_id", str(note_id))
+        if cluster_id:
+            query = query.eq("cluster_id", str(cluster_id))
+            
+        response = query.execute()
+        
+        if not response.data:
+            return []
+            
+        return [item["idea_group_id"] for item in response.data]
+    except Exception as e:
+        logger.error(f"Error fetching containing groups: {e}")
+        return []
+
+
 @router.post("/", response_model=UUID)
 async def create_idea_group(
     payload: IdeaGroupCreate,

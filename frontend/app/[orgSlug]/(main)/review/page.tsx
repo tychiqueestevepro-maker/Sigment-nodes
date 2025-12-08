@@ -620,10 +620,9 @@ export default function ReviewPage() {
             <GroupPicker
                 isOpen={isGroupPickerOpen}
                 onClose={() => setIsGroupPickerOpen(false)}
-                onSelect={(groupId) => {
+                onSelect={() => {
                     setIsGroupPickerOpen(false);
-                    // Redirect to groups page with the selected group
-                    router.push(`/${orgSlug}/groups?selected=${groupId}`);
+                    // Stay on detail view, user can navigate via sidebar
                 }}
                 noteId={selectedReview?.id}
             />
