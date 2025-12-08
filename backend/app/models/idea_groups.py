@@ -79,6 +79,12 @@ class GroupMessageCreate(BaseModel):
     attachment_type: Optional[str] = None
     attachment_name: Optional[str] = None
 
+class GroupMessageReadReceipt(BaseModel):
+    user_id: UUID
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    read_at: datetime
+
 class GroupMessage(BaseModel):
     id: UUID
     idea_group_id: UUID
@@ -90,6 +96,7 @@ class GroupMessage(BaseModel):
     attachment_type: Optional[str] = None
     attachment_name: Optional[str] = None
     created_at: datetime
+    read_by: List[GroupMessageReadReceipt] = []
 
 # --- Response models ---
 

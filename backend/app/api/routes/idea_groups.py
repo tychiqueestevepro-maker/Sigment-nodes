@@ -885,6 +885,15 @@ async def get_group_messages(
             .range(offset, offset + limit - 1)\
             .execute()
         
+        # Get all group members with their last_read_at for read receipts
+        members_last_read = supabase.table("idea_group_members")\
+            .select("user_id, last_read_at, users!idea_group_members_user_id_fkey(first_name, last_name)")\
+            .eq("idea_group_id", str(group_id))\
+            .neq("user_id", str(current_user.id))\
+            .execute()
+        
+        members_data = members_last_read.data or []
+        
         messages = []
         for msg in (messages_resp.data or []):
             user_info = msg.get("users", {})
@@ -893,6 +902,21 @@ async def get_group_messages(
                 first = user_info.get("first_name", "")
                 last = user_info.get("last_name", "")
                 sender_name = f"{first} {last}".strip() or None
+            
+            # Calculate read_by (only for own messages)
+            read_by = []
+            if msg["sender_id"] == str(current_user.id):
+                msg_time = msg["created_at"]
+                for m in members_data:
+                    # Check if member read this message (last_read_at >= created_at)
+                    if m.get("last_read_at") and m.get("last_read_at") >= msg_time:
+                        u_info = m.get("users") or {}
+                        read_by.append({
+                            "user_id": m["user_id"],
+                            "first_name": u_info.get("first_name"),
+                            "last_name": u_info.get("last_name"),
+                            "read_at": m["last_read_at"]
+                        })
             
             messages.append(GroupMessage(
                 id=msg["id"],
@@ -904,7 +928,8 @@ async def get_group_messages(
                 attachment_url=msg.get("attachment_url"),
                 attachment_type=msg.get("attachment_type"),
                 attachment_name=msg.get("attachment_name"),
-                created_at=msg["created_at"]
+                created_at=msg["created_at"],
+                read_by=read_by
             ))
         
         # Return in ascending order for display
@@ -960,6 +985,14 @@ async def send_group_message(
         
         msg = response.data[0]
         
+        # Update sender's last_read_at so they don't see their own group as unread
+        from datetime import datetime, timezone
+        supabase.table("idea_group_members")\
+            .update({"last_read_at": datetime.now(timezone.utc).isoformat()})\
+            .eq("idea_group_id", str(group_id))\
+            .eq("user_id", str(current_user.id))\
+            .execute()
+        
         # Get sender info
         user_resp = supabase.table("users")\
             .select("first_name, last_name, avatar_url")\
@@ -980,7 +1013,8 @@ async def send_group_message(
             attachment_url=msg.get("attachment_url"),
             attachment_type=msg.get("attachment_type"),
             attachment_name=msg.get("attachment_name"),
-            created_at=msg["created_at"]
+            created_at=msg["created_at"],
+            read_by=[]  # New message, not read by anyone yet
         )
 
     except HTTPException:

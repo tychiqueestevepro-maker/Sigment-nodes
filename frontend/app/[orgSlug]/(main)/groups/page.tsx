@@ -68,6 +68,13 @@ interface IdeaGroup {
     has_unread?: boolean;
 }
 
+interface ReadReceipt {
+    user_id: string;
+    first_name?: string;
+    last_name?: string;
+    read_at: string;
+}
+
 interface GroupMessage {
     id: string;
     idea_group_id: string;
@@ -79,6 +86,7 @@ interface GroupMessage {
     attachment_type?: string;
     attachment_name?: string;
     created_at: string;
+    read_by?: ReadReceipt[];
 }
 
 interface Collaborator {
@@ -213,13 +221,25 @@ export default function GroupsPage() {
                     setSelectedGroupId(data[0].id);
                 }
             });
+
+            // Poll every 30 seconds to update unread indicators
+            const pollInterval = setInterval(() => {
+                fetchGroups();
+            }, 30000);
+
+            return () => clearInterval(pollInterval);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user]);
 
-    // Mark group as read when selected (only call API, don't update state to avoid re-render loop)
+    // Mark group as read when selected - update local state immediately
     useEffect(() => {
         if (selectedGroupId) {
+            // Update local state to remove the unread indicator immediately
+            setGroups(prev => prev.map(g =>
+                g.id === selectedGroupId ? { ...g, has_unread: false } : g
+            ));
+            // Also notify the server
             apiClient.post(`/idea-groups/${selectedGroupId}/mark-read`, {}).catch(() => { });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -389,10 +409,9 @@ function GroupView({ group, currentUser, apiClient, onRefresh }: GroupViewProps)
     // Derived current item based on selection or fallback to first
     const currentItem = items.find(i => i.id === selectedItemId) || (items.length > 0 ? items[0] : null);
 
-    // Fetch messages
+    // Fetch messages with polling for reactivity
     useEffect(() => {
         async function fetchMessages() {
-            setIsLoadingMessages(true);
             try {
                 const data = await apiClient.get<GroupMessage[]>(`/idea-groups/${group.id}/messages`);
                 setMessages(data);
@@ -402,7 +421,15 @@ function GroupView({ group, currentUser, apiClient, onRefresh }: GroupViewProps)
                 setIsLoadingMessages(false);
             }
         }
+
+        // Initial fetch
+        setIsLoadingMessages(true);
         fetchMessages();
+
+        // Poll every 15 seconds for new messages (more reasonable interval)
+        const pollInterval = setInterval(fetchMessages, 15000);
+
+        return () => clearInterval(pollInterval);
     }, [group.id, apiClient]);
 
     // Fetch items
@@ -662,9 +689,16 @@ function GroupView({ group, currentUser, apiClient, onRefresh }: GroupViewProps)
                                                 }`}>
                                                 <p className="text-sm">{msg.content}</p>
                                             </div>
-                                            <p className={`text-[10px] text-gray-400 mt-1 ${isMe ? 'text-right mr-1' : 'ml-1'}`}>
-                                                {formatDate(msg.created_at)}
-                                            </p>
+                                            <div className={`flex flex-col gap-0.5 mt-1 ${isMe ? 'items-end mr-1' : 'ml-1'}`}>
+                                                <p className="text-[10px] text-gray-400">
+                                                    {formatDate(msg.created_at)}
+                                                </p>
+                                                {isMe && msg.read_by && msg.read_by.length > 0 && (
+                                                    <p className="text-[10px] text-gray-400">
+                                                        Seen by {msg.read_by.map(r => r.first_name || 'User').join(', ')}
+                                                    </p>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 );
