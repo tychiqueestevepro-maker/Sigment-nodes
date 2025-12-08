@@ -145,6 +145,51 @@ async def get_groups_containing_item(
         return []
 
 
+@router.get("/unread-status")
+async def get_groups_unread_status(current_user: CurrentUser = Depends(get_current_user)):
+    """
+    Check if the user has any unread messages across all their groups.
+    """
+    try:
+        # Get user's group memberships with last_read_at, joining with groups to get updated_at
+        response = supabase.table("idea_group_members")\
+            .select("idea_group_id, last_read_at, idea_groups!inner(updated_at)")\
+            .eq("user_id", str(current_user.id))\
+            .execute()
+            
+        if not response.data:
+            return {"has_unread": False}
+            
+        for item in response.data:
+            last_read_at = item.get("last_read_at")
+            group = item.get("idea_groups")
+            
+            if not group:
+                continue
+                
+            updated_at = group.get("updated_at")
+            
+            if not updated_at:
+                continue
+            
+            if last_read_at is None:
+                # Never read - check if there are any messages
+                msg_check = supabase.table("idea_group_messages")\
+                    .select("id")\
+                    .eq("idea_group_id", item["idea_group_id"])\
+                    .limit(1)\
+                    .execute()
+                if msg_check.data:
+                    return {"has_unread": True}
+            elif updated_at > last_read_at:
+                return {"has_unread": True}
+                
+        return {"has_unread": False}
+    except Exception as e:
+        logger.error(f"Error checking groups unread status: {e}")
+        return {"has_unread": False}
+
+
 @router.post("/", response_model=UUID)
 async def create_idea_group(
     payload: IdeaGroupCreate,
@@ -904,4 +949,41 @@ async def send_group_message(
         raise
     except Exception as e:
         logger.error(f"Error sending group message: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{group_id}/mark-read")
+async def mark_group_as_read(
+    group_id: UUID,
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """
+    Mark a group as read (update last_read_at for current user).
+    """
+    try:
+        from datetime import datetime, timezone
+        
+        # Verify user is member of this group
+        membership = supabase.table("idea_group_members")\
+            .select("idea_group_id")\
+            .eq("idea_group_id", str(group_id))\
+            .eq("user_id", str(current_user.id))\
+            .execute()
+            
+        if not membership.data:
+            raise HTTPException(status_code=403, detail="Not a member of this group")
+        
+        # Update last_read_at
+        supabase.table("idea_group_members")\
+            .update({"last_read_at": datetime.now(timezone.utc).isoformat()})\
+            .eq("idea_group_id", str(group_id))\
+            .eq("user_id", str(current_user.id))\
+            .execute()
+            
+        return {"success": True}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error marking group as read: {e}")
         raise HTTPException(status_code=500, detail=str(e))

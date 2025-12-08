@@ -216,6 +216,13 @@ export default function GroupsPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user]);
 
+    // Mark group as read when selected
+    useEffect(() => {
+        if (selectedGroupId) {
+            apiClient.post(`/idea-groups/${selectedGroupId}/mark-read`, {}).catch(console.error);
+        }
+    }, [selectedGroupId, apiClient]);
+
 
 
     const selectedGroup = groups.find(g => g.id === selectedGroupId);

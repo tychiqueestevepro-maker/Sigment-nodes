@@ -52,6 +52,18 @@ export const UnifiedSidebar: React.FC = () => {
         enabled: !!user,
     });
 
+    // Fetch unread status for groups
+    const { data: groupsUnreadStatus } = useQuery({
+        queryKey: ['groupsUnreadStatus', user?.id],
+        queryFn: async () => {
+            if (!user) return { has_unread: false };
+            return api.get<{ has_unread: boolean }>('/idea-groups/unread-status');
+        },
+        // Poll every 1 minute
+        refetchInterval: 60000,
+        enabled: !!user,
+    });
+
     // Configuration centralisée des menus
     const menuConfig: MenuItem[] = useMemo(() => [
         { label: "Home", icon: <Home size={18} />, href: `/${orgSlug}/home` },
@@ -132,6 +144,9 @@ export const UnifiedSidebar: React.FC = () => {
                                 <div className="relative">
                                     <span className={isActive ? 'text-black' : 'text-gray-500'}>{item.icon}</span>
                                     {item.label === 'Chat' && unreadStatus?.has_unread && (
+                                        <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-black rounded-full border-2 border-white translate-x-1/3 -translate-y-1/3" />
+                                    )}
+                                    {item.label === 'Groups' && groupsUnreadStatus?.has_unread && (
                                         <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-black rounded-full border-2 border-white translate-x-1/3 -translate-y-1/3" />
                                     )}
                                 </div>
