@@ -40,6 +40,7 @@ class IdeaGroup(IdeaGroupBase):
     item_count: int = 0
     members: List[GroupMemberInfo] = []
     is_admin: bool = False  # Whether current user is admin of this group
+    has_unread: bool = False  # Whether there are unread messages for current user
 
 # --- Group Item (Linked Note/Cluster) ---
 

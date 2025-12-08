@@ -92,6 +92,40 @@ async def get_idea_groups(
             
             item_count = items_resp.count if hasattr(items_resp, 'count') and items_resp.count else len(items_resp.data or [])
             
+            # Calculate has_unread for this group
+            has_unread = False
+            
+            # Get user's last_read_at for this group
+            membership_resp = supabase.table("idea_group_members")\
+                .select("last_read_at")\
+                .eq("idea_group_id", group_id)\
+                .eq("user_id", str(current_user.id))\
+                .single()\
+                .execute()
+            
+            if membership_resp.data:
+                last_read_at = membership_resp.data.get("last_read_at")
+                
+                # Get the last message in this group that was NOT sent by current user
+                last_msg_resp = supabase.table("idea_group_messages")\
+                    .select("created_at, sender_id")\
+                    .eq("idea_group_id", group_id)\
+                    .neq("sender_id", str(current_user.id))\
+                    .order("created_at", desc=True)\
+                    .limit(1)\
+                    .execute()
+                
+                if last_msg_resp.data:
+                    last_msg = last_msg_resp.data[0]
+                    msg_created_at = last_msg["created_at"]
+                    
+                    if last_read_at is None:
+                        # Never read - has unread
+                        has_unread = True
+                    elif msg_created_at > last_read_at:
+                        # Message created after last read
+                        has_unread = True
+            
             groups_out.append(IdeaGroup(
                 id=group["id"],
                 organization_id=group["organization_id"],
@@ -104,7 +138,8 @@ async def get_idea_groups(
                 member_count=len(members),
                 item_count=item_count,
                 members=members,
-                is_admin=is_admin
+                is_admin=is_admin,
+                has_unread=has_unread
             ))
         
         return groups_out

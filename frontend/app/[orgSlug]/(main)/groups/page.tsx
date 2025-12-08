@@ -65,6 +65,7 @@ interface IdeaGroup {
     item_count: number;
     members: GroupMember[];
     is_admin: boolean;
+    has_unread?: boolean;
 }
 
 interface GroupMessage {
@@ -219,6 +220,11 @@ export default function GroupsPage() {
     // Mark group as read when selected
     useEffect(() => {
         if (selectedGroupId) {
+            // Update local state immediately to remove unread indicator
+            setGroups(prev => prev.map(g =>
+                g.id === selectedGroupId ? { ...g, has_unread: false } : g
+            ));
+            // Also update on server
             apiClient.post(`/idea-groups/${selectedGroupId}/mark-read`, {}).catch(console.error);
         }
     }, [selectedGroupId, apiClient]);
@@ -303,9 +309,14 @@ export default function GroupsPage() {
                                             {group.member_count} members · {group.item_count} ideas
                                         </p>
                                     </div>
-                                    <span className="text-xs text-gray-400">
-                                        {formatDate(group.updated_at)}
-                                    </span>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                        {group.has_unread && (
+                                            <div className="w-2 h-2 bg-gray-800 rounded-full" />
+                                        )}
+                                        <span className="text-xs text-gray-400">
+                                            {formatDate(group.updated_at)}
+                                        </span>
+                                    </div>
                                 </div>
                             </button>
                         ))
