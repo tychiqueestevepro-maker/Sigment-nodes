@@ -22,7 +22,9 @@ import {
     X,
     Paperclip,
     Download,
-    Trash2
+    Trash2,
+    Maximize2,
+    FileText
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MemberPicker } from '@/components/shared/MemberPicker';
@@ -126,6 +128,12 @@ export default function ChatPage() {
         try {
             const data = await apiClient.get<Conversation[]>('/chat');
             setConversations(data);
+
+            // Cache for instant load next time
+            if (user && organization) {
+                localStorage.setItem(`cached_conversations_${organization.id}_${user.id}`, JSON.stringify(data));
+            }
+
             return data;
         } catch (error) {
             console.error(error);
@@ -136,16 +144,44 @@ export default function ChatPage() {
         }
     };
 
+    // Load from cache immediately on mount
+    useEffect(() => {
+        if (user && organization) {
+            const cached = localStorage.getItem(`cached_conversations_${organization.id}_${user.id}`);
+            if (cached) {
+                try {
+                    setConversations(JSON.parse(cached));
+                    setIsLoadingConversations(false);
+                } catch (e) {
+                    console.error('Error parsing cached conversations', e);
+                }
+            }
+        }
+    }, [user, organization]);
+
     useEffect(() => {
         if (user) {
             fetchConversations().then((data) => {
-                // Select first conversation by default if available and none selected
-                if (data.length > 0 && !selectedConversationId) {
+                // Try to recover last active conversation from storage
+                const lastActiveId = localStorage.getItem(`last_conversation_${organization?.id}_${user.id}`);
+                const targetConv = data.find(c => c.id === lastActiveId);
+
+                if (targetConv) {
+                    setSelectedConversationId(targetConv.id);
+                } else if (data.length > 0 && !selectedConversationId) {
+                    // Fallback to most recent (first element as backend sorts by updated_at)
                     setSelectedConversationId(data[0].id);
                 }
             });
         }
-    }, [user]);
+    }, [user, organization?.id]);
+
+    // Persist selection
+    useEffect(() => {
+        if (selectedConversationId && user && organization) {
+            localStorage.setItem(`last_conversation_${organization.id}_${user.id}`, selectedConversationId);
+        }
+    }, [selectedConversationId, user, organization]);
 
     const handleStartConversation = async (targetUserId: string) => {
         setIsMemberPickerOpen(false);
@@ -269,8 +305,19 @@ export default function ChatPage() {
                 {/* Conversation List */}
                 <div className="flex-1 overflow-y-auto">
                     {isLoadingConversations ? (
-                        <div className="flex justify-center items-center h-32">
-                            <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                        <div className="animate-pulse">
+                            {[1, 2, 3, 4, 5].map((i) => (
+                                <div key={i} className="px-5 py-3 flex items-center gap-3 border-b border-gray-50/50">
+                                    <div className="w-10 h-10 bg-gray-200 rounded-full shrink-0"></div>
+                                    <div className="flex-1 min-w-0 space-y-2">
+                                        <div className="flex justify-between items-center">
+                                            <div className="h-3.5 bg-gray-200 rounded w-24"></div>
+                                            <div className="h-3 bg-gray-100 rounded w-10"></div>
+                                        </div>
+                                        <div className="h-3 bg-gray-100 rounded w-48"></div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     ) : conversations.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-64 text-center px-6">
@@ -470,36 +517,95 @@ function ChatWindow({ conversation, currentUser, apiClient, onRefresh, onMarkAsR
         m.email?.toLowerCase().includes(memberSearch.toLowerCase())
     );
 
-    // Fetch messages
+    // Fetch messages with instant transition (Twitter-style)
+    const [previousConversationId, setPreviousConversationId] = useState<string | null>(null);
+
     useEffect(() => {
+        let isCancelled = false;
+
+        // Cache Key
+        const cacheKey = `cached_messages_chat_${conversation.id}`;
+
+        // If switching conversations
+        const isNewConversation = previousConversationId !== conversation.id;
+
         async function fetchMessages() {
-            setIsLoading(true);
+            // Force loading state on switch to show Skeleton immediately
+            // Only set state if not cancelled
+            if (!isCancelled && (messages.length === 0 || isNewConversation)) {
+
+                // TRY LOAD FROM CACHE FIRST (Instant Display)
+                const cached = localStorage.getItem(cacheKey);
+                let loadedFromCache = false;
+
+                if (cached) {
+                    try {
+                        const parsed = JSON.parse(cached);
+                        if (parsed && Array.isArray(parsed) && parsed.length > 0) {
+                            setMessages(parsed);
+                            setIsLoading(false); // No skeleton needed
+                            loadedFromCache = true;
+                        }
+                    } catch (e) {
+                        console.error("Cache parse error", e);
+                    }
+                }
+
+                // Only show skeleton if NO cache
+                if (!loadedFromCache) {
+                    setIsLoading(true);
+                    if (isNewConversation) {
+                        setMessages([]); // Clear old messages immediately for distinct switch
+                    }
+                }
+            }
+
             try {
                 const data = await apiClient.get<Message[]>(`/chat/${conversation.id}/messages`);
-                // Sort by created_at ascending for display
-                setMessages(data.sort((a: Message, b: Message) =>
-                    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-                ));
 
-                // Mark conversation as read
-                try {
-                    await apiClient.post(`/chat/${conversation.id}/read`);
-                    // Update local state in parent immediately
-                    if (onMarkAsRead) {
-                        onMarkAsRead(conversation.id);
-                    }
-                } catch (e) {
-                    // Silent fail - not critical
-                    console.log('Failed to mark as read', e);
+                // CRITICAL: Only update state if this effect is still active
+                if (!isCancelled) {
+                    // Sort by created_at ascending for display
+                    const sorted = data.sort((a: Message, b: Message) =>
+                        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                    );
+                    setMessages(sorted);
+                    setPreviousConversationId(conversation.id);
+
+                    // Update cache
+                    localStorage.setItem(cacheKey, JSON.stringify(sorted));
                 }
+
+                // Mark conversation as read (fire and forget)
+                if (!isCancelled) {
+                    apiClient.post(`/chat/${conversation.id}/read`).then(() => {
+                        if (onMarkAsRead) {
+                            onMarkAsRead(conversation.id);
+                        }
+                    }).catch(() => { });
+                }
+
             } catch (error) {
-                console.error(error);
-                toast.error('Failed to load messages');
+                if (!isCancelled) {
+                    console.error(error);
+                    // Only show error for new conversations if loading
+                    if (isNewConversation) {
+                        // Don't toast if we showed cache
+                        // toast.error('Failed to load messages'); 
+                    }
+                }
             } finally {
-                setIsLoading(false);
+                if (!isCancelled) {
+                    setIsLoading(false);
+                }
             }
         }
+
         fetchMessages();
+
+        return () => {
+            isCancelled = true;
+        };
     }, [conversation.id]);
 
     // Scroll to bottom
@@ -730,9 +836,44 @@ function ChatWindow({ conversation, currentUser, apiClient, onRefresh, onMarkAsR
 
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
-                {isLoading ? (
-                    <div className="flex justify-center pt-10">
-                        <Loader2 className="w-8 h-8 animate-spin text-gray-300" />
+                {isLoading && messages.length === 0 ? (
+                    /* Skeleton Messages - Twitter-style instant feel */
+                    <div className="space-y-4 animate-pulse">
+                        {/* Skeleton: Received message */}
+                        <div className="flex justify-start">
+                            <div className="max-w-[70%]">
+                                <div className="h-3 w-20 bg-gray-200 rounded mb-1.5"></div>
+                                <div className="px-4 py-3 bg-white rounded-2xl rounded-bl-md border border-gray-100 shadow-sm">
+                                    <div className="h-4 w-48 bg-gray-200 rounded"></div>
+                                </div>
+                            </div>
+                        </div>
+                        {/* Skeleton: Sent message */}
+                        <div className="flex justify-end">
+                            <div className="max-w-[70%]">
+                                <div className="px-4 py-3 bg-gray-300 rounded-2xl rounded-br-md">
+                                    <div className="h-4 w-32 bg-gray-400 rounded"></div>
+                                </div>
+                            </div>
+                        </div>
+                        {/* Skeleton: Received message */}
+                        <div className="flex justify-start">
+                            <div className="max-w-[70%]">
+                                <div className="h-3 w-16 bg-gray-200 rounded mb-1.5"></div>
+                                <div className="px-4 py-3 bg-white rounded-2xl rounded-bl-md border border-gray-100 shadow-sm">
+                                    <div className="h-4 w-64 bg-gray-200 rounded mb-2"></div>
+                                    <div className="h-4 w-40 bg-gray-200 rounded"></div>
+                                </div>
+                            </div>
+                        </div>
+                        {/* Skeleton: Sent message */}
+                        <div className="flex justify-end">
+                            <div className="max-w-[70%]">
+                                <div className="px-4 py-3 bg-gray-300 rounded-2xl rounded-br-md">
+                                    <div className="h-4 w-56 bg-gray-400 rounded"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 ) : (
                     messages.map((msg, index) => {
@@ -771,6 +912,16 @@ function ChatWindow({ conversation, currentUser, apiClient, onRefresh, onMarkAsR
                                 key={msg.id}
                                 className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} ${isGroupedWithPrev ? 'mt-1' : 'mt-4 first:mt-0'}`}
                             >
+                                {/* Group Sender Name */}
+                                {!isMe && (conversation.is_group || (conversation.participants && conversation.participants.length > 2)) && (!prevMsg || prevMsg.sender_id !== msg.sender_id) && (
+                                    <div className="ml-1 mb-1 text-xs text-gray-500 font-medium">
+                                        {(() => {
+                                            const p = conversation.participants?.find((p: any) => p.id === msg.sender_id || p.user_id === msg.sender_id);
+                                            return p ? (getDisplayName ? getDisplayName(p) : (p.first_name || 'User')) : 'Unknown';
+                                        })()}
+                                    </div>
+                                )}
+
                                 {/* Shared Post Card */}
                                 {hasSharedPost && (
                                     <div className="mb-1" onClick={(e) => e.stopPropagation()}>

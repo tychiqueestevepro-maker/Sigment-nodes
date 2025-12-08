@@ -135,12 +135,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
         try {
             await fetch('/api/v1/auth/logout', { method: 'POST' })
             setUser(null)
-            // Clear all user-related localStorage items
-            localStorage.removeItem('sigment_user_id')
-            localStorage.removeItem('sigment_user_email')
-            localStorage.removeItem('sigment_user')
-            localStorage.removeItem('sigment_org_id')
-            localStorage.removeItem('access_token')
+
+            // SECURITY: Clear EVERYTHING from localStorage on logout.
+            // This ensures no cached messages, groups, or organization data remain for the next user.
+            localStorage.clear();
+
             router.push('/login')
         } catch (error) {
             console.error('Logout error:', error)

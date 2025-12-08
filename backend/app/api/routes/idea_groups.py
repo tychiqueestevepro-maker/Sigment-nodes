@@ -30,8 +30,30 @@ async def get_idea_groups(
     """
     Get all idea groups the current user is a member of.
     Sorted by updated_at descending.
+    (Optimized with SQL RPC)
     """
     try:
+        # Try optimized RPC first
+        try:
+            rpc_response = supabase.rpc(
+                'get_user_idea_groups_optimized',
+                {
+                    'p_user_id': str(current_user.id),
+                    'p_org_id': str(current_user.organization_id),
+                    'p_limit': limit,
+                    'p_offset': offset
+                }
+            ).execute()
+            
+            if rpc_response.data is not None:
+                # Pydantic will parse the JSON list directly
+                return rpc_response.data
+                
+        except Exception as rpc_error:
+            logger.warning(f"⚠️ Groups RPC not available, using fallback: {rpc_error}")
+
+        # --- FALLBACK TO ORIGINAL IMPLEMENTATION ---
+        
         # Get groups where user is a member
         response = supabase.table("idea_group_members")\
             .select("idea_group_id")\
@@ -864,9 +886,31 @@ async def get_group_messages(
     current_user: CurrentUser = Depends(get_current_user)
 ):
     """
-    Get messages for a group.
+    Get messages for a group (OPTIMIZED).
+    Uses single SQL RPC call for maximum performance.
     """
     try:
+        # Try optimized RPC first
+        try:
+            rpc_response = supabase.rpc(
+                'get_group_messages_optimized',
+                {
+                    'p_group_id': str(group_id),
+                    'p_user_id': str(current_user.id),
+                    'p_limit': limit,
+                    'p_offset': offset
+                }
+            ).execute()
+            
+            if rpc_response.data is not None:
+                # Pydantic will parse the JSON list directly
+                return rpc_response.data
+                
+        except Exception as rpc_error:
+            logger.warning(f"⚠️ Group Messages RPC not available, using fallback: {rpc_error}")
+            
+        # --- FALLBACK TO ORIGINAL IMPLEMENTATION ---
+        
         # Verify membership
         member_check = supabase.table("idea_group_members")\
             .select("user_id")\
@@ -908,7 +952,7 @@ async def get_group_messages(
             if msg["sender_id"] == str(current_user.id):
                 msg_time = msg["created_at"]
                 for m in members_data:
-                    # Check if member read this message (last_read_at >= created_at)
+                    # Check if member member created read this message (last_read_at >= created_at)
                     if m.get("last_read_at") and m.get("last_read_at") >= msg_time:
                         u_info = m.get("users") or {}
                         read_by.append({

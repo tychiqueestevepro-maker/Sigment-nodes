@@ -32,7 +32,8 @@ import {
     Quote,
     Calendar,
     CheckCircle2,
-    Ban
+    Ban,
+    Paperclip
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MemberPicker } from '@/components/shared/MemberPicker';
@@ -204,6 +205,12 @@ export default function GroupsPage() {
         try {
             const data = await apiClient.get<IdeaGroup[]>('/idea-groups');
             setGroups(data);
+
+            // Cache for instant load next time
+            if (user && organization) {
+                localStorage.setItem(`cached_groups_${organization.id}_${user.id}`, JSON.stringify(data));
+            }
+
             return data;
         } catch (error) {
             console.error('Error fetching groups:', error);
@@ -212,7 +219,22 @@ export default function GroupsPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [apiClient]);
+    }, [apiClient, user, organization]);
+
+    // Load from cache immediately on mount
+    useEffect(() => {
+        if (user && organization) {
+            const cached = localStorage.getItem(`cached_groups_${organization.id}_${user.id}`);
+            if (cached) {
+                try {
+                    setGroups(JSON.parse(cached));
+                    setIsLoading(false); // Show content immediately
+                } catch (e) {
+                    console.error('Error parsing cached groups', e);
+                }
+            }
+        }
+    }, [user, organization]);
 
     useEffect(() => {
         if (user) {
@@ -253,13 +275,8 @@ export default function GroupsPage() {
         g.description?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    if (isLoading) {
-        return (
-            <div className="h-full flex items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-gray-300" />
-            </div>
-        );
-    }
+    // Removed blocking loader to allow UI shell to render immediately
+    // if (isLoading) { ... }
 
     return (
         <div className="h-full flex bg-white">
@@ -287,7 +304,19 @@ export default function GroupsPage() {
 
                 {/* Groups List */}
                 <div className="flex-1 overflow-y-auto px-2">
-                    {filteredGroups.length === 0 ? (
+                    {isLoading ? (
+                        <div className="space-y-2 pt-2">
+                            {[1, 2, 3, 4, 5].map((i) => (
+                                <div key={i} className="flex items-center gap-3 p-3 rounded-xl animate-pulse">
+                                    <div className="w-10 h-10 bg-gray-100 rounded-lg shrink-0"></div>
+                                    <div className="flex-1 space-y-2">
+                                        <div className="h-4 bg-gray-100 rounded w-24"></div>
+                                        <div className="h-3 bg-gray-50 rounded w-16"></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : filteredGroups.length === 0 ? (
                         <div className="text-center py-10">
                             <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3">
                                 <Users className="w-6 h-6 text-gray-300" />
@@ -409,47 +438,178 @@ function GroupView({ group, currentUser, apiClient, onRefresh }: GroupViewProps)
     // Derived current item based on selection or fallback to first
     const currentItem = items.find(i => i.id === selectedItemId) || (items.length > 0 ? items[0] : null);
 
-    // Fetch messages with polling for reactivity
+    // State for tracking group switch
+    const [prevGroupId, setPrevGroupId] = useState<string | null>(null);
+
+    // Fetch messages with polling
+    // Since we use key={group.id} on parent, this component REMOUNTS on change.
+    // So distinct state per group is guaranteed. Simple logic is best.
     useEffect(() => {
-        async function fetchMessages() {
+        let isCancelled = false;
+        const cacheKey = `cached_messages_group_${group.id}`;
+
+        // Check if we switched groups
+        const isNewGroup = prevGroupId !== group.id;
+
+        async function fetchMessages(isPolling = false) {
+            if (isCancelled) return;
+
+            // Logic for group switch (Instant Feedback)
+            if (isNewGroup && !isPolling) {
+                // Try to load cache immediately
+                const cached = localStorage.getItem(cacheKey);
+                let loadedFromCache = false;
+
+                if (cached) {
+                    try {
+                        const parsed = JSON.parse(cached);
+                        if (parsed && Array.isArray(parsed)) {
+                            setMessages(parsed);
+                            setIsLoadingMessages(false);
+                            loadedFromCache = true;
+                        }
+                    } catch (e) { }
+                }
+
+                if (!loadedFromCache) {
+                    setMessages([]); // Clear old messages instantly
+                    setIsLoadingMessages(true);
+                }
+
+                // Update tracker - ONLY if not cancelled (safe in async 1 tick)
+                if (!isCancelled) {
+                    setPrevGroupId(group.id);
+                }
+            } else if (!isPolling && messages.length === 0) {
+                // Initial load (page refresh case), try cache too
+                const cached = localStorage.getItem(cacheKey);
+                if (cached) {
+                    try {
+                        const parsed = JSON.parse(cached);
+                        if (parsed && Array.isArray(parsed)) {
+                            setMessages(parsed);
+                            setIsLoadingMessages(false);
+                        } else {
+                            setIsLoadingMessages(true);
+                        }
+                    } catch (e) { setIsLoadingMessages(true); }
+                } else {
+                    setIsLoadingMessages(true);
+                }
+            }
+
             try {
                 const data = await apiClient.get<GroupMessage[]>(`/idea-groups/${group.id}/messages`);
-                setMessages(data);
-            } catch (error) {
-                console.error('Error loading messages:', error);
+
+                if (!isCancelled) {
+                    setMessages(data);
+                    // Update Cache
+                    localStorage.setItem(cacheKey, JSON.stringify(data));
+
+                    // Specific fix for "member removed" case during polling
+                    // If we get here, we are a member.
+                    // If fetch failed with 403, catch block handles it.
+                }
+            } catch (error: any) {
+                if (!isCancelled && !isPolling) {
+                    console.error('Error loading messages:', error);
+
+                    if (error.status === 403 || error.message?.includes('403') || error.message?.includes('member')) {
+                        toast.error('You are no longer a member of this group');
+                        onRefresh();
+                    }
+                }
             } finally {
-                setIsLoadingMessages(false);
+                if (!isCancelled && !isPolling) {
+                    setIsLoadingMessages(false);
+                }
             }
         }
 
         // Initial fetch
-        setIsLoadingMessages(true);
-        fetchMessages();
+        fetchMessages(false);
 
-        // Poll every 15 seconds for new messages (more reasonable interval)
-        const pollInterval = setInterval(fetchMessages, 15000);
+        // Poll every 15 seconds for new messages
+        const pollInterval = setInterval(() => fetchMessages(true), 15000);
 
-        return () => clearInterval(pollInterval);
+        return () => {
+            isCancelled = true;
+            clearInterval(pollInterval);
+        };
     }, [group.id, apiClient]);
 
     // Fetch items
+    // Fetch items with Cache
     useEffect(() => {
+        let isCancelled = false;
+        const cacheKey = `cached_items_group_${group.id}`;
+
         async function fetchItems() {
-            setIsLoadingItems(true);
+            if (isCancelled) return;
+
+            // 1. Try Cache First for Instant Display
+            const cached = localStorage.getItem(cacheKey);
+            let loadedFromCache = false;
+
+            if (cached) {
+                try {
+                    const parsed = JSON.parse(cached);
+                    if (parsed && Array.isArray(parsed)) {
+                        setItems(parsed);
+                        // Auto-select first item if available and none selected
+                        if (parsed.length > 0 && !selectedItemId) {
+                            setSelectedItemId(parsed[0].id);
+                        }
+                        setIsLoadingItems(false);
+                        loadedFromCache = true;
+                    }
+                } catch (e) { console.error("Cache items parse error", e); }
+            }
+
+            if (!loadedFromCache) {
+                setIsLoadingItems(true);
+            }
+
             try {
                 const data = await apiClient.get<GroupItem[]>(`/idea-groups/${group.id}/items`);
-                setItems(data);
-                // Auto-select first item if available and none selected
-                if (data.length > 0) {
-                    setSelectedItemId(data[0].id);
+
+                if (!isCancelled) {
+                    setItems(data);
+
+                    // Auto-select first if we didn't have cache, OR if we did butselection logic needs refresh? 
+                    // Actually better to preserve selection if user is interacting.
+                    // Only auto-select if no selection exists.
+                    if (data.length > 0) {
+                        // We can read the current state inside the functional update or ref, but here inside effect 'selectedItemId' is stale?
+                        // Dependency array doesn't include selectedItemId.
+                        // Let's just set it if we really need to. Ideally we check if 'selectedItemId' is still valid.
+                        // For now, let's replicate original logic but safer.
+                        // Actually original logic was: if (data.length > 0) setSelectedItemId(data[0].id); 
+                        // This overwrites user selection on every poll/refresh! That's bad UX.
+                        // I will only set it if NO current selection is made.
+                        // Since I can't easily access current state without deps, I'll assume if loadedFromCache is false we can set it.
+                        if (!loadedFromCache) {
+                            setSelectedItemId(data[0].id);
+                        }
+                    }
+
+                    // Update Cache
+                    localStorage.setItem(cacheKey, JSON.stringify(data));
                 }
             } catch (error) {
-                console.error('Error loading items:', error);
+                if (!isCancelled) {
+                    console.error('Error loading items:', error);
+                }
             } finally {
-                setIsLoadingItems(false);
+                if (!isCancelled) {
+                    setIsLoadingItems(false);
+                }
             }
         }
+
         fetchItems();
+
+        return () => { isCancelled = true; };
     }, [group.id, apiClient]);
 
     const handleRemoveItem = async () => {
@@ -660,9 +820,35 @@ function GroupView({ group, currentUser, apiClient, onRefresh }: GroupViewProps)
                 <>
                     {/* Messages Area */}
                     <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
-                        {isLoadingMessages ? (
-                            <div className="flex justify-center pt-10">
-                                <Loader2 className="w-8 h-8 animate-spin text-gray-300" />
+                        {isLoadingMessages && messages.length === 0 ? (
+                            <div className="space-y-4 animate-pulse">
+                                {/* Skeleton: Received message */}
+                                <div className="flex justify-start">
+                                    <div className="max-w-[70%]">
+                                        <div className="h-3 w-20 bg-gray-200 rounded mb-1.5"></div>
+                                        <div className="px-4 py-3 bg-white rounded-2xl rounded-bl-md border border-gray-100 shadow-sm">
+                                            <div className="h-4 w-48 bg-gray-200 rounded"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {/* Skeleton: Sent message */}
+                                <div className="flex justify-end">
+                                    <div className="max-w-[70%]">
+                                        <div className="px-4 py-3 bg-gray-300 rounded-2xl rounded-br-md">
+                                            <div className="h-4 w-32 bg-gray-400 rounded"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {/* Skeleton: Received message */}
+                                <div className="flex justify-start">
+                                    <div className="max-w-[70%]">
+                                        <div className="h-3 w-16 bg-gray-200 rounded mb-1.5"></div>
+                                        <div className="px-4 py-3 bg-white rounded-2xl rounded-bl-md border border-gray-100 shadow-sm">
+                                            <div className="h-4 w-64 bg-gray-200 rounded mb-2"></div>
+                                            <div className="h-4 w-40 bg-gray-200 rounded"></div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         ) : messages.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-full text-center">
@@ -1080,41 +1266,66 @@ function GroupView({ group, currentUser, apiClient, onRefresh }: GroupViewProps)
     );
 }
 
-// --- Message Input ---
+// --- Message Input (Enhanced - Same as Chat page) ---
 interface MessageInputProps {
     onSend: (content: string) => void;
 }
 
 function MessageInput({ onSend }: MessageInputProps) {
-    const [message, setMessage] = useState('');
+    const [content, setContent] = useState('');
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (message.trim()) {
-            onSend(message);
-            setMessage('');
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+            e.preventDefault();
+            handleSubmit();
         }
     };
 
+    const handleSubmit = () => {
+        if (!content.trim()) return;
+        onSend(content);
+        setContent('');
+        textareaRef.current?.focus();
+    };
+
     return (
-        <form onSubmit={handleSubmit} className="p-4 bg-white border-t border-gray-200">
-            <div className="flex items-center gap-3">
-                <input
-                    type="text"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Write a message..."
-                    className="flex-1 px-4 py-3 bg-gray-50 border-0 rounded-full text-sm focus:ring-2 focus:ring-black focus:bg-white transition-all"
-                />
-                <button
-                    type="submit"
-                    disabled={!message.trim()}
-                    className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    <Send size={18} />
-                </button>
+        <div className="p-4">
+            <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden transition-shadow hover:shadow-2xl duration-300 group focus-within:ring-2 focus-within:ring-black/5">
+                <div className="relative">
+                    <textarea
+                        ref={textareaRef}
+                        value={content}
+                        onChange={(e) => setContent(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder="Type your message..."
+                        className="w-full h-20 px-5 py-4 bg-transparent text-gray-900 placeholder-gray-400 resize-none focus:outline-none text-base"
+                    />
+                    <div className="absolute bottom-3 right-3 flex items-center gap-3">
+                        <span className="text-[10px] font-medium text-gray-300 uppercase tracking-wide hidden sm:inline-block">
+                            ⌘ + Enter
+                        </span>
+                        {/* Attachment Button (visual placeholder for now) */}
+                        <button
+                            type="button"
+                            className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all"
+                            title="Attach files (coming soon)"
+                            disabled
+                        >
+                            <Paperclip className="w-4 h-4" />
+                        </button>
+                        {/* Send Button */}
+                        <button
+                            onClick={handleSubmit}
+                            disabled={!content.trim()}
+                            className="p-2.5 bg-black text-white rounded-xl shadow-md hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95"
+                        >
+                            <Send className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
             </div>
-        </form>
+        </div>
     );
 }
 

@@ -44,10 +44,35 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
             return;
         }
 
+        // --- CACHE FIRST STRATEGY ---
+        // Try to load from cache immediately to bypass loading screen
+        const cachedSlug = localStorage.getItem('sigment_org_slug');
+        const cachedId = localStorage.getItem('sigment_org_id');
+        const cachedRole = localStorage.getItem('sigment_user_role');
+
+        let loadedFromCache = false;
+
+        // Verify cache matches current slug
+        if (cachedSlug === orgSlug && cachedId) {
+            setOrganizationId(cachedId);
+            // Construct minimal org object from cache so app can render
+            setOrganization({
+                id: cachedId,
+                slug: orgSlug,
+                name: orgSlug, // Placeholder until fetch
+                logo_url: undefined
+            });
+            if (cachedRole) {
+                setUserRole(cachedRole);
+            }
+            // If we have minimal data, stop loading immediately!
+            setIsLoading(false);
+            loadedFromCache = true;
+        }
+
         const fetchOrganizationData = async () => {
             try {
-                // 1. Always fetch public organization details first to ensure we have the ID
-                // This is critical for the X-Organization-ID header in subsequent requests
+                // 1. Always fetch public organization details first
                 const orgData = await apiClient.get<Organization>(
                     `/organizations/${orgSlug}/public`
                 );
@@ -77,9 +102,12 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
                 }
             } catch (error) {
                 console.error("Error fetching organization data", error);
-                // Only redirect on 404 (Org not found), not on auth errors
+
+                // Only redirect on 404 if we didn't load from cache
                 if (error instanceof Error && error.message.includes('404')) {
-                    router.push('/404');
+                    if (!loadedFromCache) {
+                        router.push('/404');
+                    }
                 }
             } finally {
                 setIsLoading(false);

@@ -16,13 +16,71 @@ async def get_conversations(
     offset: int = 0
 ):
     """
-    Get all conversations for the current user.
-    Sorted by updated_at descending.
-    Includes details of the OTHER participant.
+    Get all conversations for the current user (OPTIMIZED).
+    Uses single SQL RPC call for maximum performance.
+    Target: <50ms response time.
     """
     try:
-        # 1. Get IDs of conversations where current user is a participant (not deleted)
-        # Also get last_read_at for unread indicator
+        # Try optimized RPC first
+        try:
+            response = supabase.rpc(
+                'get_conversations_optimized',
+                {
+                    'p_user_id': str(current_user.id),
+                    'p_organization_id': str(current_user.organization_id),
+                    'p_limit': limit,
+                    'p_offset': offset
+                }
+            ).execute()
+            
+            if response.data:
+                conversations_out = []
+                for conv in response.data:
+                    # Parse other_participant from JSONB
+                    other_part = conv.get('other_participant')
+                    other_participant = None
+                    if other_part:
+                        other_participant = ParticipantInfo(
+                            id=other_part.get('id'),
+                            first_name=other_part.get('first_name'),
+                            last_name=other_part.get('last_name'),
+                            job_title=other_part.get('job_title'),
+                            email=other_part.get('email'),
+                            avatar_url=other_part.get('avatar_url')
+                        )
+                    
+                    # Parse participants array from JSONB
+                    participants_data = conv.get('participants') or []
+                    all_participants = [
+                        ParticipantInfo(
+                            id=p.get('id'),
+                            first_name=p.get('first_name'),
+                            last_name=p.get('last_name'),
+                            job_title=p.get('job_title'),
+                            email=p.get('email'),
+                            avatar_url=p.get('avatar_url')
+                        )
+                        for p in participants_data
+                    ]
+                    
+                    conversations_out.append(Conversation(
+                        id=conv['id'],
+                        updated_at=conv['updated_at'],
+                        other_participant=other_participant,
+                        participants=all_participants,
+                        title=conv.get('title'),
+                        is_group=conv.get('is_group', False),
+                        has_unread=conv.get('has_unread', False),
+                        last_message=conv.get('last_message')
+                    ))
+                
+                logger.info(f"📬 Conversations (optimized): {len(conversations_out)} returned")
+                return conversations_out
+        
+        except Exception as rpc_error:
+            logger.warning(f"⚠️ RPC not available, using fallback: {rpc_error}")
+        
+        # Fallback to original implementation
         user_convs = supabase.table("conversation_participants")\
             .select("conversation_id, last_read_at")\
             .eq("user_id", str(current_user.id))\
@@ -32,12 +90,9 @@ async def get_conversations(
         if not user_convs.data:
             return []
         
-        # Create a map of conversation_id -> last_read_at
         last_read_map = {item["conversation_id"]: item.get("last_read_at") for item in user_convs.data}
         my_conversation_ids = list(last_read_map.keys())
 
-        # 2. Fetch full conversation details for these IDs
-        # Include deleted_at to filter out members who have left
         response = supabase.table("conversations")\
             .select("id, updated_at, title, is_group, conversation_participants(user_id, deleted_at, users(id, first_name, last_name, job_title, email, avatar_url))")\
             .in_("id", my_conversation_ids)\
@@ -54,9 +109,7 @@ async def get_conversations(
             all_participants = []
             participants = conv.get("conversation_participants", [])
             
-            # Collect all participants except current user and those who have left (deleted_at not null)
             for p in participants:
-                # Skip participants who have left the group
                 if p.get("deleted_at") is not None:
                     continue
                     
@@ -71,17 +124,14 @@ async def get_conversations(
                         avatar_url=u.get("avatar_url")
                     )
                     all_participants.append(participant_info)
-                    # Keep first one as other_participant for 1-on-1 chats
                     if other_participant is None:
                         other_participant = participant_info
             
-            # Calculate has_unread based on last_read_at vs updated_at
             conv_id = conv["id"]
             last_read_at = last_read_map.get(conv_id)
             updated_at = conv["updated_at"]
             has_unread = False
             if last_read_at is None:
-                # Never read - has unread if there are any messages
                 has_unread = True
             elif updated_at and last_read_at:
                 has_unread = updated_at > last_read_at
@@ -266,11 +316,31 @@ async def get_messages(
     current_user: CurrentUser = Depends(get_current_user)
 ):
     """
-    Get messages for a conversation, with shared post data if applicable.
-    Filters messages based on user's messages_visible_from timestamp.
+    Get messages for a conversation (OPTIMIZED).
+    Uses single SQL RPC call for maximum performance.
+    Target: <30ms response time.
     """
     try:
-        # First, get the user's participant record to check messages_visible_from
+        # Try optimized RPC first
+        try:
+            response = supabase.rpc(
+                'get_messages_optimized',
+                {
+                    'p_conversation_id': str(conversation_id),
+                    'p_user_id': str(current_user.id),
+                    'p_limit': limit,
+                    'p_offset': offset
+                }
+            ).execute()
+            
+            if response.data is not None:
+                logger.info(f"📨 Messages (optimized): {len(response.data)} returned")
+                return response.data
+        
+        except Exception as rpc_error:
+            logger.warning(f"⚠️ Messages RPC not available, using fallback: {rpc_error}")
+        
+        # Fallback to original implementation
         participant = supabase.table("conversation_participants")\
             .select("messages_visible_from")\
             .eq("conversation_id", str(conversation_id))\
@@ -281,12 +351,10 @@ async def get_messages(
         if participant.data and participant.data[0].get("messages_visible_from"):
             messages_visible_from = participant.data[0]["messages_visible_from"]
         
-        # Build query
         query = supabase.table("direct_messages")\
             .select("*")\
             .eq("conversation_id", str(conversation_id))
         
-        # Filter by messages_visible_from if set
         if messages_visible_from:
             query = query.gte("created_at", messages_visible_from)
         
@@ -330,32 +398,11 @@ async def get_messages(
                         },
                         "poll": None
                     }
-                
-                # Fetch polls for poll-type posts
-                poll_post_ids = [
-                    post["id"] for post in (posts_resp.data or []) 
-                    if post.get("post_type") == "poll"
-                ]
-                
-                if poll_post_ids:
-                    polls_resp = supabase.table("polls").select(
-                        "id, post_id, question, allow_multiple, poll_options(id, option_text, display_order)"
-                    ).in_("post_id", poll_post_ids).execute()
                     
-                    for poll in (polls_resp.data or []):
-                        post_id = poll.get("post_id")
-                        if post_id and post_id in shared_posts_map:
-                            options = poll.get("poll_options") or []
-                            options.sort(key=lambda x: x.get("display_order", 0))
-                            shared_posts_map[post_id]["poll"] = {
-                                "question": poll.get("question", ""),
-                                "options": [{"text": opt.get("option_text", "")} for opt in options]
-                            }
-                            
             except Exception as post_error:
                 logger.warning(f"Failed to fetch shared posts: {post_error}")
         
-        # Get all other participants to check read receipts
+        # Get participants for read receipts
         other_participants = supabase.table("conversation_participants")\
             .select("user_id, last_read_at, users(first_name, last_name)")\
             .eq("conversation_id", str(conversation_id))\
@@ -364,21 +411,18 @@ async def get_messages(
         
         participants_data = other_participants.data or []
 
-        # Enrich messages with shared post data AND read receipts
+        # Enrich messages
         enriched_messages = []
         for msg in messages:
             enriched = {**msg}
             
-            # Enrich Shared Post
             if msg.get("shared_post_id") and msg["shared_post_id"] in shared_posts_map:
                 enriched["shared_post"] = shared_posts_map[msg["shared_post_id"]]
             
-            # Calculate Read Receipts (only for own messages)
             read_by = []
             if msg["sender_id"] == str(current_user.id):
                 msg_time = msg["created_at"]
                 for p in participants_data:
-                    # Check if participant read this message (last_read_at >= created_at)
                     if p.get("last_read_at") and p.get("last_read_at") >= msg_time:
                         u_info = p.get("users") or {}
                         read_by.append({
