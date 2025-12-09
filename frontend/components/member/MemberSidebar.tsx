@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import { useApiClient } from '@/hooks/useApiClient';
 import { useUser } from '@/contexts';
 import {
     PanelLeftClose,
@@ -25,6 +27,7 @@ interface MenuItem {
     label: string;
     icon: React.ReactNode;
     href: string;
+    badge?: number;
 }
 
 export const MemberSidebar: React.FC = () => {
@@ -35,14 +38,32 @@ export const MemberSidebar: React.FC = () => {
     const pathname = usePathname();
     const params = useParams();
     const { user, logout } = useUser();
+    const apiClient = useApiClient();
 
     const orgSlug = params?.orgSlug as string;
+
+    // Fetch unread count for Chat
+    const { data: unreadData } = useQuery({
+        queryKey: ['unread-status', orgSlug],
+        queryFn: async () => {
+            return apiClient.get<{ unread_conversations_count: number }>('/chat/unread-status');
+        },
+        refetchInterval: 15000,
+        enabled: !!user
+    });
+
+    const unreadCount = unreadData?.unread_conversations_count || 0;
 
     const menuItems: MenuItem[] = [
         { label: 'Home', icon: <Home size={18} />, href: `/${orgSlug}/member` },
         { label: 'Node', icon: <Edit3 size={18} />, href: `/${orgSlug}/member/node` },
         { label: 'Track', icon: <FileCheck size={18} />, href: `/${orgSlug}/tracking` },
-        { label: 'Chat', icon: <MessageCircle size={18} />, href: `/${orgSlug}/member/chat` },
+        {
+            label: 'Chat',
+            icon: <MessageCircle size={18} />,
+            href: `/${orgSlug}/member/chat`,
+            badge: unreadCount > 0 ? unreadCount : undefined
+        },
         { label: 'Groups', icon: <Users size={18} />, href: `/${orgSlug}/member/groups` },
     ];
 
@@ -108,7 +129,17 @@ export const MemberSidebar: React.FC = () => {
                                 >
                                     {item.icon}
                                 </span>
-                                {isOpen && <span>{item.label}</span>}
+                                {isOpen && (
+                                    <span className="flex-1 flex justify-between items-center">
+                                        {item.label}
+                                        {item.badge && (
+                                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${isActive ? 'bg-white text-black' : 'bg-black text-white'
+                                                }`}>
+                                                {item.badge}
+                                            </span>
+                                        )}
+                                    </span>
+                                )}
                             </Link>
                         );
                     })}

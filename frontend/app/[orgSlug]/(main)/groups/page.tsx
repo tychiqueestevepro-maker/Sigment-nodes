@@ -196,12 +196,11 @@ export default function GroupsPage() {
     const [groups, setGroups] = useState<IdeaGroup[]>([]);
     const [selectedGroupId, setSelectedGroupId] = useState<string | null>(initialSelectedId);
     const [isLoading, setIsLoading] = useState(true);
-
     const [searchQuery, setSearchQuery] = useState('');
 
 
 
-    const fetchGroups = useCallback(async () => {
+    const fetchGroups = useCallback(async (silent: boolean = false) => {
         try {
             const data = await apiClient.get<IdeaGroup[]>('/idea-groups');
             setGroups(data);
@@ -214,7 +213,10 @@ export default function GroupsPage() {
             return data;
         } catch (error) {
             console.error('Error fetching groups:', error);
-            toast.error('Could not load groups');
+            // Only show toast on initial load, not during polling
+            if (!silent) {
+                toast.error('Could not load groups');
+            }
             return [];
         } finally {
             setIsLoading(false);
@@ -238,15 +240,15 @@ export default function GroupsPage() {
 
     useEffect(() => {
         if (user) {
-            fetchGroups().then((data) => {
+            fetchGroups(false).then((data) => {
                 if (data.length > 0 && !initialSelectedId) {
                     setSelectedGroupId(data[0].id);
                 }
             });
 
-            // Poll every 30 seconds to update unread indicators
+            // Poll every 30 seconds to update unread indicators (SILENT - no toasts)
             const pollInterval = setInterval(() => {
-                fetchGroups();
+                fetchGroups(true);
             }, 30000);
 
             return () => clearInterval(pollInterval);
@@ -1030,7 +1032,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh }: GroupViewProps)
                                             <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#94A3B8 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
 
                                             {/* SVG Arrows */}
-                                            <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
+                                            <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
                                                 <defs>
                                                     <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="20" refY="3.5" orient="auto">
                                                         <polygon points="0 0, 10 3.5, 0 7" fill="#94A3B8" />
@@ -1049,10 +1051,11 @@ function GroupView({ group, currentUser, apiClient, onRefresh }: GroupViewProps)
                                                     return (
                                                         <path
                                                             key={i}
-                                                            d={`M${pos.x}%,${pos.y}% Q50%,${pos.y > 50 ? '60%' : '40%'} 50%,50%`}
+                                                            d={`M${pos.x},${pos.y} Q50,${pos.y > 50 ? '60' : '40'} 50,50`}
                                                             fill="none"
                                                             stroke="#CBD5E1"
                                                             strokeWidth="2"
+                                                            vectorEffect="non-scaling-stroke"
                                                             strokeDasharray="5,5"
                                                             markerEnd="url(#arrowhead)"
                                                             className="animate-in fade-in duration-700"

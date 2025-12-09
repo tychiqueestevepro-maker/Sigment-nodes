@@ -85,41 +85,53 @@ def get_conversations(
 @router.get("/unread-status")
 def get_unread_status(current_user: CurrentUser = Depends(get_current_user)):
     """
-    Check if the user has any unread messages across all conversations.
+    Get the count of unread conversations.
     """
     try:
-        # Get user's conversations and last_read_at, joining with conversations to get updated_at
-        response = supabase.table("conversation_participants")\
-            .select("conversation_id, last_read_at, conversations!inner(updated_at)")\
-            .eq("user_id", str(current_user.id))\
-            .is_("deleted_at", "null")\
-            .execute()
-            
-        if not response.data:
-            return {"has_unread": False}
-            
-        for item in response.data:
-            last_read_at = item.get("last_read_at")
-            conversation = item.get("conversations")
-            
-            if not conversation:
-                continue
+        count = 0
+        # Try RPC call
+        try:
+            response = supabase.rpc(
+                'get_unread_conversations_count',
+                {
+                    'p_user_id': str(current_user.id),
+                    'p_organization_id': str(current_user.organization_id)
+                }
+            ).execute()
+            if response.data is not None:
+                count = response.data
+        except Exception:
+            # Fallback: Count in Python (less efficient but works)
+            try:
+                # Fetch all participants rows for this user
+                # We need to join conversations to check updated_at vs last_read_at
+                fallback_response = supabase.table("conversation_participants")\
+                    .select("conversation_id, last_read_at, conversations!inner(updated_at)")\
+                    .eq("user_id", str(current_user.id))\
+                    .is_("deleted_at", "null")\
+                    .execute()
                 
-            updated_at = conversation.get("updated_at")
+                if fallback_response.data:
+                    c = 0
+                    for item in fallback_response.data:
+                        conv = item.get("conversations")
+                        if not conv: continue
+                        
+                        last_read = item.get("last_read_at")
+                        updated = conv.get("updated_at")
+                        
+                        # If never read, or updated after last read
+                        if not last_read or (updated and updated > last_read):
+                            c += 1
+                    count = c
+            except Exception as e2:
+                logger.error(f"Fallback unread check failed: {e2}")
+                pass
             
-            if not updated_at:
-                continue
-            
-            if last_read_at is None:
-                return {"has_unread": True}
-            
-            if updated_at > last_read_at:
-                return {"has_unread": True}
-                
-        return {"has_unread": False}
+        return {"unread_conversations_count": count}
     except Exception as e:
         logger.error(f"Error checking unread status: {e}")
-        return {"has_unread": False}
+        return {"unread_conversations_count": 0}
 
 
 @router.post("/start", response_model=UUID)
@@ -316,16 +328,24 @@ def send_message(
 @router.post("/{conversation_id}/read")
 def mark_conversation_as_read(
     conversation_id: UUID,
+    payload: Optional[dict] = Body(None),
     current_user: CurrentUser = Depends(get_current_user)
 ):
     """
-    Mark a conversation as read by updating last_read_at.
+    Mark a conversation as read.
+    If 'last_message_created_at' is provided, set last_read_at to that timestamp.
+    Otherwise, set to now().
     """
     from datetime import datetime
     
     try:
+        read_at = datetime.utcnow().isoformat()
+        
+        if payload and 'last_message_created_at' in payload:
+            read_at = payload['last_message_created_at']
+            
         supabase.table("conversation_participants")\
-            .update({"last_read_at": datetime.utcnow().isoformat()})\
+            .update({"last_read_at": read_at})\
             .eq("conversation_id", str(conversation_id))\
             .eq("user_id", str(current_user.id))\
             .execute()

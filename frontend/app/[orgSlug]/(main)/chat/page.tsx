@@ -578,7 +578,10 @@ function ChatWindow({ conversation, currentUser, apiClient, onRefresh, onMarkAsR
 
                 // Mark conversation as read (fire and forget)
                 if (!isCancelled) {
-                    apiClient.post(`/chat/${conversation.id}/read`).then(() => {
+                    const lastMessage = data.length > 0 ? data[data.length - 1] : null;
+                    const payload = lastMessage ? { last_message_created_at: lastMessage.created_at } : {};
+
+                    apiClient.post(`/chat/${conversation.id}/read`, payload).then(() => {
                         if (onMarkAsRead) {
                             onMarkAsRead(conversation.id);
                         }

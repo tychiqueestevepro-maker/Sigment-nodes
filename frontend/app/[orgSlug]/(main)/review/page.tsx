@@ -485,10 +485,10 @@ export default function ReviewPage() {
                     <div className="flex flex-col gap-6 animate-in zoom-in-95 duration-500">
                         <div className="bg-gray-50 rounded-3xl p-8 border border-gray-200 h-[500px] relative overflow-hidden shadow-inner">
                             <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#94A3B8 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
-                            <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
+                            <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
                                 <defs><marker id="arrowhead" markerWidth="10" markerHeight="7" refX="20" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#94A3B8" /></marker></defs>
                                 {visibleCollaborators.map((collab) => (
-                                    <path key={collab.id} d={`M${collab.x}%,${collab.y}% Q50%,${collab.y > 50 ? '60%' : '40%'} 50%,50%`} fill="none" stroke="#CBD5E1" strokeWidth="2" strokeDasharray="5,5" markerEnd="url(#arrowhead)" className="animate-in fade-in duration-700" />
+                                    <path key={collab.id} d={`M${collab.x},${collab.y} Q50,${collab.y > 50 ? '60' : '40'} 50,50`} fill="none" stroke="#CBD5E1" strokeWidth="2" vectorEffect="non-scaling-stroke" strokeDasharray="5,5" markerEnd="url(#arrowhead)" className="animate-in fade-in duration-700" />
                                 ))}
                             </svg>
                             <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 flex flex-col items-center transition-all duration-500" style={{ scale: timelineProgress > 10 ? '1' : '0.5', opacity: timelineProgress > 5 ? 1 : 0 }}>
