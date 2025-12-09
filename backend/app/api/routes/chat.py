@@ -86,52 +86,64 @@ def get_conversations(
 def get_unread_status(current_user: CurrentUser = Depends(get_current_user)):
     """
     Get the count of unread conversations.
+    A conversation is unread only if:
+    - The last message was sent by someone OTHER than the current user
+    - AND the user hasn't read it yet (last_read_at < last message time)
     """
+    count = 0
+    user_id = str(current_user.id)
+    
+    # Try RPC call first
     try:
-        count = 0
-        # Try RPC call
-        try:
-            response = supabase.rpc(
-                'get_unread_conversations_count',
-                {
-                    'p_user_id': str(current_user.id),
-                    'p_organization_id': str(current_user.organization_id)
-                }
-            ).execute()
-            if response.data is not None:
-                count = response.data
-        except Exception:
-            # Fallback: Count in Python (less efficient but works)
-            try:
-                # Fetch all participants rows for this user
-                # We need to join conversations to check updated_at vs last_read_at
-                fallback_response = supabase.table("conversation_participants")\
-                    .select("conversation_id, last_read_at, conversations!inner(updated_at)")\
-                    .eq("user_id", str(current_user.id))\
-                    .is_("deleted_at", "null")\
-                    .execute()
-                
-                if fallback_response.data:
-                    c = 0
-                    for item in fallback_response.data:
-                        conv = item.get("conversations")
-                        if not conv: continue
-                        
-                        last_read = item.get("last_read_at")
-                        updated = conv.get("updated_at")
-                        
-                        # If never read, or updated after last read
-                        if not last_read or (updated and updated > last_read):
-                            c += 1
-                    count = c
-            except Exception as e2:
-                logger.error(f"Fallback unread check failed: {e2}")
-                pass
+        response = supabase.rpc(
+            'get_unread_conversations_count',
+            {
+                'p_user_id': user_id,
+                'p_organization_id': str(current_user.organization_id)
+            }
+        ).execute()
+        if response.data is not None:
+            count = response.data
+            return {"unread_conversations_count": count}
+    except Exception as rpc_err:
+        logger.warning(f"RPC get_unread_conversations_count not available: {rpc_err}")
+    
+    # Fallback: Count in Python
+    try:
+        # Get user's conversation participations
+        participants_resp = supabase.table("conversation_participants")\
+            .select("conversation_id, last_read_at")\
+            .eq("user_id", user_id)\
+            .execute()
+        
+        if not participants_resp.data:
+            return {"unread_conversations_count": 0}
+        
+        for item in participants_resp.data:
+            conv_id = item.get("conversation_id")
+            last_read = item.get("last_read_at")
             
-        return {"unread_conversations_count": count}
-    except Exception as e:
-        logger.error(f"Error checking unread status: {e}")
-        return {"unread_conversations_count": 0}
+            # Get the last message in this conversation that was NOT sent by current user
+            last_msg_resp = supabase.table("messages")\
+                .select("created_at, sender_id")\
+                .eq("conversation_id", conv_id)\
+                .neq("sender_id", user_id)\
+                .order("created_at", desc=True)\
+                .limit(1)\
+                .execute()
+            
+            if last_msg_resp.data and len(last_msg_resp.data) > 0:
+                last_msg = last_msg_resp.data[0]
+                msg_created = last_msg.get("created_at")
+                
+                # If never read OR last read before this message
+                if not last_read or (msg_created and msg_created > last_read):
+                    count += 1
+                    
+    except Exception as fallback_err:
+        logger.error(f"Fallback unread check failed: {fallback_err}")
+    
+    return {"unread_conversations_count": count}
 
 
 @router.post("/start", response_model=UUID)

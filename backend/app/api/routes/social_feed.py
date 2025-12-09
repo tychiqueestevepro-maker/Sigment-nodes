@@ -611,24 +611,24 @@ def get_post_by_id(
         
         post = post_response.data
         
-        # Check if user has liked
+        # Check if user has liked (non-blocking)
         is_liked = False
         try:
             like_check = supabase.table("post_likes").select("id").eq(
                 "post_id", post_id
             ).eq("user_id", user_id).execute()
             is_liked = bool(like_check.data and len(like_check.data) > 0)
-        except:
+        except Exception:
             pass
         
-        # Check if user has saved
+        # Check if user has saved (non-blocking)
         is_saved = False
         try:
             save_check = supabase.table("post_saves").select("id").eq(
                 "post_id", post_id
             ).eq("user_id", user_id).execute()
             is_saved = bool(save_check.data and len(save_check.data) > 0)
-        except:
+        except Exception:
             pass
         
         user_info = post.get("users") or {}
@@ -658,6 +658,10 @@ def get_post_by_id(
         
     except HTTPException:
         raise
+    except OSError as e:
+        # Handle [Errno 35] Resource temporarily unavailable and similar
+        logger.warning(f"⚠️ Connection issue fetching post {post_id}: {e}")
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable, please retry")
     except Exception as e:
         logger.error(f"❌ Error fetching post {post_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
