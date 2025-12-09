@@ -199,37 +199,72 @@ def get_groups_containing_item(
 @router.get("/unread-status")
 def get_groups_unread_status(current_user: CurrentUser = Depends(get_current_user)):
     """
-    Check if the user has any unread messages across all their groups.
-    Optimized to use a single query count.
+    Get count of groups with unread messages.
+    A group is unread only if:
+    - The last message was sent by someone OTHER than the current user
+    - AND the user hasn't read it yet (last_read_at < last message time)
     """
+    unread_count = 0
+    user_id = str(current_user.id)
+    
     try:
-        # Efficiently count messages that are newer than the user's last_read_at for a group
-        # This requires a join and filter
-        # Since we can't easily write complex joins via simple Supabase client calls without raw SQL or RPCs,
-        # we'll iterate efficiently or use a count query if possible.
-        # But we already have get_user_idea_groups_optimized which returns unread_count per group.
-        # So we can just call that RPC with a limit of 100 and sum the counts, or just check if any > 0.
+        # Try optimized RPC first
+        try:
+            rpc_response = supabase.rpc(
+                'get_user_idea_groups_optimized',
+                {
+                    'p_user_id': user_id,
+                    'p_org_id': str(current_user.organization_id),
+                    'p_limit': 100, 
+                    'p_offset': 0
+                }
+            ).execute()
+            
+            if rpc_response.data:
+                for group in rpc_response.data:
+                    if group.get('has_unread', False):
+                        unread_count += 1
+                        
+            return {"has_unread": unread_count > 0, "unread_groups_count": unread_count}
+        except Exception as rpc_err:
+            logger.warning(f"Groups RPC not available: {rpc_err}")
         
-        rpc_response = supabase.rpc(
-            'get_user_idea_groups_optimized',
-            {
-                'p_user_id': str(current_user.id),
-                'p_org_id': str(current_user.organization_id),
-                'p_limit': 100, 
-                'p_offset': 0
-            }
-        ).execute()
+        # Fallback: Count groups with unread in Python
+        # Get user's group memberships
+        memberships = supabase.table("idea_group_members")\
+            .select("idea_group_id, last_read_at")\
+            .eq("user_id", user_id)\
+            .execute()
         
-        if rpc_response.data:
-             for group in rpc_response.data:
-                 if group.get('unread_count', 0) > 0:
-                     return {"has_unread": True, "unread_count": 1} # Just return > 0 indicator and maybe true count later
-
-        return {"has_unread": False, "unread_count": 0}
+        if not memberships.data:
+            return {"has_unread": False, "unread_groups_count": 0}
+        
+        for membership in memberships.data:
+            group_id = membership.get("idea_group_id")
+            last_read = membership.get("last_read_at")
+            
+            # Get the last message in this group that was NOT sent by current user
+            last_msg_resp = supabase.table("idea_group_messages")\
+                .select("created_at, sender_id")\
+                .eq("idea_group_id", group_id)\
+                .neq("sender_id", user_id)\
+                .order("created_at", desc=True)\
+                .limit(1)\
+                .execute()
+            
+            if last_msg_resp.data and len(last_msg_resp.data) > 0:
+                last_msg = last_msg_resp.data[0]
+                msg_created = last_msg.get("created_at")
+                
+                # If never read OR last read before this message
+                if not last_read or (msg_created and msg_created > last_read):
+                    unread_count += 1
+                    
+        return {"has_unread": unread_count > 0, "unread_groups_count": unread_count}
         
     except Exception as e:
         logger.error(f"Error checking groups unread status: {e}")
-        return {"has_unread": False}
+        return {"has_unread": False, "unread_groups_count": 0}
 
 
 @router.post("", response_model=UUID)
