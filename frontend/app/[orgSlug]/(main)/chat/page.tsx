@@ -29,7 +29,7 @@ import {
 import toast from 'react-hot-toast';
 import { MemberPicker } from '@/components/shared/MemberPicker';
 import { useApiClient } from '@/hooks/useApiClient';
-import { SharedPostCard } from '@/components/feed/share';
+import { SharedPostCard, SharedNoteCard } from '@/components/feed/share';
 
 // --- Types ---
 
@@ -69,6 +69,8 @@ interface Message {
     created_at: string;
     shared_post_id?: string;
     shared_post?: any;
+    shared_note_id?: string;
+    shared_note?: any;
     attachment_url?: string;
     attachment_type?: string;
     attachment_name?: string;
@@ -935,6 +937,13 @@ function ChatWindow({ conversation, currentUser, apiClient, onRefresh, onMarkAsR
                                 {hasSharedPost && (
                                     <div className="mb-1" onClick={(e) => e.stopPropagation()}>
                                         <SharedPostCard post={msg.shared_post} />
+                                    </div>
+                                )}
+
+                                {/* Shared Note Card */}
+                                {msg.shared_note && (
+                                    <div className="mb-1" onClick={(e) => e.stopPropagation()}>
+                                        <SharedNoteCard note={msg.shared_note} />
                                     </div>
                                 )}
 

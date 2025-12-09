@@ -1,0 +1,258 @@
+'use client';
+
+import React, { useState } from 'react';
+import { useParams } from 'next/navigation';
+import { X, Search, Users, Send, Loader2, Check } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { useUser } from '@/contexts/UserContext';
+import { useApiClient } from '@/hooks/useApiClient';
+import toast from 'react-hot-toast';
+
+interface Member {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    job_title?: string;
+    avatar_url?: string | null;
+}
+
+interface ShareNoteModalProps {
+    noteId: string;
+    noteTitle: string;
+    onClose: () => void;
+}
+
+export const ShareNoteModal: React.FC<ShareNoteModalProps> = ({ noteId, noteTitle, onClose }) => {
+    const params = useParams();
+    const orgSlug = params.orgSlug as string;
+    const { user } = useUser();
+    const api = useApiClient();
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+    const [isSending, setIsSending] = useState(false);
+    const [sendMode, setSendMode] = useState<'individual' | 'group'>('individual');
+
+    // Fetch organization members
+    const { data: members = [], isLoading } = useQuery<Member[]>({
+        queryKey: ['orgMembers', orgSlug],
+        queryFn: async () => {
+            if (!orgSlug) return [];
+            const res = await fetch(`/api/v1/organizations/${orgSlug}/members`);
+            if (!res.ok) return [];
+            const data = await res.json();
+            return (data || []).filter((m: Member) => m.id !== user?.id);
+        },
+        enabled: !!orgSlug,
+    });
+
+    const filteredMembers = members.filter((member) => {
+        const name = member.name?.toLowerCase() || '';
+        const email = member.email?.toLowerCase() || '';
+        const search = searchTerm.toLowerCase();
+        return name.includes(search) || email.includes(search);
+    });
+
+    const toggleMember = (memberId: string) => {
+        setSelectedMembers((prev) =>
+            prev.includes(memberId)
+                ? prev.filter((id) => id !== memberId)
+                : [...prev, memberId]
+        );
+    };
+
+    const handleShare = async () => {
+        if (selectedMembers.length === 0) {
+            toast.error('Please select at least one member');
+            return;
+        }
+
+        setIsSending(true);
+
+        try {
+            if (selectedMembers.length === 1 || sendMode === 'individual') {
+                // Send to each member individually
+                for (const memberId of selectedMembers) {
+                    // Start or get conversation
+                    const conversationId = await api.post<string>('/chat/start', {
+                        target_user_id: memberId,
+                    });
+
+                    // Send message with shared note
+                    await api.post(`/chat/${conversationId}/messages`, {
+                        content: '',
+                        shared_note_id: noteId,
+                    });
+                }
+                toast.success(`Node shared with ${selectedMembers.length} member${selectedMembers.length > 1 ? 's' : ''}`);
+            } else {
+                // Create group conversation and send there
+                const groupTitle = `Node: ${noteTitle.substring(0, 25)}${noteTitle.length > 25 ? '...' : ''}`;
+                const conversationId = await api.post<string>('/chat/group', {
+                    title: groupTitle,
+                    participant_ids: selectedMembers,
+                });
+
+                // Send message with shared note
+                await api.post(`/chat/${conversationId}/messages`, {
+                    content: '',
+                    shared_note_id: noteId,
+                });
+
+                toast.success('Node shared in new group');
+            }
+
+            onClose();
+        } catch (error) {
+            console.error('Error sharing node:', error);
+            toast.error('Failed to share node');
+        } finally {
+            setIsSending(false);
+        }
+    };
+
+    const getUserInitials = (member: Member) => {
+        if (!member.name) return 'U';
+        const parts = member.name.split(' ');
+        const first = parts[0]?.[0] || '';
+        const last = parts[1]?.[0] || '';
+        return `${first}${last}`.toUpperCase() || 'U';
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                    <h3 className="font-bold text-lg text-gray-900">Share Node</h3>
+                    <button
+                        onClick={onClose}
+                        className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                    >
+                        <X size={20} className="text-gray-500" />
+                    </button>
+                </div>
+
+                {/* Search */}
+                <div className="px-5 py-3 border-b border-gray-100">
+                    <div className="relative">
+                        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Search members..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10 text-sm"
+                        />
+                    </div>
+                </div>
+
+                {/* Send Mode Toggle (only if multiple selected) */}
+                {selectedMembers.length > 1 && (
+                    <div className="px-5 py-3 bg-gray-50 border-b border-gray-100">
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setSendMode('individual')}
+                                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${sendMode === 'individual'
+                                    ? 'bg-black text-white'
+                                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                                    }`}
+                            >
+                                Send Individually
+                            </button>
+                            <button
+                                onClick={() => setSendMode('group')}
+                                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${sendMode === 'group'
+                                    ? 'bg-black text-white'
+                                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                                    }`}
+                            >
+                                <Users size={14} />
+                                Create Group
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Members List */}
+                <div className="max-h-[300px] overflow-y-auto">
+                    {isLoading ? (
+                        <div className="flex items-center justify-center py-8">
+                            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                        </div>
+                    ) : filteredMembers.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                            No members found
+                        </div>
+                    ) : (
+                        <div className="divide-y divide-gray-50">
+                            {filteredMembers.map((member) => (
+                                <button
+                                    key={member.id}
+                                    onClick={() => toggleMember(member.id)}
+                                    className="w-full flex items-center gap-3 px-5 py-3 hover:bg-gray-50 transition-colors text-left"
+                                >
+                                    {/* Avatar */}
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center text-white text-sm font-medium shrink-0 overflow-hidden">
+                                        {member.avatar_url ? (
+                                            <img
+                                                src={member.avatar_url}
+                                                alt={member.name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            getUserInitials(member)
+                                        )}
+                                    </div>
+
+                                    {/* Info */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-medium text-gray-900 truncate">
+                                            {member.name}
+                                        </div>
+                                        <div className="text-sm text-gray-500 truncate">
+                                            {member.job_title || member.role}
+                                        </div>
+                                    </div>
+
+                                    {/* Checkbox */}
+                                    <div
+                                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${selectedMembers.includes(member.id)
+                                            ? 'bg-black border-black'
+                                            : 'border-gray-300'
+                                            }`}
+                                    >
+                                        {selectedMembers.includes(member.id) && (
+                                            <Check size={12} className="text-white" />
+                                        )}
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer */}
+                <div className="px-5 py-4 border-t border-gray-100 bg-gray-50">
+                    <button
+                        onClick={handleShare}
+                        disabled={selectedMembers.length === 0 || isSending}
+                        className="w-full bg-black text-white py-3 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {isSending ? (
+                            <>
+                                <Loader2 size={18} className="animate-spin" />
+                                Sending...
+                            </>
+                        ) : (
+                            <>
+                                <Send size={18} />
+                                Share with {selectedMembers.length || 0} member{selectedMembers.length !== 1 ? 's' : ''}
+                            </>
+                        )}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};

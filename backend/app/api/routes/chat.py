@@ -288,7 +288,35 @@ def get_messages(
         ).execute()
         
         if response.data is not None:
-            return response.data
+            messages = response.data
+            
+            # Enrich messages with shared notes (if any)
+            note_ids = [msg.get('shared_note_id') for msg in messages if msg.get('shared_note_id')]
+            if note_ids:
+                try:
+                    notes_response = supabase.table('notes').select(
+                        'id, content_raw, content_clarified, title_clarified, status, pillar_id, pillars(name, color)'
+                    ).in_('id', note_ids).execute()
+                    
+                    if notes_response.data:
+                        notes_map = {str(n['id']): n for n in notes_response.data}
+                        for msg in messages:
+                            note_id = msg.get('shared_note_id')
+                            if note_id and str(note_id) in notes_map:
+                                note = notes_map[str(note_id)]
+                                pillar = note.get('pillars') or {}
+                                msg['shared_note'] = {
+                                    'id': note['id'],
+                                    'title': note.get('title_clarified') or (note.get('content_clarified', '') or '')[:60] or (note.get('content_raw', '') or '')[:60],
+                                    'content': note.get('content_clarified') or note.get('content_raw'),
+                                    'status': note.get('status'),
+                                    'pillar_name': pillar.get('name'),
+                                    'pillar_color': pillar.get('color')
+                                }
+                except Exception as note_err:
+                    logger.warning(f"Could not enrich notes: {note_err}")
+            
+            return messages
             
         return []
     
@@ -317,6 +345,10 @@ def send_message(
         # Add shared post reference if provided
         if message.shared_post_id:
             message_data["shared_post_id"] = str(message.shared_post_id)
+        
+        # Add shared note reference if provided
+        if message.shared_note_id:
+            message_data["shared_note_id"] = str(message.shared_note_id)
         
         # Add attachment info if provided
         if message.attachment_url:

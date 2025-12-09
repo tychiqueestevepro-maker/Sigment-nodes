@@ -7,6 +7,7 @@ import { Layers, CheckCircle2, XCircle, Eye, Heart, MessageCircle, Share2, Archi
 import { NoteItem } from '@/types/feed';
 import { CommentSection } from '@/components/feed/comments';
 import { useApiClient } from '@/hooks/useApiClient';
+import { ShareNoteModal } from '@/components/feed/share';
 
 interface IdeaCardProps {
     item: NoteItem;
@@ -34,6 +35,7 @@ export const IdeaCard: React.FC<IdeaCardProps> = ({ item }) => {
     const orgSlug = params.orgSlug as string;
     const apiClient = useApiClient();
     const [showComments, setShowComments] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
     const [isLiked, setIsLiked] = useState(item.is_liked || false);
     const [likesCount, setLikesCount] = useState(item.likes_count || 0);
     const [commentsCount, setCommentsCount] = useState(item.comments_count || 0);
@@ -63,16 +65,9 @@ export const IdeaCard: React.FC<IdeaCardProps> = ({ item }) => {
         }
     };
 
-    const handleShare = async (e: React.MouseEvent) => {
+    const handleShare = (e: React.MouseEvent) => {
         e.stopPropagation();
-
-        try {
-            await navigator.clipboard.writeText(
-                `${window.location.origin}/${orgSlug}/idea/${item.id}`
-            );
-        } catch (error) {
-            console.error('Failed to copy link');
-        }
+        setShowShareModal(true);
     };
 
     const handleCommentClick = (e: React.MouseEvent) => {
@@ -192,6 +187,15 @@ export const IdeaCard: React.FC<IdeaCardProps> = ({ item }) => {
                     onToggle={() => setShowComments(!showComments)}
                 />
             </div>
+
+            {/* Share Modal */}
+            {showShareModal && (
+                <ShareNoteModal
+                    noteId={item.id}
+                    noteTitle={item.title || item.content_clarified?.slice(0, 50) || item.content.slice(0, 50)}
+                    onClose={() => setShowShareModal(false)}
+                />
+            )}
         </div>
     );
 };

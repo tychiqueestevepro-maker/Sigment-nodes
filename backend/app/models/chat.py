@@ -30,6 +30,7 @@ class GroupConversationCreate(BaseModel):
 class MessageCreate(BaseModel):
     content: Optional[str] = ""
     shared_post_id: Optional[UUID] = None
+    shared_note_id: Optional[UUID] = None
     attachment_url: Optional[str] = None
     attachment_type: Optional[str] = None
     attachment_name: Optional[str] = None
@@ -46,6 +47,7 @@ class Message(BaseModel):
     sender_id: UUID
     content: Optional[str] = ""
     shared_post_id: Optional[UUID] = None
+    shared_note_id: Optional[UUID] = None
     attachment_url: Optional[str] = None
     attachment_type: Optional[str] = None
     attachment_name: Optional[str] = None
