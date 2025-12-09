@@ -127,14 +127,20 @@ export default function ChatPage() {
     const fetchConversations = async () => {
         try {
             const data = await apiClient.get<Conversation[]>('/chat');
-            setConversations(data);
+
+            // Sort by updated_at DESC (most recent first)
+            const sorted = [...data].sort((a, b) =>
+                new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+            );
+
+            setConversations(sorted);
 
             // Cache for instant load next time
             if (user && organization) {
-                localStorage.setItem(`cached_conversations_${organization.id}_${user.id}`, JSON.stringify(data));
+                localStorage.setItem(`cached_conversations_${organization.id}_${user.id}`, JSON.stringify(sorted));
             }
 
-            return data;
+            return sorted;
         } catch (error) {
             console.error(error);
             toast.error('Could not load conversations');

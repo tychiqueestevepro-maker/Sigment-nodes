@@ -198,19 +198,23 @@ export default function GroupsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
 
-
-
     const fetchGroups = useCallback(async (silent: boolean = false) => {
         try {
             const data = await apiClient.get<IdeaGroup[]>('/idea-groups');
-            setGroups(data);
+
+            // Sort by updated_at DESC (most recent first)
+            const sorted = [...data].sort((a, b) =>
+                new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+            );
+
+            setGroups(sorted);
 
             // Cache for instant load next time
             if (user && organization) {
-                localStorage.setItem(`cached_groups_${organization.id}_${user.id}`, JSON.stringify(data));
+                localStorage.setItem(`cached_groups_${organization.id}_${user.id}`, JSON.stringify(sorted));
             }
 
-            return data;
+            return sorted;
         } catch (error) {
             console.error('Error fetching groups:', error);
             // Only show toast on initial load, not during polling
