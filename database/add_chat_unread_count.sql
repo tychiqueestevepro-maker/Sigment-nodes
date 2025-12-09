@@ -20,7 +20,6 @@ BEGIN
     WHERE cp.user_id = p_user_id
     AND c.organization_id = p_organization_id
     AND cp.deleted_at IS NULL
-    AND c.deleted_at IS NULL
     AND EXISTS (
         SELECT 1 
         FROM direct_messages dm
