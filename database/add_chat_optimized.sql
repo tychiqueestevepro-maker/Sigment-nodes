@@ -46,20 +46,12 @@ BEGIN
             c.title::TEXT AS title,
             c.is_group,
             uc.last_read_at,
-            -- Calculate has_unread: only if last message from OTHERS is newer than last_read_at
-            (
-                SELECT CASE 
-                    WHEN dm.created_at IS NULL THEN FALSE
-                    WHEN uc.last_read_at IS NULL THEN TRUE
-                    WHEN dm.created_at > uc.last_read_at THEN TRUE
-                    ELSE FALSE
-                END
-                FROM direct_messages dm
-                WHERE dm.conversation_id = c.id
-                AND dm.sender_id != p_user_id  -- Only messages from OTHER users
-                ORDER BY dm.created_at DESC
-                LIMIT 1
-            ) AS has_unread,
+            -- Calculate has_unread
+            CASE 
+                WHEN uc.last_read_at IS NULL THEN TRUE
+                WHEN c.updated_at > uc.last_read_at THEN TRUE
+                ELSE FALSE
+            END AS has_unread,
             -- Get last message content (optimized subquery)
             (
                 SELECT dm.content
