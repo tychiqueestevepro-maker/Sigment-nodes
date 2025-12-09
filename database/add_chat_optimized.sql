@@ -46,12 +46,15 @@ BEGIN
             c.title::TEXT AS title,
             c.is_group,
             uc.last_read_at,
-            -- Calculate has_unread
-            CASE 
-                WHEN uc.last_read_at IS NULL THEN TRUE
-                WHEN c.updated_at > uc.last_read_at THEN TRUE
-                ELSE FALSE
-            END AS has_unread,
+            -- Calculate has_unread: TRUE only if there's a message from SOMEONE ELSE that hasn't been read
+            COALESCE((
+                SELECT TRUE
+                FROM direct_messages dm
+                WHERE dm.conversation_id = c.id
+                AND dm.sender_id != p_user_id  -- Message from someone ELSE
+                AND dm.created_at > COALESCE(uc.last_read_at, '1970-01-01'::timestamp with time zone)
+                LIMIT 1
+            ), FALSE) AS has_unread,
             -- Get last message content (optimized subquery)
             (
                 SELECT dm.content
