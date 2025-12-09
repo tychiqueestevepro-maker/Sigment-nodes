@@ -124,7 +124,7 @@ def get_unread_status(current_user: CurrentUser = Depends(get_current_user)):
             last_read = item.get("last_read_at")
             
             # Get the last message in this conversation that was NOT sent by current user
-            last_msg_resp = supabase.table("messages")\
+            last_msg_resp = supabase.table("direct_messages")\
                 .select("created_at, sender_id")\
                 .eq("conversation_id", conv_id)\
                 .neq("sender_id", user_id)\
