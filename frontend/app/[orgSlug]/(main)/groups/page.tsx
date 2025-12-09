@@ -33,7 +33,9 @@ import {
     Calendar,
     CheckCircle2,
     Ban,
-    Paperclip
+    Paperclip,
+    Maximize2,
+    Download
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MemberPicker } from '@/components/shared/MemberPicker';
@@ -425,7 +427,31 @@ function GroupView({ group, currentUser, apiClient, onRefresh }: GroupViewProps)
     const [selectedReviewNode, setSelectedReviewNode] = useState<any>(null);
     const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [lightboxImage, setLightboxImage] = useState<{ url: string; name: string } | null>(null);
+    const [isDownloading, setIsDownloading] = useState(false);
 
+    // Download function for lightbox images
+    const handleDownload = async (url: string, filename: string) => {
+        setIsDownloading(true);
+        try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(blobUrl);
+            toast.success('Download started');
+        } catch (error) {
+            console.error('Download failed:', error);
+            toast.error('Download failed');
+        } finally {
+            setIsDownloading(false);
+        }
+    };
     const handleUpdateGroup = async (name: string, description: string, color: string) => {
         try {
             await apiClient.put(`/idea-groups/${group.id}`, { name, description, color });
@@ -664,11 +690,28 @@ function GroupView({ group, currentUser, apiClient, onRefresh }: GroupViewProps)
         return () => clearInterval(interval);
     }, [isPlaying]);
 
-    const handleSendMessage = async (content: string) => {
-        if (!content.trim()) return;
+    const handleSendMessage = async (content: string, attachments?: { url: string; type: string; name: string }[]) => {
+        if (!content.trim() && (!attachments || attachments.length === 0)) return;
+
         try {
-            const newMsg = await apiClient.post<GroupMessage>(`/idea-groups/${group.id}/messages`, { content });
-            setMessages(prev => [...prev, newMsg]);
+            // If we have attachments, send one message per attachment
+            if (attachments && attachments.length > 0) {
+                for (let i = 0; i < attachments.length; i++) {
+                    const attachment = attachments[i];
+                    const payload: any = {
+                        content: i === 0 ? content : '', // First message gets text
+                        attachment_url: attachment.url,
+                        attachment_type: attachment.type,
+                        attachment_name: attachment.name
+                    };
+                    const newMsg = await apiClient.post<GroupMessage>(`/idea-groups/${group.id}/messages`, payload);
+                    setMessages(prev => [...prev, newMsg]);
+                }
+            } else {
+                // No attachments, just text
+                const newMsg = await apiClient.post<GroupMessage>(`/idea-groups/${group.id}/messages`, { content });
+                setMessages(prev => [...prev, newMsg]);
+            }
         } catch (error) {
             toast.error('Failed to send message');
         }
@@ -879,7 +922,43 @@ function GroupView({ group, currentUser, apiClient, onRefresh }: GroupViewProps)
                                                 ? 'bg-black text-white rounded-br-md'
                                                 : 'bg-white text-gray-900 border border-gray-100 rounded-bl-md shadow-sm'
                                                 }`}>
-                                                <p className="text-sm">{msg.content}</p>
+                                                {msg.content && <p className="text-sm">{msg.content}</p>}
+                                                {/* Attachment Display - Same as Chat */}
+                                                {msg.attachment_url && (
+                                                    <div className={`${msg.content ? 'mt-2' : ''}`}>
+                                                        {msg.attachment_type?.startsWith('image/') ? (
+                                                            <div className="relative group">
+                                                                <img
+                                                                    src={msg.attachment_url}
+                                                                    alt={msg.attachment_name || 'Image'}
+                                                                    className="rounded-xl max-w-full max-h-64 object-cover shadow-sm cursor-pointer"
+                                                                    onClick={() => setLightboxImage({ url: msg.attachment_url!, name: msg.attachment_name || 'Image' })}
+                                                                />
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); setLightboxImage({ url: msg.attachment_url!, name: msg.attachment_name || 'Image' }); }}
+                                                                    className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                >
+                                                                    <Maximize2 size={14} />
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <a
+                                                                href={msg.attachment_url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${isMe ? 'bg-white/10 hover:bg-white/20 border-white/20' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
+                                                            >
+                                                                <div className={`p-2 rounded-lg ${isMe ? 'bg-white/20' : 'bg-gray-100'}`}>
+                                                                    <FileText size={20} />
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="font-medium text-sm truncate">{msg.attachment_name || 'Attachment'}</p>
+                                                                    <p className="text-xs opacity-70">Click to open</p>
+                                                                </div>
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className={`flex flex-col gap-0.5 mt-1 ${isMe ? 'items-end mr-1' : 'ml-1'}`}>
                                                 <p className="text-[10px] text-gray-400">
@@ -1269,18 +1348,74 @@ function GroupView({ group, currentUser, apiClient, onRefresh }: GroupViewProps)
                     title="Add member to group"
                 />
             )}
+
+            {/* Lightbox for Images - Same as Chat */}
+            <AnimatePresence>
+                {lightboxImage && (
+                    <div
+                        className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4"
+                        onClick={() => setLightboxImage(null)}
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="relative max-w-4xl max-h-[90vh]"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <img
+                                src={lightboxImage.url}
+                                alt={lightboxImage.name}
+                                className="max-w-full max-h-[85vh] object-contain rounded-lg"
+                            />
+
+                            {/* Controls */}
+                            <div className="absolute top-4 right-4 flex items-center gap-2">
+                                <button
+                                    onClick={() => handleDownload(lightboxImage.url, lightboxImage.name)}
+                                    disabled={isDownloading}
+                                    className="p-3 bg-white/10 backdrop-blur-sm hover:bg-white/20 rounded-full transition-colors disabled:opacity-50"
+                                    title="Download"
+                                >
+                                    {isDownloading ? (
+                                        <Loader2 size={20} className="text-white animate-spin" />
+                                    ) : (
+                                        <Download size={20} className="text-white" />
+                                    )}
+                                </button>
+                                <button
+                                    onClick={() => setLightboxImage(null)}
+                                    className="p-3 bg-white/10 backdrop-blur-sm hover:bg-white/20 rounded-full transition-colors"
+                                    title="Close"
+                                >
+                                    <X size={20} className="text-white" />
+                                </button>
+                            </div>
+
+                            {/* Filename */}
+                            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur-sm px-4 py-2 rounded-full">
+                                <p className="text-white text-sm">{lightboxImage.name}</p>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </>
     );
 }
 
-// --- Message Input (Enhanced - Same as Chat page) ---
+// --- Message Input (Enhanced with Attachments) ---
 interface MessageInputProps {
-    onSend: (content: string) => void;
+    onSend: (content: string, attachments?: { url: string; type: string; name: string }[]) => void;
 }
 
 function MessageInput({ onSend }: MessageInputProps) {
     const [content, setContent] = useState('');
+    const [attachments, setAttachments] = useState<File[]>([]);
+    const [isUploading, setIsUploading] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const apiClient = useApiClient();
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
@@ -1289,16 +1424,109 @@ function MessageInput({ onSend }: MessageInputProps) {
         }
     };
 
-    const handleSubmit = () => {
-        if (!content.trim()) return;
-        onSend(content);
-        setContent('');
-        textareaRef.current?.focus();
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (attachments.length + files.length > 5) {
+            toast.error('Maximum 5 files allowed');
+            return;
+        }
+        // Filter valid files (max 10MB each)
+        const validFiles = files.filter(f => f.size <= 10 * 1024 * 1024);
+        if (validFiles.length < files.length) {
+            toast.error('Some files exceed 10MB limit');
+        }
+        setAttachments(prev => [...prev, ...validFiles]);
+        if (e.target) e.target.value = '';
+    };
+
+    const removeAttachment = (index: number) => {
+        setAttachments(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleSubmit = async () => {
+        if (!content.trim() && attachments.length === 0) return;
+
+        setIsUploading(true);
+        try {
+            if (attachments.length > 0) {
+                // Upload files first
+                const uploadedFiles: { url: string; type: string; name: string }[] = [];
+
+                for (const file of attachments) {
+                    const base64 = await new Promise<string>((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+                        reader.readAsDataURL(file);
+                    });
+
+                    const result = await apiClient.post<{ url: string; filename: string; content_type: string }>(
+                        '/idea-groups/upload-attachment',
+                        { file: base64, filename: file.name, content_type: file.type }
+                    );
+
+                    uploadedFiles.push({ url: result.url, type: result.content_type, name: result.filename });
+                }
+
+                onSend(content, uploadedFiles);
+            } else {
+                onSend(content);
+            }
+
+            setContent('');
+            setAttachments([]);
+            textareaRef.current?.focus();
+        } catch (error) {
+            toast.error('Failed to send message');
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const getFileExtension = (filename: string): string => {
+        return filename.split('.').pop()?.toUpperCase() || 'FILE';
+    };
+
+    const getFileTypeColor = (type: string): string => {
+        if (type === 'application/pdf') return 'bg-red-500';
+        if (type.includes('word') || type.includes('document')) return 'bg-blue-500';
+        if (type.includes('sheet') || type.includes('excel')) return 'bg-green-500';
+        if (type === 'text/csv') return 'bg-emerald-500';
+        if (type.startsWith('image/')) return 'bg-purple-500';
+        return 'bg-gray-500';
     };
 
     return (
         <div className="p-4">
             <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden transition-shadow hover:shadow-2xl duration-300 group focus-within:ring-2 focus-within:ring-black/5">
+                {/* Attachments Preview - Same style as Chat */}
+                {attachments.length > 0 && (
+                    <div className="px-4 pt-3 flex flex-wrap gap-2">
+                        {attachments.map((file, index) => (
+                            <div key={index} className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-2 text-sm">
+                                <div className={`w-8 h-8 ${getFileTypeColor(file.type)} rounded-lg flex items-center justify-center`}>
+                                    <span className="text-white text-[10px] font-bold">{getFileExtension(file.name)}</span>
+                                </div>
+                                <span className="truncate max-w-[120px] text-gray-700 text-xs">{file.name}</span>
+                                <button
+                                    onClick={() => removeAttachment(index)}
+                                    className="text-gray-400 hover:text-gray-600"
+                                >
+                                    <X size={14} />
+                                </button>
+                            </div>
+                        ))}
+                        {attachments.length < 5 && (
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                className="flex items-center gap-1 text-gray-400 hover:text-gray-600 px-2 py-1 text-xs border border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors"
+                            >
+                                <Plus size={12} />
+                                Add more
+                            </button>
+                        )}
+                    </div>
+                )}
+
                 <div className="relative">
                     <textarea
                         ref={textareaRef}
@@ -1307,27 +1535,47 @@ function MessageInput({ onSend }: MessageInputProps) {
                         onKeyDown={handleKeyDown}
                         placeholder="Type your message..."
                         className="w-full h-20 px-5 py-4 bg-transparent text-gray-900 placeholder-gray-400 resize-none focus:outline-none text-base"
+                        disabled={isUploading}
+                    />
+                    {/* Hidden File Input */}
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        multiple
+                        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+                        className="hidden"
                     />
                     <div className="absolute bottom-3 right-3 flex items-center gap-3">
                         <span className="text-[10px] font-medium text-gray-300 uppercase tracking-wide hidden sm:inline-block">
                             ⌘ + Enter
                         </span>
-                        {/* Attachment Button (visual placeholder for now) */}
+                        {/* Attachment Button */}
                         <button
                             type="button"
-                            className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all"
-                            title="Attach files (coming soon)"
-                            disabled
+                            onClick={() => fileInputRef.current?.click()}
+                            className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all relative"
+                            title="Attach files (max 5)"
+                            disabled={isUploading || attachments.length >= 5}
                         >
                             <Paperclip className="w-4 h-4" />
+                            {attachments.length > 0 && (
+                                <span className="absolute -top-1 -right-1 w-4 h-4 bg-black text-white text-[10px] rounded-full flex items-center justify-center">
+                                    {attachments.length}
+                                </span>
+                            )}
                         </button>
                         {/* Send Button */}
                         <button
                             onClick={handleSubmit}
-                            disabled={!content.trim()}
+                            disabled={(!content.trim() && attachments.length === 0) || isUploading}
                             className="p-2.5 bg-black text-white rounded-xl shadow-md hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95"
                         >
-                            <Send className="w-4 h-4" />
+                            {isUploading ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                                <Send className="w-4 h-4" />
+                            )}
                         </button>
                     </div>
                 </div>

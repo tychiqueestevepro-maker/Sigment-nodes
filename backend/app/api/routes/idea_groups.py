@@ -1093,3 +1093,47 @@ def mark_group_as_read(
     except Exception as e:
         logger.error(f"Error marking group as read: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/upload-attachment")
+def upload_group_attachment(
+    file: str = Body(...),  # base64 encoded
+    filename: str = Body(...),
+    content_type: str = Body(...),
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """
+    Upload a file attachment for group chat messages.
+    Returns the public URL of the uploaded file.
+    """
+    import uuid as uuid_module
+    from datetime import datetime
+    import base64
+    
+    try:
+        # Decode base64 file
+        file_bytes = base64.b64decode(file)
+        
+        # Generate unique filename
+        ext = filename.split('.')[-1] if '.' in filename else ''
+        unique_filename = f"{current_user.id}/{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid_module.uuid4().hex[:8]}.{ext}"
+        
+        # Upload to Supabase Storage (use same bucket as chat)
+        response = supabase.storage.from_("chat-attachments").upload(
+            path=f"groups/{unique_filename}",
+            file=file_bytes,
+            file_options={"content-type": content_type}
+        )
+        
+        # Get public URL
+        public_url = supabase.storage.from_("chat-attachments").get_public_url(f"groups/{unique_filename}")
+        
+        return {
+            "url": public_url,
+            "filename": filename,
+            "content_type": content_type
+        }
+
+    except Exception as e:
+        logger.error(f"Error uploading group attachment: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
