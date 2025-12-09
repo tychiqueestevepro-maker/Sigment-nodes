@@ -1,7 +1,10 @@
--- OPTIMIZED GROUP CHAT FUNCTIONS (v2 - FIX NULL EMAILS)
+-- OPTIMIZED GROUP CHAT FUNCTIONS (v3 - ADD SHARED_NOTE SUPPORT)
 -- Replace slow Python loops with fast SQL RPCs
 
--- 1. Get Group Messages (Single Query)
+-- 1. Get Group Messages (Single Query with Shared Note Support)
+-- Drop first to allow return type change
+DROP FUNCTION IF EXISTS get_group_messages_optimized(UUID, UUID, INTEGER, INTEGER);
+
 CREATE OR REPLACE FUNCTION get_group_messages_optimized(
     p_group_id UUID,
     p_user_id UUID,
@@ -26,7 +29,7 @@ BEGIN
         RAISE EXCEPTION 'Access Denied: User is not a member of this group';
     END IF;
 
-    -- 2. Fetch messages with sender info and computed read receipts
+    -- 2. Fetch messages with sender info, shared notes, and computed read receipts
     WITH group_participants AS (
         -- Get all members of the group to check read status against
         SELECT 
@@ -48,6 +51,7 @@ BEGIN
             m.attachment_url,
             m.attachment_type,
             m.attachment_name,
+            m.shared_note_id,
             m.created_at,
             m.updated_at,
             -- Sender Info
@@ -55,9 +59,19 @@ BEGIN
             u.last_name,
             u.avatar_url,
             -- Sender Full Name
-            TRIM(CONCAT(u.first_name, ' ', u.last_name)) as sender_name
+            TRIM(CONCAT(u.first_name, ' ', u.last_name)) as sender_name,
+            -- Shared Note Info (join with notes table)
+            n.id as note_id,
+            n.title_clarified as note_title,
+            n.content_clarified as note_content_clarified,
+            n.content_raw as note_content_raw,
+            n.status as note_status,
+            p.name as pillar_name,
+            p.color as pillar_color
         FROM idea_group_messages m
         JOIN users u ON m.sender_id = u.id
+        LEFT JOIN notes n ON m.shared_note_id = n.id
+        LEFT JOIN pillars p ON n.pillar_id = p.id
         WHERE m.idea_group_id = p_group_id
         ORDER BY m.created_at DESC
         LIMIT p_limit OFFSET p_offset
@@ -71,6 +85,22 @@ BEGIN
             'attachment_url', m.attachment_url,
             'attachment_type', m.attachment_type,
             'attachment_name', m.attachment_name,
+            'shared_note_id', m.shared_note_id,
+            -- Shared Note embedded data (same format as Chat)
+            'shared_note', CASE 
+                WHEN m.shared_note_id IS NOT NULL THEN
+                    jsonb_build_object(
+                        'id', m.note_id,
+                        'title', COALESCE(m.note_title, LEFT(COALESCE(m.note_content_clarified, m.note_content_raw, ''), 60)),
+                        'content', COALESCE(m.note_content_clarified, m.note_content_raw),
+                        'content_clarified', m.note_content_clarified,
+                        'content_raw', m.note_content_raw,
+                        'status', m.note_status,
+                        'pillar_name', m.pillar_name,
+                        'pillar_color', m.pillar_color
+                    )
+                ELSE NULL
+            END,
             'created_at', m.created_at,
             'sender_name', m.sender_name,
             'sender_avatar_url', m.avatar_url,
@@ -98,7 +128,11 @@ BEGIN
 END;
 $$;
 
+
 -- 2. Get User Groups (Single Query - Replaces complex get_idea_groups loop)
+-- Drop first to allow return type change
+DROP FUNCTION IF EXISTS get_user_idea_groups_optimized(UUID, UUID, INTEGER, INTEGER);
+
 CREATE OR REPLACE FUNCTION get_user_idea_groups_optimized(
     p_user_id UUID,
     p_org_id UUID,
@@ -121,6 +155,7 @@ BEGIN
         -- Pre-calculate counts and last message info
         SELECT 
             g.id,
+            g.updated_at as group_updated_at,
             COUNT(DISTINCT m.user_id) as member_count,
             COUNT(DISTINCT i.id) as item_count,
             MAX(msg.created_at) as last_msg_at,
@@ -131,7 +166,7 @@ BEGIN
         LEFT JOIN idea_group_items i ON g.id = i.idea_group_id
         LEFT JOIN idea_group_messages msg ON g.id = msg.idea_group_id
         WHERE g.organization_id = p_org_id
-        GROUP BY g.id
+        GROUP BY g.id, g.updated_at
     ),
     group_members_json AS (
         -- Aggregate members for each group
@@ -175,13 +210,13 @@ BEGIN
                 AND (ug.last_read_at IS NULL OR gs.last_msg_at > ug.last_read_at)
             )
         )
+        ORDER BY gs.group_updated_at DESC
     ) INTO v_groups
     FROM idea_groups g
     JOIN user_groups ug ON g.id = ug.idea_group_id
     JOIN group_stats gs ON g.id = gs.id
     LEFT JOIN group_members_json gmj ON g.id = gmj.idea_group_id
     WHERE g.organization_id = p_org_id
-    ORDER BY g.updated_at DESC
     LIMIT p_limit OFFSET p_offset;
 
     RETURN COALESCE(v_groups, '[]'::jsonb);

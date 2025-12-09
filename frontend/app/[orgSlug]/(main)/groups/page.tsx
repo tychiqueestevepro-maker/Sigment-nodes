@@ -913,6 +913,8 @@ function GroupView({ group, currentUser, apiClient, onRefresh }: GroupViewProps)
                         ) : (
                             messages.map(msg => {
                                 const isMe = msg.sender_id === currentUser?.id;
+                                const hasOnlySharedNote = msg.shared_note && !msg.content && !msg.attachment_url;
+
                                 return (
                                     <div key={msg.id} className={`flex mb-4 ${isMe ? 'justify-end' : 'justify-start'}`}>
                                         <div className={`max-w-[70%] ${isMe ? 'order-2' : ''}`}>
@@ -921,54 +923,61 @@ function GroupView({ group, currentUser, apiClient, onRefresh }: GroupViewProps)
                                                     {msg.sender_name || 'Unknown'}
                                                 </p>
                                             )}
-                                            <div className={`px-4 py-2.5 rounded-2xl ${isMe
-                                                ? 'bg-black text-white rounded-br-md'
-                                                : 'bg-white text-gray-900 border border-gray-100 rounded-bl-md shadow-sm'
-                                                }`}>
-                                                {msg.content && <p className="text-sm">{msg.content}</p>}
-                                                {/* Attachment Display - Same as Chat */}
-                                                {msg.attachment_url && (
-                                                    <div className={`${msg.content ? 'mt-2' : ''}`}>
-                                                        {msg.attachment_type?.startsWith('image/') ? (
-                                                            <div className="relative group">
-                                                                <img
-                                                                    src={msg.attachment_url}
-                                                                    alt={msg.attachment_name || 'Image'}
-                                                                    className="rounded-xl max-w-full max-h-64 object-cover shadow-sm cursor-pointer"
-                                                                    onClick={() => setLightboxImage({ url: msg.attachment_url!, name: msg.attachment_name || 'Image' })}
-                                                                />
-                                                                <button
-                                                                    onClick={(e) => { e.stopPropagation(); setLightboxImage({ url: msg.attachment_url!, name: msg.attachment_name || 'Image' }); }}
-                                                                    className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+
+                                            {/* Shared Note Card - Rendered OUTSIDE the message bubble (like Chat) */}
+                                            {msg.shared_note && (
+                                                <div className="mb-1">
+                                                    <SharedNoteCard note={msg.shared_note} />
+                                                </div>
+                                            )}
+
+                                            {/* Message bubble - only show if there's content or attachment AND no shared_note */}
+                                            {/* When there's a shared_note, the content is just fallback text that shouldn't be displayed */}
+                                            {!msg.shared_note && (msg.content || msg.attachment_url) && (
+                                                <div className={`px-4 py-2.5 rounded-2xl ${isMe
+                                                    ? 'bg-black text-white rounded-br-md'
+                                                    : 'bg-white text-gray-900 border border-gray-100 rounded-bl-md shadow-sm'
+                                                    }`}>
+                                                    {msg.content && <p className="text-sm">{msg.content}</p>}
+                                                    {/* Attachment Display - Same as Chat */}
+                                                    {msg.attachment_url && (
+                                                        <div className={`${msg.content ? 'mt-2' : ''}`}>
+                                                            {msg.attachment_type?.startsWith('image/') ? (
+                                                                <div className="relative group">
+                                                                    <img
+                                                                        src={msg.attachment_url}
+                                                                        alt={msg.attachment_name || 'Image'}
+                                                                        className="rounded-xl max-w-full max-h-64 object-cover shadow-sm cursor-pointer"
+                                                                        onClick={() => setLightboxImage({ url: msg.attachment_url!, name: msg.attachment_name || 'Image' })}
+                                                                    />
+                                                                    <button
+                                                                        onClick={(e) => { e.stopPropagation(); setLightboxImage({ url: msg.attachment_url!, name: msg.attachment_name || 'Image' }); }}
+                                                                        className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                    >
+                                                                        <Maximize2 size={14} />
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                <a
+                                                                    href={msg.attachment_url}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${isMe ? 'bg-white/10 hover:bg-white/20 border-white/20' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
                                                                 >
-                                                                    <Maximize2 size={14} />
-                                                                </button>
-                                                            </div>
-                                                        ) : (
-                                                            <a
-                                                                href={msg.attachment_url}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${isMe ? 'bg-white/10 hover:bg-white/20 border-white/20' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
-                                                            >
-                                                                <div className={`p-2 rounded-lg ${isMe ? 'bg-white/20' : 'bg-gray-100'}`}>
-                                                                    <FileText size={20} />
-                                                                </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <p className="font-medium text-sm truncate">{msg.attachment_name || 'Attachment'}</p>
-                                                                    <p className="text-xs opacity-70">Click to open</p>
-                                                                </div>
-                                                            </a>
-                                                        )}
-                                                    </div>
-                                                )}
-                                                {/* Shared Note Display */}
-                                                {msg.shared_note && (
-                                                    <div className={`${msg.content || msg.attachment_url ? 'mt-2' : ''}`}>
-                                                        <SharedNoteCard note={msg.shared_note} />
-                                                    </div>
-                                                )}
-                                            </div>
+                                                                    <div className={`p-2 rounded-lg ${isMe ? 'bg-white/20' : 'bg-gray-100'}`}>
+                                                                        <FileText size={20} />
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <p className="font-medium text-sm truncate">{msg.attachment_name || 'Attachment'}</p>
+                                                                        <p className="text-xs opacity-70">Click to open</p>
+                                                                    </div>
+                                                                </a>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
                                             <div className={`flex flex-col gap-0.5 mt-1 ${isMe ? 'items-end mr-1' : 'ml-1'}`}>
                                                 <p className="text-[10px] text-gray-400">
                                                     {formatDate(msg.created_at)}
@@ -983,6 +992,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh }: GroupViewProps)
                                     </div>
                                 );
                             })
+
                         )}
                         <div ref={messagesEndRef} />
                     </div>

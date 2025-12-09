@@ -29,7 +29,7 @@ if not DB_URL:
     print("❌ Could not determine database connection string.")
     sys.exit(1)
 
-SQL_FILE = "../database/add_idea_groups_optimized.sql"
+SQL_FILE = sys.argv[1] if len(sys.argv) > 1 else "../database/add_idea_groups_optimized.sql"
 
 try:
     print(f"Connecting to database...")
