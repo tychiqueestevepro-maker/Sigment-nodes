@@ -10,7 +10,6 @@ from app.models.chat import Conversation, ConversationCreate, GroupConversationC
 router = APIRouter()
 
 @router.get("/", response_model=List[Conversation])
-@router.get("/", response_model=List[Conversation])
 def get_conversations(
     current_user: CurrentUser = Depends(get_current_user),
     limit: int = 50,
@@ -262,7 +261,6 @@ def create_group_conversation(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{conversation_id}/messages")
 @router.get("/{conversation_id}/messages")
 def get_messages(
     conversation_id: UUID,

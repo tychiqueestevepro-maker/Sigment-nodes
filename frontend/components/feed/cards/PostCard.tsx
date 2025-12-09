@@ -39,16 +39,52 @@ export const PostCard: React.FC<PostCardProps> = ({ item }) => {
     const [loadingPoll, setLoadingPoll] = useState(false);
     const [showShareModal, setShowShareModal] = useState(false);
 
-    // Load poll if post has one
+    // Use embedded poll_data from feed (no extra request needed)
+    // Fallback to API call only if poll_data is not available
     useEffect(() => {
-        if (item.has_poll && !poll && !loadingPoll) {
-            setLoadingPoll(true);
-            apiClient.get<Poll>(`/feed/posts/${item.id}/poll`)
-                .then(setPoll)
-                .catch(console.error)
-                .finally(() => setLoadingPoll(false));
+        if (item.has_poll && !poll) {
+            // Check if poll data is already embedded in the feed item
+            const embeddedPoll = (item as any).poll_data;
+
+            if (embeddedPoll) {
+                // Use embedded data - NO API CALL NEEDED! 🚀
+                setPoll({
+                    id: embeddedPoll.id,
+                    post_id: item.id,
+                    question: embeddedPoll.question,
+                    options: embeddedPoll.options.map((opt: any) => ({
+                        id: opt.id,
+                        text: opt.text,
+                        votes: opt.votes,
+                        percentage: embeddedPoll.total_votes > 0
+                            ? Math.round((opt.votes / embeddedPoll.total_votes) * 100)
+                            : 0
+                    })),
+                    allow_multiple: embeddedPoll.allow_multiple,
+                    total_votes: embeddedPoll.total_votes,
+                    color: embeddedPoll.color,
+                    expires_at: embeddedPoll.expires_at,
+                    is_expired: embeddedPoll.is_expired,
+                    user_voted: embeddedPoll.user_voted,
+                    user_votes: embeddedPoll.user_votes || [],
+                    created_at: embeddedPoll.created_at
+                });
+            } else if (!loadingPoll) {
+                // Fallback: Fetch from API only if not embedded
+                // This is rare - only for old cached items or edge cases
+                setLoadingPoll(true);
+                apiClient.get<Poll>(`/feed/posts/${item.id}/poll`)
+                    .then(setPoll)
+                    .catch((err) => {
+                        if (!err.message?.includes('500')) {
+                            console.error('Poll load error:', err);
+                        }
+                    })
+                    .finally(() => setLoadingPoll(false));
+            }
         }
-    }, [item.has_poll, item.id]);
+    }, [item.has_poll, item.id, (item as any).poll_data]);
+
 
     const userInfo = item.user_info || {};
     const firstName = userInfo.first_name || '';

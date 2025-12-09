@@ -59,11 +59,24 @@ export function UserProvider({ children }: { children: ReactNode }) {
                                 setUser(updatedUser)
                                 // Update localStorage with fresh data
                                 localStorage.setItem('sigment_user', JSON.stringify(updatedUser))
+                            } else if (response.status === 401) {
+                                // Token is expired or invalid - clear ALL auth data and force re-login
+                                console.warn('Token expired or invalid, clearing auth data...')
+                                localStorage.removeItem('access_token')
+                                localStorage.removeItem('sigment_user_id')
+                                localStorage.removeItem('sigment_user_email')
+                                localStorage.removeItem('sigment_user')
+                                localStorage.removeItem('sigment_org_id')
+                                localStorage.removeItem('sigment_org_slug')
+                                localStorage.removeItem('sigment_user_role')
+                                setUser(null)
+                                // Note: Don't redirect here - let the component handle it
                             }
                         } catch (apiError) {
                             console.warn('Could not refresh user data from API:', apiError)
                             // Continue with cached data
                         }
+
                     }
                 } catch (e) {
                     console.error('Failed to parse user data:', e)

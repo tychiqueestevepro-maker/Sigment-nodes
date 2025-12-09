@@ -40,6 +40,7 @@ import {
 import toast from 'react-hot-toast';
 import { MemberPicker } from '@/components/shared/MemberPicker';
 import { useApiClient } from '@/hooks/useApiClient';
+import { SharedNoteCard } from '@/components/feed/share';
 
 // --- Types ---
 type ApiClient = ReturnType<typeof useApiClient>;
@@ -88,6 +89,8 @@ interface GroupMessage {
     attachment_url?: string;
     attachment_type?: string;
     attachment_name?: string;
+    shared_note_id?: string;
+    shared_note?: any;
     created_at: string;
     read_by?: ReadReceipt[];
 }
@@ -957,6 +960,12 @@ function GroupView({ group, currentUser, apiClient, onRefresh }: GroupViewProps)
                                                                 </div>
                                                             </a>
                                                         )}
+                                                    </div>
+                                                )}
+                                                {/* Shared Note Display */}
+                                                {msg.shared_note && (
+                                                    <div className={`${msg.content || msg.attachment_url ? 'mt-2' : ''}`}>
+                                                        <SharedNoteCard note={msg.shared_note} />
                                                     </div>
                                                 )}
                                             </div>

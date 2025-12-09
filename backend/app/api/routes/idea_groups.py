@@ -926,6 +926,29 @@ def get_group_messages(
         
         members_data = members_last_read.data or []
         
+        # Get all shared note IDs for enrichment
+        note_ids = [msg.get("shared_note_id") for msg in (messages_resp.data or []) if msg.get("shared_note_id")]
+        notes_map = {}
+        if note_ids:
+            try:
+                notes_resp = supabase.table("notes")\
+                    .select("id, content_raw, content_clarified, title_clarified, status, pillar_id, pillars(name, color)")\
+                    .in_("id", note_ids)\
+                    .execute()
+                if notes_resp.data:
+                    for n in notes_resp.data:
+                        pillar = n.get("pillars") or {}
+                        notes_map[str(n["id"])] = {
+                            "id": n["id"],
+                            "title": n.get("title_clarified") or (n.get("content_clarified") or "")[:60] or (n.get("content_raw") or "")[:60],
+                            "content": n.get("content_clarified") or n.get("content_raw"),
+                            "status": n.get("status"),
+                            "pillar_name": pillar.get("name"),
+                            "pillar_color": pillar.get("color")
+                        }
+            except Exception as note_err:
+                logger.warning(f"Could not enrich notes: {note_err}")
+        
         messages = []
         for msg in (messages_resp.data or []):
             user_info = msg.get("users", {})
@@ -949,6 +972,11 @@ def get_group_messages(
                             "read_at": m["last_read_at"]
                         })
             
+            # Get shared note if present
+            shared_note = None
+            if msg.get("shared_note_id"):
+                shared_note = notes_map.get(str(msg["shared_note_id"]))
+            
             messages.append(GroupMessage(
                 id=msg["id"],
                 idea_group_id=msg["idea_group_id"],
@@ -959,6 +987,8 @@ def get_group_messages(
                 attachment_url=msg.get("attachment_url"),
                 attachment_type=msg.get("attachment_type"),
                 attachment_name=msg.get("attachment_name"),
+                shared_note_id=msg.get("shared_note_id"),
+                shared_note=shared_note,
                 created_at=msg["created_at"],
                 read_by=read_by
             ))
@@ -1004,6 +1034,9 @@ def send_group_message(
             message_data["attachment_type"] = payload.attachment_type
             message_data["attachment_name"] = payload.attachment_name
         
+        if payload.shared_note_id:
+            message_data["shared_note_id"] = str(payload.shared_note_id)
+        
         # Insert message
         response = supabase.table("idea_group_messages")\
             .insert(message_data)\
@@ -1031,6 +1064,29 @@ def send_group_message(
         user_info = user_resp.data or {}
         sender_name = f"{user_info.get('first_name', '')} {user_info.get('last_name', '')}".strip() or None
         
+        # Enrich shared note if present
+        shared_note = None
+        if msg.get("shared_note_id"):
+            try:
+                note_resp = supabase.table("notes")\
+                    .select("id, content_raw, content_clarified, title_clarified, status, pillar_id, pillars(name, color)")\
+                    .eq("id", msg["shared_note_id"])\
+                    .single()\
+                    .execute()
+                if note_resp.data:
+                    n = note_resp.data
+                    pillar = n.get("pillars") or {}
+                    shared_note = {
+                        "id": n["id"],
+                        "title": n.get("title_clarified") or (n.get("content_clarified") or "")[:60] or (n.get("content_raw") or "")[:60],
+                        "content": n.get("content_clarified") or n.get("content_raw"),
+                        "status": n.get("status"),
+                        "pillar_name": pillar.get("name"),
+                        "pillar_color": pillar.get("color")
+                    }
+            except Exception as note_err:
+                logger.warning(f"Could not enrich shared note: {note_err}")
+        
         return GroupMessage(
             id=msg["id"],
             idea_group_id=msg["idea_group_id"],
@@ -1041,6 +1097,8 @@ def send_group_message(
             attachment_url=msg.get("attachment_url"),
             attachment_type=msg.get("attachment_type"),
             attachment_name=msg.get("attachment_name"),
+            shared_note_id=msg.get("shared_note_id"),
+            shared_note=shared_note,
             created_at=msg["created_at"],
             read_by=[]
         )

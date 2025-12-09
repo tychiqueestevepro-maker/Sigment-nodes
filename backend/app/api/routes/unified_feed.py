@@ -69,6 +69,7 @@ class PostFeedItem(BaseModel):
     post_type: str
     media_urls: Optional[List[str]] = None
     has_poll: bool = False
+    poll_data: Optional[dict] = None  # Embedded poll data to avoid N+1 queries
     user_id: str
     user_info: Optional[dict] = None
     likes_count: int
@@ -98,7 +99,6 @@ class UnifiedFeedResponse(BaseModel):
 # ENDPOINT: Get Unified Feed
 # ============================================
 
-@router.get("/", response_model=UnifiedFeedResponse)
 @router.get("/", response_model=UnifiedFeedResponse)
 def get_unified_feed(
     limit: int = Query(default=50, ge=1, le=100, description="Number of items to return"),
@@ -213,6 +213,114 @@ def get_unified_feed(
                     ))
             
             logger.info(f"📊 Feed (optimized RPC): {len(items)} items returned")
+            
+            # ============================================
+            # ENRICH POSTS WITH POLL DATA (Batch Query)
+            # ============================================
+            # Collect all post IDs that have polls
+            post_ids_with_polls = [
+                item.id for item in items 
+                if isinstance(item, PostFeedItem) and item.has_poll
+            ]
+            
+            if post_ids_with_polls:
+                try:
+                    # Fetch all polls in ONE query instead of N queries
+                    polls_response = supabase.table("polls").select(
+                        "id, post_id, question, allow_multiple, expires_at, color, created_at"
+                    ).in_("post_id", post_ids_with_polls).execute()
+                    
+                    if polls_response.data:
+                        # Get all poll IDs
+                        poll_ids = [p['id'] for p in polls_response.data]
+                        
+                        # Fetch all options for all polls in ONE query
+                        options_response = supabase.table("poll_options").select(
+                            "id, poll_id, option_text"
+                        ).in_("poll_id", poll_ids).execute()
+                        
+                        # Fetch vote counts for all options in ONE query
+                        votes_response = supabase.table("poll_votes").select(
+                            "poll_option_id"
+                        ).in_("poll_option_id", [o['id'] for o in (options_response.data or [])]).execute()
+                        
+                        # Fetch user's votes
+                        user_votes_response = supabase.table("poll_votes").select(
+                            "poll_option_id"
+                        ).eq("user_id", user_id).in_(
+                            "poll_option_id", [o['id'] for o in (options_response.data or [])]
+                        ).execute()
+                        
+                        # Build vote count map
+                        vote_counts = {}
+                        for vote in (votes_response.data or []):
+                            opt_id = vote['poll_option_id']
+                            vote_counts[opt_id] = vote_counts.get(opt_id, 0) + 1
+                        
+                        # Build user votes set
+                        user_voted_options = set(
+                            v['poll_option_id'] for v in (user_votes_response.data or [])
+                        )
+                        
+                        # Build options map by poll_id
+                        options_by_poll = {}
+                        for opt in (options_response.data or []):
+                            poll_id = opt['poll_id']
+                            if poll_id not in options_by_poll:
+                                options_by_poll[poll_id] = []
+                            options_by_poll[poll_id].append({
+                                'id': opt['id'],
+                                'text': opt['option_text'],
+                                'votes': vote_counts.get(opt['id'], 0),
+                                'is_voted': opt['id'] in user_voted_options
+                            })
+                        
+                        # Build polls map by post_id
+                        polls_by_post = {}
+                        for poll in polls_response.data:
+                            post_id = poll['post_id']
+                            poll_id = poll['id']
+                            options = options_by_poll.get(poll_id, [])
+                            total_votes = sum(o['votes'] for o in options)
+                            user_voted = any(o['is_voted'] for o in options)
+                            
+                            # Check expiration
+                            is_expired = False
+                            if poll.get('expires_at'):
+                                from datetime import datetime as dt
+                                try:
+                                    expires = dt.fromisoformat(poll['expires_at'].replace('Z', '+00:00'))
+                                    is_expired = dt.now(expires.tzinfo) > expires
+                                except:
+                                    pass
+                            
+                            polls_by_post[post_id] = {
+                                'id': poll_id,
+                                'question': poll['question'],
+                                'options': options,
+                                'allow_multiple': poll.get('allow_multiple', False),
+                                'total_votes': total_votes,
+                                'color': poll.get('color', '#374151'),
+                                'expires_at': poll.get('expires_at'),
+                                'is_expired': is_expired,
+                                'user_voted': user_voted,
+                                'user_votes': [o['id'] for o in options if o['is_voted']],
+                                'created_at': poll['created_at']
+                            }
+                        
+                        # Inject poll data into items
+                        for item in items:
+                            if isinstance(item, PostFeedItem) and item.id in polls_by_post:
+                                # We need to create a new item since Pydantic models are immutable by default
+                                # Actually, we can modify it if it's not frozen
+                                object.__setattr__(item, 'poll_data', polls_by_post[item.id])
+                        
+                        logger.info(f"✅ Enriched {len(polls_by_post)} posts with poll data")
+                        
+                except Exception as poll_err:
+                    logger.warning(f"⚠️ Failed to enrich polls (non-blocking): {poll_err}")
+                    # Continue without poll data - it's not critical
+            
         else:
             logger.info(f"📊 Feed: No items found for org {organization_id}")
 
@@ -243,6 +351,7 @@ def get_unified_feed(
         total_count=len(items),
         stats=stats
     )
+
 
 
 # ============================================

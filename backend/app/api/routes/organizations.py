@@ -153,11 +153,7 @@ async def get_org_members(org_slug: str):
                 
         return result
     except Exception as e:
-        print(f"Error in get_org_members: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-    except Exception as e:
-        logger.error(f"Error fetching members: {e}")
+        logger.error(f"Error in get_org_members: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

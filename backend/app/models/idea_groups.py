@@ -78,6 +78,7 @@ class GroupMessageCreate(BaseModel):
     attachment_url: Optional[str] = None
     attachment_type: Optional[str] = None
     attachment_name: Optional[str] = None
+    shared_note_id: Optional[UUID] = None
 
 class GroupMessageReadReceipt(BaseModel):
     user_id: UUID
@@ -95,6 +96,8 @@ class GroupMessage(BaseModel):
     attachment_url: Optional[str] = None
     attachment_type: Optional[str] = None
     attachment_name: Optional[str] = None
+    shared_note_id: Optional[UUID] = None
+    shared_note: Optional[dict] = None
     created_at: datetime
     read_by: List[GroupMessageReadReceipt] = []
 
