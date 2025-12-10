@@ -891,7 +891,6 @@ def get_group_messages(
             ).execute()
             
             if rpc_response.data is not None:
-                # Pydantic will parse the JSON list directly
                 return rpc_response.data
                 
         except Exception as rpc_error:
@@ -949,6 +948,34 @@ def get_group_messages(
             except Exception as note_err:
                 logger.warning(f"Could not enrich notes: {note_err}")
         
+        # Get all shared post IDs for enrichment (same pattern as notes)
+        post_ids = [msg.get("shared_post_id") for msg in (messages_resp.data or []) if msg.get("shared_post_id")]
+        posts_map = {}
+        if post_ids:
+            try:
+                posts_resp = supabase.table("posts")\
+                    .select("id, content, media_urls, post_type, has_poll, likes_count, comments_count, user_id, created_at, users(first_name, last_name, avatar_url)")\
+                    .in_("id", post_ids)\
+                    .execute()
+                if posts_resp.data:
+                    for p in posts_resp.data:
+                        author = p.get("users") or {}
+                        posts_map[str(p["id"])] = {
+                            "id": p["id"],
+                            "content": p.get("content"),
+                            "media_urls": p.get("media_urls"),
+                            "post_type": p.get("post_type"),
+                            "likes_count": p.get("likes_count", 0),
+                            "comments_count": p.get("comments_count", 0),
+                            "user_info": {
+                                "first_name": author.get("first_name"),
+                                "last_name": author.get("last_name"),
+                                "avatar_url": author.get("avatar_url")
+                            }
+                        }
+            except Exception as post_err:
+                logger.warning(f"Could not enrich posts: {post_err}")
+        
         messages = []
         for msg in (messages_resp.data or []):
             user_info = msg.get("users", {})
@@ -977,6 +1004,11 @@ def get_group_messages(
             if msg.get("shared_note_id"):
                 shared_note = notes_map.get(str(msg["shared_note_id"]))
             
+            # Get shared post if present
+            shared_post = None
+            if msg.get("shared_post_id"):
+                shared_post = posts_map.get(str(msg["shared_post_id"]))
+            
             messages.append(GroupMessage(
                 id=msg["id"],
                 idea_group_id=msg["idea_group_id"],
@@ -989,6 +1021,8 @@ def get_group_messages(
                 attachment_name=msg.get("attachment_name"),
                 shared_note_id=msg.get("shared_note_id"),
                 shared_note=shared_note,
+                shared_post_id=msg.get("shared_post_id"),
+                shared_post=shared_post,
                 created_at=msg["created_at"],
                 read_by=read_by
             ))
@@ -1036,6 +1070,9 @@ def send_group_message(
         
         if payload.shared_note_id:
             message_data["shared_note_id"] = str(payload.shared_note_id)
+        
+        if payload.shared_post_id:
+            message_data["shared_post_id"] = str(payload.shared_post_id)
         
         # Insert message
         response = supabase.table("idea_group_messages")\
@@ -1087,6 +1124,34 @@ def send_group_message(
             except Exception as note_err:
                 logger.warning(f"Could not enrich shared note: {note_err}")
         
+        # Enrich shared post if present (same format as Chat RPC)
+        shared_post = None
+        if msg.get("shared_post_id"):
+            try:
+                post_resp = supabase.table("posts")\
+                    .select("id, content, media_urls, post_type, has_poll, likes_count, comments_count, user_id, created_at, users(first_name, last_name, avatar_url)")\
+                    .eq("id", msg["shared_post_id"])\
+                    .single()\
+                    .execute()
+                if post_resp.data:
+                    p = post_resp.data
+                    author = p.get("users") or {}
+                    shared_post = {
+                        "id": p["id"],
+                        "content": p.get("content"),
+                        "media_urls": p.get("media_urls"),
+                        "post_type": p.get("post_type"),
+                        "likes_count": p.get("likes_count", 0),
+                        "comments_count": p.get("comments_count", 0),
+                        "user_info": {
+                            "first_name": author.get("first_name"),
+                            "last_name": author.get("last_name"),
+                            "avatar_url": author.get("avatar_url")
+                        }
+                    }
+            except Exception as post_err:
+                logger.warning(f"Could not enrich shared post: {post_err}")
+        
         return GroupMessage(
             id=msg["id"],
             idea_group_id=msg["idea_group_id"],
@@ -1099,6 +1164,8 @@ def send_group_message(
             attachment_name=msg.get("attachment_name"),
             shared_note_id=msg.get("shared_note_id"),
             shared_note=shared_note,
+            shared_post_id=msg.get("shared_post_id"),
+            shared_post=shared_post,
             created_at=msg["created_at"],
             read_by=[]
         )

@@ -1,7 +1,7 @@
--- OPTIMIZED GROUP CHAT FUNCTIONS (v3 - ADD SHARED_NOTE SUPPORT)
+-- OPTIMIZED GROUP CHAT FUNCTIONS (v4 - ADD SHARED_POST SUPPORT)
 -- Replace slow Python loops with fast SQL RPCs
 
--- 1. Get Group Messages (Single Query with Shared Note Support)
+-- 1. Get Group Messages (Single Query with Shared Note + Post Support)
 -- Drop first to allow return type change
 DROP FUNCTION IF EXISTS get_group_messages_optimized(UUID, UUID, INTEGER, INTEGER);
 
@@ -29,7 +29,7 @@ BEGIN
         RAISE EXCEPTION 'Access Denied: User is not a member of this group';
     END IF;
 
-    -- 2. Fetch messages with sender info, shared notes, and computed read receipts
+    -- 2. Fetch messages with sender info, shared notes, shared posts, and computed read receipts
     WITH group_participants AS (
         -- Get all members of the group to check read status against
         SELECT 
@@ -52,28 +52,42 @@ BEGIN
             m.attachment_type,
             m.attachment_name,
             m.shared_note_id,
+            m.shared_post_id,
             m.created_at,
-            m.updated_at,
             -- Sender Info
             u.first_name,
             u.last_name,
             u.avatar_url,
             -- Sender Full Name
             TRIM(CONCAT(u.first_name, ' ', u.last_name)) as sender_name,
-            -- Shared Note Info (join with notes table)
+            -- Shared Note Info
             n.id as note_id,
             n.title_clarified as note_title,
             n.content_clarified as note_content_clarified,
             n.content_raw as note_content_raw,
             n.status as note_status,
-            p.name as pillar_name,
-            p.color as pillar_color
+            pil.name as pillar_name,
+            pil.color as pillar_color,
+            -- Shared Post Info (same fields as Chat RPC)
+            pst.id as post_id,
+            pst.content as post_content,
+            pst.media_urls as post_media_urls,
+            pst.post_type as post_type,
+            pst.likes_count as post_likes_count,
+            pst.comments_count as post_comments_count,
+            pst.has_poll as post_has_poll,
+            pst.created_at as post_created_at,
+            post_author.first_name as post_author_first_name,
+            post_author.last_name as post_author_last_name,
+            post_author.avatar_url as post_author_avatar
         FROM idea_group_messages m
         JOIN users u ON m.sender_id = u.id
         LEFT JOIN notes n ON m.shared_note_id = n.id
-        LEFT JOIN pillars p ON n.pillar_id = p.id
+        LEFT JOIN pillars pil ON n.pillar_id = pil.id
+        LEFT JOIN posts pst ON m.shared_post_id = pst.id
+        LEFT JOIN users post_author ON pst.user_id = post_author.id
         WHERE m.idea_group_id = p_group_id
-        ORDER BY m.created_at DESC
+        ORDER BY m.created_at ASC
         LIMIT p_limit OFFSET p_offset
     )
     SELECT jsonb_agg(
@@ -86,7 +100,7 @@ BEGIN
             'attachment_type', m.attachment_type,
             'attachment_name', m.attachment_name,
             'shared_note_id', m.shared_note_id,
-            -- Shared Note embedded data (same format as Chat)
+            -- Shared Note embedded data
             'shared_note', CASE 
                 WHEN m.shared_note_id IS NOT NULL THEN
                     jsonb_build_object(
@@ -101,6 +115,25 @@ BEGIN
                     )
                 ELSE NULL
             END,
+            'shared_post_id', m.shared_post_id,
+            -- Shared Post embedded data (same format as Chat RPC!)
+            'shared_post', CASE 
+                WHEN m.shared_post_id IS NOT NULL THEN
+                    jsonb_build_object(
+                        'id', m.post_id,
+                        'content', m.post_content,
+                        'media_urls', m.post_media_urls,
+                        'post_type', m.post_type,
+                        'likes_count', COALESCE(m.post_likes_count, 0),
+                        'comments_count', COALESCE(m.post_comments_count, 0),
+                        'user_info', jsonb_build_object(
+                            'first_name', m.post_author_first_name,
+                            'last_name', m.post_author_last_name,
+                            'avatar_url', m.post_author_avatar
+                        )
+                    )
+                ELSE NULL
+            END,
             'created_at', m.created_at,
             'sender_name', m.sender_name,
             'sender_avatar_url', m.avatar_url,
@@ -109,14 +142,14 @@ BEGIN
                 WHEN m.sender_id = p_user_id THEN (
                     SELECT COALESCE(jsonb_agg(
                         jsonb_build_object(
-                            'user_id', p.user_id,
-                            'first_name', p.first_name,
-                            'last_name', p.last_name,
-                            'read_at', p.last_read_at
+                            'user_id', gp.user_id,
+                            'first_name', gp.first_name,
+                            'last_name', gp.last_name,
+                            'read_at', gp.last_read_at
                         )
                     ), '[]'::jsonb)
-                    FROM group_participants p
-                    WHERE p.last_read_at >= m.created_at
+                    FROM group_participants gp
+                    WHERE gp.last_read_at >= m.created_at
                 )
                 ELSE '[]'::jsonb
             END
@@ -127,6 +160,7 @@ BEGIN
     RETURN COALESCE(v_messages, '[]'::jsonb);
 END;
 $$;
+
 
 
 -- 2. Get User Groups (Single Query - Replaces complex get_idea_groups loop)

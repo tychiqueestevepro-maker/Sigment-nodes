@@ -40,7 +40,7 @@ import {
 import toast from 'react-hot-toast';
 import { MemberPicker } from '@/components/shared/MemberPicker';
 import { useApiClient } from '@/hooks/useApiClient';
-import { SharedNoteCard } from '@/components/feed/share';
+import { SharedNoteCard, SharedPostCard } from '@/components/feed/share';
 
 // --- Types ---
 type ApiClient = ReturnType<typeof useApiClient>;
@@ -91,6 +91,8 @@ interface GroupMessage {
     attachment_name?: string;
     shared_note_id?: string;
     shared_note?: any;
+    shared_post_id?: string;
+    shared_post?: any;
     created_at: string;
     read_by?: ReadReceipt[];
 }
@@ -668,9 +670,26 @@ function GroupView({ group, currentUser, apiClient, onRefresh }: GroupViewProps)
         }
     };
 
+    // Track if we should scroll to bottom (initial load or user sent message)
+    const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
+    const prevMessagesLengthRef = useRef(0);
+
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+        // Only scroll if:
+        // 1. Initial load (shouldScrollToBottom is true)
+        // 2. User just sent a message (messages length increased and last message is from current user)
+        if (shouldScrollToBottom) {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            setShouldScrollToBottom(false);
+        } else if (messages.length > prevMessagesLengthRef.current && messages.length > 0) {
+            // Check if the new message is from current user (they just sent it)
+            const lastMessage = messages[messages.length - 1];
+            if (lastMessage.sender_id === currentUser?.id) {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+        prevMessagesLengthRef.current = messages.length;
+    }, [messages, shouldScrollToBottom, currentUser?.id]);
 
     // Timeline animation
     useEffect(() => {
@@ -931,9 +950,16 @@ function GroupView({ group, currentUser, apiClient, onRefresh }: GroupViewProps)
                                                 </div>
                                             )}
 
-                                            {/* Message bubble - only show if there's content or attachment AND no shared_note */}
-                                            {/* When there's a shared_note, the content is just fallback text that shouldn't be displayed */}
-                                            {!msg.shared_note && (msg.content || msg.attachment_url) && (
+                                            {/* Shared Post Card - Rendered OUTSIDE the message bubble (like Chat) */}
+                                            {msg.shared_post && (
+                                                <div className="mb-1">
+                                                    <SharedPostCard post={msg.shared_post} />
+                                                </div>
+                                            )}
+
+                                            {/* Message bubble - only show if there's content or attachment AND no shared_note/shared_post */}
+                                            {/* When there's a shared item, the content is just fallback text that shouldn't be displayed */}
+                                            {!msg.shared_note && !msg.shared_post && (msg.content || msg.attachment_url) && (
                                                 <div className={`px-4 py-2.5 rounded-2xl ${isMe
                                                     ? 'bg-black text-white rounded-br-md'
                                                     : 'bg-white text-gray-900 border border-gray-100 rounded-bl-md shadow-sm'
