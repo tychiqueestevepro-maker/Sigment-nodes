@@ -27,7 +27,7 @@ export function AdminSidebar({
     const pathname = usePathname();
 
     return (
-        <aside className="w-64 bg-[#0F172A] text-white flex flex-col h-full flex-shrink-0">
+        <aside className="w-64 bg-black text-white flex flex-col h-full flex-shrink-0">
             {/* Header */}
             <div className="h-16 flex items-center px-6 border-b border-gray-800">
                 <div className="flex items-center gap-3">

@@ -126,6 +126,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
             if (organization && organization.id) {
                 localStorage.setItem('sigment_org_id', organization.id)
             }
+            if (organization && organization.slug) {
+                localStorage.setItem('sigment_org_slug', organization.slug)
+            }
+            // Save user role if available (role is in user object from backend)
+            if (user.role) {
+                localStorage.setItem('sigment_user_role', user.role)
+            }
 
             // Handle Redirection based on user role
             if (organization && organization.slug) {

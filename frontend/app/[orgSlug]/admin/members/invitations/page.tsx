@@ -24,6 +24,10 @@ export default function PendingInvitesPage() {
     const [invitations, setInvitations] = React.useState<any[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
 
+    // Pagination
+    const [currentPage, setCurrentPage] = React.useState(1);
+    const INVITATIONS_PER_PAGE = 50;
+
     React.useEffect(() => {
         if (organization?.id) {
             fetchInvitations();
@@ -44,6 +48,12 @@ export default function PendingInvitesPage() {
             setIsLoading(false);
         }
     };
+
+    // Pagination logic
+    const startIndex = (currentPage - 1) * INVITATIONS_PER_PAGE;
+    const endIndex = startIndex + INVITATIONS_PER_PAGE;
+    const paginatedInvitations = invitations.slice(startIndex, endIndex);
+    const totalPages = Math.ceil(invitations.length / INVITATIONS_PER_PAGE);
 
     return (
         <div className="p-8 max-w-7xl mx-auto">
@@ -95,7 +105,7 @@ export default function PendingInvitesPage() {
                                 <td colSpan={6} className="p-8 text-center text-gray-500">No invitations found.</td>
                             </tr>
                         ) : (
-                            invitations.map((invite) => {
+                            paginatedInvitations.map((invite) => {
                                 const isExpired = new Date(invite.expires_at) < new Date();
                                 const status = invite.status === 'accepted' ? 'Accepted' : isExpired ? 'Expired' : 'Pending';
                                 const statusColor = status === 'Accepted'
@@ -160,6 +170,31 @@ export default function PendingInvitesPage() {
                         )}
                     </tbody>
                 </table>
+
+                {/* Pagination Footer */}
+                <div className="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between text-sm text-gray-500">
+                    <div>
+                        Showing <span className="font-medium text-gray-900">
+                            {invitations.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, invitations.length)}
+                        </span> of <span className="font-medium text-gray-900">{invitations.length}</span> invitations
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Previous
+                        </button>
+                        <button
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage >= totalPages}
+                            className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Next
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     );

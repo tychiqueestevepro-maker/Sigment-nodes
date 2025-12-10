@@ -9,7 +9,9 @@ import {
     XCircle,
     ArrowUpCircle,
     ArrowDownCircle,
-    UserCog
+    UserCog,
+    Ban,
+    RefreshCw
 } from 'lucide-react';
 
 interface MemberActionsMenuProps {
@@ -77,7 +79,9 @@ export function MemberActionsMenu({
 
     // Member Actions Logic
     const isSelf = currentUserId === targetMember.id;
-    const targetRole = targetMember.role;
+    const targetRole = (targetMember.role || '').toUpperCase();
+    const normalizedCurrentRole = (currentUserRole || '').toUpperCase();
+    const isSuspended = (targetMember.status || '').toLowerCase() === 'suspended';
 
     let actions: any[] = [];
 
@@ -86,15 +90,25 @@ export function MemberActionsMenu({
             actions.push({ label: 'Edit Profile', icon: <UserCog size={14} />, action: 'edit_profile' });
         }
     } else if (targetRole === 'BOARD') {
-        if (currentUserRole === 'OWNER') {
+        if (normalizedCurrentRole === 'OWNER') {
             actions.push({ label: 'Demote to Member', icon: <ArrowDownCircle size={14} />, action: 'demote' });
             actions.push({ label: 'Edit Title', icon: <Edit size={14} />, action: 'edit_title' });
+            if (isSuspended) {
+                actions.push({ label: 'Reactivate Account', icon: <RefreshCw size={14} />, action: 'reactivate' });
+            } else {
+                actions.push({ label: 'Suspend Account', icon: <Ban size={14} />, action: 'suspend' });
+            }
             actions.push({ label: 'Remove from Team', icon: <Trash2 size={14} />, action: 'remove', isDestructive: true });
         }
     } else if (targetRole === 'MEMBER') {
-        if (currentUserRole === 'OWNER' || currentUserRole === 'BOARD') {
+        if (normalizedCurrentRole === 'OWNER' || normalizedCurrentRole === 'BOARD') {
             actions.push({ label: 'Promote to Board', icon: <ArrowUpCircle size={14} />, action: 'promote' });
             actions.push({ label: 'Edit Title', icon: <Edit size={14} />, action: 'edit_title' });
+            if (isSuspended) {
+                actions.push({ label: 'Reactivate Account', icon: <RefreshCw size={14} />, action: 'reactivate' });
+            } else {
+                actions.push({ label: 'Suspend Account', icon: <Ban size={14} />, action: 'suspend' });
+            }
             actions.push({ label: 'Remove from Team', icon: <Trash2 size={14} />, action: 'remove', isDestructive: true });
         }
     }
@@ -117,13 +131,15 @@ export function MemberActionsMenu({
                 <MoreHorizontal size={18} />
             </button>
             {isOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 z-[100] overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-80 overflow-y-auto">
                     <div className="p-1">
                         {actions.map((action) => (
                             <button
                                 key={action.action}
                                 onClick={(e) => { e.stopPropagation(); onAction(action.action, targetMember); setIsOpen(false); }}
-                                className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors text-left ${action.isDestructive ? 'text-red-600 hover:bg-red-50' : 'text-gray-700 hover:bg-gray-50'
+                                className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors text-left ${action.isDestructive ? 'text-red-600 hover:bg-red-50' :
+                                    action.isWarning ? 'text-orange-600 hover:bg-orange-50' :
+                                        'text-gray-700 hover:bg-gray-50'
                                     }`}
                             >
                                 {action.icon} {action.label}

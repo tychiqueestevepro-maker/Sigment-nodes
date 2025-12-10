@@ -142,7 +142,8 @@ async def get_org_members(org_slug: str):
                         "email": user.get("email", ""),
                         "role": m.get("role", "MEMBER"), # Default to MEMBER if missing
                         "job_title": m.get("job_title", ""), # Fixed: job_title is in membership
-                        "status": "Active", 
+                        "seniority_level": user.get("seniority_level", ""), # Seniority level from users table
+                        "status": user.get("status", "active"), # Get real status from users table
                         "joined_at": m.get("joined_at", ""),
                         "avatar_url": user.get("avatar_url")
                     })
@@ -150,6 +151,10 @@ async def get_org_members(org_slug: str):
                 print(f"Error processing member {m.get('id')}: {e}")
                 # Continue to next member instead of crashing
                 continue
+        
+        # Sort by role: OWNER first, then BOARD, then MEMBER
+        role_order = {"OWNER": 0, "BOARD": 1, "MEMBER": 2}
+        result.sort(key=lambda x: role_order.get(x.get("role", "MEMBER"), 2))
                 
         return result
     except Exception as e:
@@ -234,4 +239,193 @@ async def create_organization(
         
     except Exception as e:
         logger.error(f"Error creating organization: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============= MEMBER ACTIONS =============
+
+from pydantic import BaseModel
+
+class UpdateMemberRoleRequest(BaseModel):
+    user_id: str
+    new_role: str  # "BOARD" or "MEMBER"
+
+class UpdateMemberTitleRequest(BaseModel):
+    user_id: str
+    job_title: str
+
+class MemberActionRequest(BaseModel):
+    user_id: str
+
+
+@router.patch("/{org_slug}/members/role")
+async def update_member_role(org_slug: str, request: UpdateMemberRoleRequest):
+    """
+    Promote or Demote a member's role
+    - OWNER can change BOARD <-> MEMBER
+    """
+    try:
+        # Get organization ID
+        org_response = supabase.table("organizations").select("id").eq("slug", org_slug).single().execute()
+        if not org_response.data:
+            raise HTTPException(status_code=404, detail="Organization not found")
+        
+        org_id = org_response.data["id"]
+        
+        # Validate new_role
+        if request.new_role.upper() not in ["BOARD", "MEMBER"]:
+            raise HTTPException(status_code=400, detail="Invalid role. Must be BOARD or MEMBER")
+        
+        # Update the membership
+        update_response = supabase.table("memberships").update({
+            "role": request.new_role.upper()
+        }).eq("organization_id", org_id).eq("user_id", request.user_id).execute()
+        
+        if not update_response.data:
+            raise HTTPException(status_code=404, detail="Member not found")
+        
+        logger.info(f"Updated role for user {request.user_id} to {request.new_role} in org {org_slug}")
+        return {"success": True, "message": f"Role updated to {request.new_role}"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating member role: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.patch("/{org_slug}/members/title")
+async def update_member_title(org_slug: str, request: UpdateMemberTitleRequest):
+    """
+    Update a member's job title
+    """
+    try:
+        # Get organization ID
+        org_response = supabase.table("organizations").select("id").eq("slug", org_slug).single().execute()
+        if not org_response.data:
+            raise HTTPException(status_code=404, detail="Organization not found")
+        
+        org_id = org_response.data["id"]
+        
+        # Update the membership job_title
+        update_response = supabase.table("memberships").update({
+            "job_title": request.job_title
+        }).eq("organization_id", org_id).eq("user_id", request.user_id).execute()
+        
+        if not update_response.data:
+            raise HTTPException(status_code=404, detail="Member not found")
+        
+        logger.info(f"Updated job_title for user {request.user_id} to '{request.job_title}' in org {org_slug}")
+        return {"success": True, "message": f"Job title updated to '{request.job_title}'"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating member title: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.patch("/{org_slug}/members/suspend")
+async def suspend_member(org_slug: str, request: MemberActionRequest):
+    """
+    Suspend a member's account (sets status to 'suspended')
+    """
+    try:
+        # Get organization ID
+        org_response = supabase.table("organizations").select("id").eq("slug", org_slug).single().execute()
+        if not org_response.data:
+            raise HTTPException(status_code=404, detail="Organization not found")
+        
+        org_id = org_response.data["id"]
+        
+        # Check if member exists and is not OWNER
+        member_response = supabase.table("memberships").select("role").eq("organization_id", org_id).eq("user_id", request.user_id).single().execute()
+        
+        if not member_response.data:
+            raise HTTPException(status_code=404, detail="Member not found")
+        
+        if member_response.data["role"] == "OWNER":
+            raise HTTPException(status_code=403, detail="Cannot suspend the owner")
+        
+        # Update user status in users table
+        update_response = supabase.table("users").update({
+            "status": "suspended"
+        }).eq("id", request.user_id).execute()
+        
+        logger.info(f"Suspended user {request.user_id} in org {org_slug}")
+        return {"success": True, "message": "Member account suspended"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error suspending member: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.patch("/{org_slug}/members/reactivate")
+async def reactivate_member(org_slug: str, request: MemberActionRequest):
+    """
+    Reactivate a suspended member's account (sets status back to 'active')
+    """
+    try:
+        # Get organization ID
+        org_response = supabase.table("organizations").select("id").eq("slug", org_slug).single().execute()
+        if not org_response.data:
+            raise HTTPException(status_code=404, detail="Organization not found")
+        
+        org_id = org_response.data["id"]
+        
+        # Check if member exists
+        member_response = supabase.table("memberships").select("role").eq("organization_id", org_id).eq("user_id", request.user_id).single().execute()
+        
+        if not member_response.data:
+            raise HTTPException(status_code=404, detail="Member not found")
+        
+        # Update user status in users table
+        update_response = supabase.table("users").update({
+            "status": "active"
+        }).eq("id", request.user_id).execute()
+        
+        logger.info(f"Reactivated user {request.user_id} in org {org_slug}")
+        return {"success": True, "message": "Member account reactivated"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error reactivating member: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/{org_slug}/members/{user_id}")
+async def remove_member(org_slug: str, user_id: str):
+    """
+    Remove a member from the organization
+    """
+    try:
+        # Get organization ID
+        org_response = supabase.table("organizations").select("id").eq("slug", org_slug).single().execute()
+        if not org_response.data:
+            raise HTTPException(status_code=404, detail="Organization not found")
+        
+        org_id = org_response.data["id"]
+        
+        # Check if member exists and is not OWNER
+        member_response = supabase.table("memberships").select("role").eq("organization_id", org_id).eq("user_id", user_id).single().execute()
+        
+        if not member_response.data:
+            raise HTTPException(status_code=404, detail="Member not found")
+        
+        if member_response.data["role"] == "OWNER":
+            raise HTTPException(status_code=403, detail="Cannot remove the owner")
+        
+        # Delete the membership
+        delete_response = supabase.table("memberships").delete().eq("organization_id", org_id).eq("user_id", user_id).execute()
+        
+        logger.info(f"Removed user {user_id} from org {org_slug}")
+        return {"success": True, "message": "Member removed from organization"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error removing member: {e}")
         raise HTTPException(status_code=500, detail=str(e))

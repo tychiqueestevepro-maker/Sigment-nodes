@@ -250,13 +250,21 @@ def login(data: LoginRequest):
             
         if org_status == "past_due":
             logger.warning(f"Organization {organization.get('slug')} is past due")
-
-        logger.info(f"User {email} logged in successfully")
         
-        # 5. Get user profile data from users table (includes avatar_url)
+        # 5. Get user profile data from users table (includes avatar_url and status)
         user_profile = supabase.table("users").select(
-            "first_name, last_name, avatar_url"
+            "first_name, last_name, avatar_url, status"
         ).eq("id", user_id).single().execute()
+        
+        # Check if account is suspended
+        if user_profile.data and user_profile.data.get("status") == "suspended":
+            logger.warning(f"Suspended user {email} attempted to login")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your account is currently suspended. Please contact your administrator."
+            )
+        
+        logger.info(f"User {email} logged in successfully")
         
         # Use profile data if available, fallback to user_metadata
         first_name = user_profile.data.get("first_name") if user_profile.data else user.user_metadata.get("first_name", "")
