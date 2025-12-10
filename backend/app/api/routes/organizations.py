@@ -143,7 +143,7 @@ async def get_org_members(org_slug: str):
                         "role": m.get("role", "MEMBER"), # Default to MEMBER if missing
                         "job_title": m.get("job_title", ""), # Fixed: job_title is in membership
                         "status": "Active", 
-                        "joined_at": m.get("created_at", ""),
+                        "joined_at": m.get("joined_at", ""),
                         "avatar_url": user.get("avatar_url")
                     })
             except Exception as e:

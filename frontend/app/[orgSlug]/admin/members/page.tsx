@@ -129,24 +129,7 @@ export default function OwnerAdminPage() {
                 </div>
             </div>
 
-            {/* Invite Box */}
-            <div className="bg-blue-50 border border-blue-100 rounded-xl p-6 mb-8 flex items-center justify-between">
-                <div>
-                    <h3 className="text-blue-900 font-bold text-lg mb-1">Invite your team</h3>
-                    <p className="text-blue-700 text-sm">Send this link to your team members so they can create their profile.</p>
-                </div>
-                <div className="flex gap-3">
-                    <div className="bg-white px-4 py-2 rounded-lg border border-blue-200 text-gray-500 text-sm flex items-center gap-2 min-w-[300px]">
-                        <span className="truncate">https://sigment.com/join/workspace...</span>
-                    </div>
-                    <button
-                        onClick={() => setIsInviteModalOpen(true)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-colors"
-                    >
-                        <Copy size={16} /> Copy
-                    </button>
-                </div>
-            </div>
+
 
             {/* Filters & Actions */}
             <div className="flex items-center justify-between mb-6">
@@ -181,7 +164,7 @@ export default function OwnerAdminPage() {
                             </th>
                             <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">User Profile</th>
                             <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</th>
-                            <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                            <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Job Title</th>
                             <th className="p-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Joined</th>
                             <th className="p-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
@@ -225,13 +208,12 @@ export default function OwnerAdminPage() {
                                         </span>
                                     </td>
                                     <td className="p-4">
-                                        <span className="inline-flex items-center gap-1.5 text-sm text-gray-700">
-                                            <span className={`w-2 h-2 rounded-full ${member.status === 'Active' ? 'bg-green-500' : 'bg-gray-300'}`}></span>
-                                            {member.status}
+                                        <span className="text-sm text-gray-700">
+                                            {member.job_title || '-'}
                                         </span>
                                     </td>
                                     <td className="p-4 text-sm text-gray-500">
-                                        {member.joined_at ? new Date(member.joined_at).toLocaleDateString() : '-'}
+                                        {member.joined_at ? new Date(member.joined_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
                                     </td>
                                     <td className="p-4 text-right">
                                         <MemberActionsMenu
