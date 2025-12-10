@@ -34,3 +34,6 @@ tenacity==8.2.3
 # Logging & Monitoring
 loguru==0.7.2
 
+# Email
+fastapi-mail==1.4.1
+

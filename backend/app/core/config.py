@@ -44,6 +44,17 @@ class Settings(BaseSettings):
     VECTOR_SIMILARITY_THRESHOLD: float = 0.75
     MAX_SIMILAR_NOTES: int = 10
     
+    # SMTP Email Configuration
+    SMTP_HOST: str = "localhost"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    EMAILS_FROM_EMAIL: str = "noreply@example.com"
+    EMAILS_FROM_NAME: str = "SIGMENT"
+    
+    # Frontend URL for invitation links
+    FRONTEND_URL: str = "http://localhost:3000"
+    
     class Config:
         env_file = ".env"
         case_sensitive = True

@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 import secrets
 import uuid
 from app.services.supabase_client import get_fresh_supabase_client
+from app.services.email_service import email_service
+from loguru import logger
 
 router = APIRouter()
 
@@ -56,12 +58,36 @@ async def create_invitations(
         print(f"Error verifying permissions: {e}")
         raise HTTPException(status_code=500, detail="Error verifying permissions")
     
+    # Get inviter name for email
+    inviter_name = "A team member"
+    try:
+        inviter_response = supabase.table("users").select("first_name, last_name, email").eq("id", request.invited_by).execute()
+        if inviter_response.data and len(inviter_response.data) > 0:
+            inviter = inviter_response.data[0]
+            first_name = inviter.get('first_name') or ''
+            last_name = inviter.get('last_name') or ''
+            inviter_name = f"{first_name} {last_name}".strip()
+            if not inviter_name:
+                inviter_name = inviter.get('email', '').split('@')[0]
+    except Exception as e:
+        logger.warning(f"Could not fetch inviter name: {e}")
+    
+    # Get organization name for email
+    org_name = "your organization"
+    try:
+        org_response = supabase.table("organizations").select("name").eq("id", request.organization_id).execute()
+        if org_response.data and len(org_response.data) > 0:
+            org_name = org_response.data[0].get("name", "your organization")
+    except Exception as e:
+        logger.warning(f"Could not fetch organization name: {e}")
+    
     success_count = 0
     failed_emails = []
     invitation_links = []
     
-    # Base URL for links
-    base_url = "http://localhost:3000" 
+    # Base URL for links (now using settings)
+    from app.core.config import settings
+    base_url = settings.FRONTEND_URL
 
     for email in request.emails:
         try:
@@ -98,10 +124,10 @@ async def create_invitations(
                 time_since_invite = now - last_invite_time
                 
                 if time_since_invite < timedelta(hours=2):
-                    # Still valid (< 2h)
+                    # Still valid (<2h)
                     raise HTTPException(status_code=400, detail=f"Invite pending (expires in {int(120 - time_since_invite.total_seconds()/60)}m)")
                 else:
-                    # Expired (> 2h)
+                    # Expired (>2h)
                     # Delete the old invitation to clear the unique constraint
                     supabase.table("invitations").delete().eq("id", invite_record["id"]).execute()
 
@@ -126,6 +152,22 @@ async def create_invitations(
             link = f"{base_url}/join?token={token}"
             invitation_links.append({"email": email, "link": link})
             success_count += 1
+            
+            # 5. Send invitation email (non-blocking - failures logged but don't crash the request)
+            try:
+                email_sent = await email_service.send_invitation_email(
+                    email=email,
+                    token=token,
+                    org_name=org_name,
+                    inviter_name=inviter_name
+                )
+                if email_sent:
+                    logger.info(f"Invitation email sent to {email}")
+                else:
+                    logger.warning(f"Failed to send invitation email to {email}, but invitation was created")
+            except Exception as email_error:
+                logger.error(f"Email sending failed for {email}: {email_error}")
+                # Continue without crashing - the invitation link is still valid
             
         except Exception as e:
             error_msg = str(e)
@@ -156,6 +198,7 @@ async def create_invitations(
         failed_emails=failed_emails,
         invitation_links=invitation_links
     )
+
 
 @router.get("/invitations")
 async def get_invitations(organization_id: str):
