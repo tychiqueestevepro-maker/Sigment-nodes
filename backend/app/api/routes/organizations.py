@@ -94,6 +94,153 @@ async def get_user_org_access(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/{org_slug}/details")
+async def get_organization_details(org_slug: str):
+    """
+    Get full organization details including member count
+    """
+    try:
+        # Get organization
+        org_response = supabase.table("organizations").select("*").eq("slug", org_slug).single().execute()
+        
+        if not org_response.data:
+            raise HTTPException(status_code=404, detail="Organization not found")
+        
+        org = org_response.data
+        
+        # Get member count
+        members_response = supabase.table("memberships").select("id", count="exact").eq("organization_id", org["id"]).execute()
+        member_count = members_response.count if members_response.count else 0
+        
+        return {
+            "id": org["id"],
+            "name": org.get("name", ""),
+            "slug": org.get("slug", ""),
+            "description": org.get("description", ""),
+            "location": org.get("location", ""),
+            "logo_url": org.get("logo_url"),
+            "created_at": org.get("created_at", ""),
+            "member_count": member_count
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching organization details: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+from pydantic import BaseModel
+from typing import Optional
+
+class UpdateOrganizationRequest(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    location: Optional[str] = None
+
+
+@router.patch("/{org_slug}")
+async def update_organization(org_slug: str, request: UpdateOrganizationRequest):
+    """
+    Update organization details (Owner only)
+    """
+    try:
+        # Get organization
+        org_response = supabase.table("organizations").select("id").eq("slug", org_slug).single().execute()
+        
+        if not org_response.data:
+            raise HTTPException(status_code=404, detail="Organization not found")
+        
+        org_id = org_response.data["id"]
+        
+        # Build update data (only non-None fields)
+        update_data = {}
+        if request.name is not None:
+            update_data["name"] = request.name
+        if request.description is not None:
+            update_data["description"] = request.description
+        if request.location is not None:
+            update_data["location"] = request.location
+        
+        if not update_data:
+            return {"success": True, "message": "No changes to apply"}
+        
+        # Update organization
+        supabase.table("organizations").update(update_data).eq("id", org_id).execute()
+        
+        logger.info(f"Updated organization {org_slug}: {update_data.keys()}")
+        return {"success": True, "message": "Organization updated successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating organization: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+from fastapi import UploadFile, File
+import uuid
+from datetime import datetime
+
+@router.post("/{org_slug}/logo")
+async def upload_organization_logo(org_slug: str, file: UploadFile = File(...)):
+    """
+    Upload organization logo (Owner only)
+    """
+    try:
+        # Validate file type
+        if not file.content_type or not file.content_type.startswith("image/"):
+            raise HTTPException(status_code=400, detail="File must be an image")
+        
+        # Validate file size (max 10MB)
+        contents = await file.read()
+        if len(contents) > 10 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="File size must be less than 10MB")
+        
+        # Get organization
+        org_response = supabase.table("organizations").select("id").eq("slug", org_slug).single().execute()
+        
+        if not org_response.data:
+            raise HTTPException(status_code=404, detail="Organization not found")
+        
+        org_id = org_response.data["id"]
+        
+        # Generate unique filename
+        file_ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+        filename = f"org-logos/{org_id}/{uuid.uuid4()}.{file_ext}"
+        
+        # Upload to Supabase Storage
+        try:
+            upload_response = supabase.storage.from_("avatars").upload(
+                filename,
+                contents,
+                {
+                    "content-type": file.content_type,
+                    "upsert": "true"
+                }
+            )
+            
+            # Get public URL
+            public_url = supabase.storage.from_("avatars").get_public_url(filename)
+            
+            # Update organization with new logo URL
+            supabase.table("organizations").update({"logo_url": public_url}).eq("id", org_id).execute()
+            
+            logger.info(f"Uploaded logo for organization {org_slug}")
+            return {"success": True, "logo_url": public_url}
+            
+        except Exception as storage_error:
+            logger.error(f"Storage error: {storage_error}")
+            raise HTTPException(status_code=500, detail="Failed to upload image to storage")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading logo: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
 @router.get("/{org_slug}/members")
 async def get_org_members(org_slug: str):
     """
