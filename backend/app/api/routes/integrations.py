@@ -2,7 +2,7 @@
 API routes for Slack and Teams OAuth integrations
 """
 from fastapi import APIRouter, HTTPException, Depends, Query, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, HTMLResponse
 from pydantic import BaseModel
 from typing import Optional
 from loguru import logger
@@ -113,16 +113,79 @@ async def slack_callback(
         
         logger.info(f"Slack integration saved for user {user_id}")
         
-        # Redirect to success page with correct org slug
-        return RedirectResponse(
-            url=f"http://localhost:3000/{org_slug}/review?integration=slack&status=success"
-        )
+        # Return HTML that closes the popup
+        return HTMLResponse(content="""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Slack Connected</title>
+                <style>
+                    body { 
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                        display: flex; 
+                        justify-content: center; 
+                        align-items: center; 
+                        height: 100vh; 
+                        margin: 0;
+                        background: linear-gradient(135deg, #4A154B 0%, #611f69 100%);
+                        color: white;
+                    }
+                    .container { text-align: center; }
+                    .icon { font-size: 64px; margin-bottom: 16px; }
+                    h1 { margin: 0 0 8px 0; }
+                    p { opacity: 0.8; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="icon">✅</div>
+                    <h1>Slack Connected!</h1>
+                    <p>This window will close automatically...</p>
+                </div>
+                <script>
+                    setTimeout(() => window.close(), 1500);
+                </script>
+            </body>
+            </html>
+        """)
         
     except Exception as e:
         logger.error(f"Error in Slack callback: {e}")
-        return RedirectResponse(
-            url=f"http://localhost:3000/sigment/review?integration=slack&status=error&message={str(e)}"
-        )
+        return HTMLResponse(content=f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Connection Error</title>
+                <style>
+                    body {{ 
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                        display: flex; 
+                        justify-content: center; 
+                        align-items: center; 
+                        height: 100vh; 
+                        margin: 0;
+                        background: #fee2e2;
+                        color: #991b1b;
+                    }}
+                    .container {{ text-align: center; padding: 20px; }}
+                    .icon {{ font-size: 64px; margin-bottom: 16px; }}
+                    h1 {{ margin: 0 0 8px 0; }}
+                    p {{ opacity: 0.8; max-width: 400px; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="icon">❌</div>
+                    <h1>Connection Failed</h1>
+                    <p>{str(e)}</p>
+                    <p>You can close this window and try again.</p>
+                </div>
+                <script>
+                    setTimeout(() => window.close(), 5000);
+                </script>
+            </body>
+            </html>
+        """)
 
 
 # ============================================================================
@@ -206,16 +269,79 @@ async def teams_callback(
         
         logger.info(f"Teams integration saved for user {user_id}")
         
-        # Redirect to success page with correct org slug
-        return RedirectResponse(
-            url=f"http://localhost:3000/{org_slug}/review?integration=teams&status=success"
-        )
+        # Return HTML that closes the popup
+        return HTMLResponse(content="""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Teams Connected</title>
+                <style>
+                    body { 
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                        display: flex; 
+                        justify-content: center; 
+                        align-items: center; 
+                        height: 100vh; 
+                        margin: 0;
+                        background: linear-gradient(135deg, #6264A7 0%, #5558AF 100%);
+                        color: white;
+                    }
+                    .container { text-align: center; }
+                    .icon { font-size: 64px; margin-bottom: 16px; }
+                    h1 { margin: 0 0 8px 0; }
+                    p { opacity: 0.8; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="icon">✅</div>
+                    <h1>Microsoft Teams Connected!</h1>
+                    <p>This window will close automatically...</p>
+                </div>
+                <script>
+                    setTimeout(() => window.close(), 1500);
+                </script>
+            </body>
+            </html>
+        """)
         
     except Exception as e:
         logger.error(f"Error in Teams callback: {e}")
-        return RedirectResponse(
-            url=f"http://localhost:3000/sigment/review?integration=teams&status=error&message={str(e)}"
-        )
+        return HTMLResponse(content=f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Connection Error</title>
+                <style>
+                    body {{ 
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                        display: flex; 
+                        justify-content: center; 
+                        align-items: center; 
+                        height: 100vh; 
+                        margin: 0;
+                        background: #fee2e2;
+                        color: #991b1b;
+                    }}
+                    .container {{ text-align: center; padding: 20px; }}
+                    .icon {{ font-size: 64px; margin-bottom: 16px; }}
+                    h1 {{ margin: 0 0 8px 0; }}
+                    p {{ opacity: 0.8; max-width: 400px; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="icon">❌</div>
+                    <h1>Connection Failed</h1>
+                    <p>{str(e)}</p>
+                    <p>You can close this window and try again.</p>
+                </div>
+                <script>
+                    setTimeout(() => window.close(), 5000);
+                </script>
+            </body>
+            </html>
+        """)
 
 
 # ============================================================================

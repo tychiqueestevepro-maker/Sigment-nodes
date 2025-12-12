@@ -1,76 +1,96 @@
 """
 Microsoft Teams Service for creating project teams
+Multi-tenant: Uses each user's OAuth token from user_integrations table
 """
 import os
 import httpx
 from typing import List, Dict, Optional
 from loguru import logger
+from app.services.supabase_client import supabase
 
 
 class TeamsService:
     def __init__(self):
-        self.tenant_id = os.getenv("AZURE_TENANT_ID")
-        self.client_id = os.getenv("AZURE_CLIENT_ID")
-        self.client_secret = os.getenv("AZURE_CLIENT_SECRET")
         self.graph_api_base = "https://graph.microsoft.com/v1.0"
-        self.access_token: Optional[str] = None
     
-    async def _get_access_token(self) -> str:
+    def _get_user_token(self, user_id: str) -> Optional[str]:
         """
-        Get Microsoft Graph API access token using Client Credentials flow
+        Get the user's Teams OAuth token from the database
         """
-        if self.access_token:
-            return self.access_token
-        
-        token_url = f"https://login.microsoftonline.com/{self.tenant_id}/oauth2/v2.0/token"
-        
-        data = {
-            "client_id": self.client_id,
-            "client_secret": self.client_secret,
-            "scope": "https://graph.microsoft.com/.default",
-            "grant_type": "client_credentials"
+        try:
+            result = supabase.table("user_integrations").select("access_token").eq(
+                "user_id", user_id
+            ).eq("platform", "teams").single().execute()
+            
+            if result.data and result.data.get("access_token"):
+                logger.info(f"Using OAuth token for user {user_id}")
+                return result.data["access_token"]
+            else:
+                logger.warning(f"No Teams token found for user {user_id}")
+                return None
+        except Exception as e:
+            logger.error(f"Error fetching Teams token for user {user_id}: {e}")
+            return None
+    
+    async def _get_user_id_by_email(self, access_token: str, email: str) -> Optional[str]:
+        """
+        Get Microsoft user ID by email address using the user's token
+        Tries multiple methods to find the user
+        """
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
         }
         
         async with httpx.AsyncClient() as client:
-            response = await client.post(token_url, data=data)
-            response.raise_for_status()
-            token_data = response.json()
-            self.access_token = token_data["access_token"]
-            return self.access_token
-    
-    async def _get_user_id_by_email(self, email: str) -> Optional[str]:
-        """
-        Get Microsoft user ID by email address
-        """
-        try:
-            token = await self._get_access_token()
-            headers = {
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json"
-            }
-            
-            # Use $filter to find user by email
-            url = f"{self.graph_api_base}/users?$filter=mail eq '{email}' or userPrincipalName eq '{email}'"
-            
-            async with httpx.AsyncClient() as client:
+            # Method 1: Try direct user lookup by userPrincipalName
+            try:
+                url = f"{self.graph_api_base}/users/{email}"
                 response = await client.get(url, headers=headers)
-                response.raise_for_status()
-                data = response.json()
-                
-                if data.get("value") and len(data["value"]) > 0:
-                    return data["value"][0]["id"]
-                else:
-                    logger.warning(f"User not found for email: {email}")
-                    return None
-        except Exception as e:
-            logger.error(f"Error finding user {email}: {e}")
+                if response.status_code == 200:
+                    data = response.json()
+                    logger.info(f"Found user {email} via direct lookup: {data.get('id')}")
+                    return data.get("id")
+            except Exception as e:
+                logger.debug(f"Direct lookup failed for {email}: {e}")
+            
+            # Method 2: Try /me if this might be the current user
+            try:
+                me_response = await client.get(f"{self.graph_api_base}/me", headers=headers)
+                if me_response.status_code == 200:
+                    me_data = me_response.json()
+                    me_email = me_data.get("mail") or me_data.get("userPrincipalName", "")
+                    if me_email.lower() == email.lower():
+                        logger.info(f"Found user {email} via /me: {me_data.get('id')}")
+                        return me_data.get("id")
+            except Exception as e:
+                logger.debug(f"/me lookup failed: {e}")
+            
+            # Method 3: Try people search (requires People.Read permission)
+            try:
+                search_url = f"{self.graph_api_base}/me/people?$search=\"{email}\""
+                response = await client.get(search_url, headers=headers)
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get("value") and len(data["value"]) > 0:
+                        # Get the user ID from people result
+                        person = data["value"][0]
+                        user_id = person.get("id")
+                        if user_id:
+                            logger.info(f"Found user {email} via people search: {user_id}")
+                            return user_id
+            except Exception as e:
+                logger.debug(f"People search failed for {email}: {e}")
+            
+            logger.warning(f"User not found for email: {email}")
             return None
     
     async def create_project_team(
         self,
         project_name: str,
         project_lead_email: str,
-        team_emails: List[str]
+        team_emails: List[str],
+        user_id: Optional[str] = None
     ) -> Dict:
         """
         Create a Microsoft Teams project with owner and members
@@ -79,65 +99,78 @@ class TeamsService:
             project_name: Name of the project/team
             project_lead_email: Email of the project lead (will be team owner)
             team_emails: List of team member emails
+            user_id: ID of the user initiating the action (for OAuth token lookup)
         
         Returns:
-            Dict with success status, team_id, and team_name
+            Dict with success status, team_id, team_name, and member_statuses
         """
         try:
-            logger.info(f"Creating Teams project: {project_name}")
+            logger.info(f"Creating Teams project: {project_name} by user {user_id}")
             
-            # Get user IDs
-            lead_id = await self._get_user_id_by_email(project_lead_email)
+            # Get user's OAuth token
+            if not user_id:
+                return {"success": False, "error": "User ID required for Teams operations"}
+            
+            access_token = self._get_user_token(user_id)
+            if not access_token:
+                return {"success": False, "error": "Please connect your Microsoft Teams account first"}
+            
+            # Track member statuses
+            member_statuses = []
+            
+            # Get lead user ID
+            lead_id = await self._get_user_id_by_email(access_token, project_lead_email)
+            member_statuses.append({
+                "email": project_lead_email,
+                "role": "lead",
+                "found": lead_id is not None,
+                "teams_id": lead_id
+            })
+            
             if not lead_id:
                 return {
                     "success": False,
-                    "error": f"Project lead not found: {project_lead_email}"
+                    "error": f"Project lead not found in Teams: {project_lead_email}",
+                    "member_statuses": member_statuses
                 }
             
-            # Get member IDs (filter out None values for users not found)
+            # Get member IDs and track status
             member_ids = []
             for email in team_emails:
-                user_id = await self._get_user_id_by_email(email)
-                if user_id and user_id != lead_id:  # Don't add lead as member
-                    member_ids.append({"id": user_id, "email": email})
-                elif user_id == lead_id:
-                    logger.info(f"Skipping {email} - already the team owner")
-                else:
-                    logger.warning(f"Team member not found: {email}")
-            
-            # Prepare members array for team creation
-            members = [
-                {
-                    "@odata.type": "#microsoft.graph.aadUserConversationMember",
-                    "roles": ["owner"],
-                    "user@odata.bind": f"{self.graph_api_base}/users('{lead_id}')"
-                }
-            ]
-            
-            # Add regular members
-            for member in member_ids:
-                members.append({
-                    "@odata.type": "#microsoft.graph.aadUserConversationMember",
-                    "roles": [],
-                    "user@odata.bind": f"{self.graph_api_base}/users('{member['id']}')"
+                teams_user_id = await self._get_user_id_by_email(access_token, email)
+                member_statuses.append({
+                    "email": email,
+                    "role": "member",
+                    "found": teams_user_id is not None,
+                    "teams_id": teams_user_id
                 })
+                if teams_user_id and teams_user_id != lead_id:
+                    member_ids.append({"id": teams_user_id, "email": email})
+                elif teams_user_id == lead_id:
+                    logger.info(f"Skipping {email} - already the team owner")
             
-            # Create team payload
+            # Create team with ONLY the owner (cannot add multiple members at creation)
             team_payload = {
                 "template@odata.bind": f"{self.graph_api_base}/teamsTemplates('standard')",
                 "displayName": project_name,
-                "description": f"Team for {project_name}",
-                "members": members
+                "description": f"Team for {project_name} - Created by SIGMENT",
+                "members": [
+                    {
+                        "@odata.type": "#microsoft.graph.aadUserConversationMember",
+                        "roles": ["owner"],
+                        "user@odata.bind": f"{self.graph_api_base}/users('{lead_id}')"
+                    }
+                ]
             }
             
-            # Create the team
-            token = await self._get_access_token()
+            # Create the team using user's token
             headers = {
-                "Authorization": f"Bearer {token}",
+                "Authorization": f"Bearer {access_token}",
                 "Content-Type": "application/json"
             }
             
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            team_id = None
+            async with httpx.AsyncClient(timeout=60.0) as client:
                 response = await client.post(
                     f"{self.graph_api_base}/teams",
                     headers=headers,
@@ -145,37 +178,83 @@ class TeamsService:
                 )
                 
                 if response.status_code == 202:
-                    # Team creation is asynchronous, get the Location header
+                    # Team creation is asynchronous, get the team ID from Location header
                     location = response.headers.get("Location")
                     logger.info(f"Team creation initiated. Location: {location}")
                     
-                    # Extract team ID from response or location
-                    # The response might be empty for async operations
-                    # We'll need to poll or wait
+                    # Extract team ID from location header if available
+                    # Format: /teams('team-id')/operations('operation-id')
+                    if location and "/teams('" in location:
+                        try:
+                            team_id = location.split("/teams('")[1].split("')")[0]
+                            logger.info(f"Extracted team ID: {team_id}")
+                        except:
+                            pass
                     
-                    # For now, return success
-                    return {
-                        "success": True,
-                        "team_name": project_name,
-                        "message": "Team creation initiated successfully",
-                        "members_added": len(member_ids) + 1  # +1 for owner
-                    }
-                else:
-                    response.raise_for_status()
+                    # Wait a bit for the team to be created before adding members
+                    import asyncio
+                    await asyncio.sleep(5)  # Wait 5 seconds for team creation
+                    
+                elif response.status_code in [200, 201]:
                     team_data = response.json()
                     team_id = team_data.get("id")
-                    
                     logger.info(f"Team created successfully: {team_id}")
-                    
-                    # Optionally send welcome message
-                    # await self._send_welcome_message(team_id, lead_id, project_lead_email)
-                    
-                    return {
-                        "success": True,
-                        "team_id": team_id,
-                        "team_name": project_name,
-                        "members_added": len(member_ids) + 1
-                    }
+                else:
+                    response.raise_for_status()
+            
+            # Add members to the team one by one (if we have a team_id)
+            members_added = 1  # Owner already added
+            if team_id and member_ids:
+                logger.info(f"Adding {len(member_ids)} members to team {team_id}")
+                
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    for member in member_ids:
+                        try:
+                            member_payload = {
+                                "@odata.type": "#microsoft.graph.aadUserConversationMember",
+                                "roles": [],
+                                "user@odata.bind": f"{self.graph_api_base}/users('{member['id']}')"
+                            }
+                            
+                            add_response = await client.post(
+                                f"{self.graph_api_base}/teams/{team_id}/members",
+                                headers=headers,
+                                json=member_payload
+                            )
+                            
+                            if add_response.status_code in [200, 201]:
+                                members_added += 1
+                                logger.info(f"Added member {member['email']} to team")
+                            else:
+                                logger.warning(f"Failed to add member {member['email']}: {add_response.status_code}")
+                                
+                        except Exception as e:
+                            logger.error(f"Error adding member {member['email']}: {e}")
+            
+            # Count found vs not found
+            found_count = sum(1 for s in member_statuses if s["found"])
+            not_found_count = sum(1 for s in member_statuses if not s["found"])
+            
+            # Send welcome message to the team's General channel
+            if team_id:
+                await self._send_welcome_message(
+                    access_token=access_token,
+                    team_id=team_id,
+                    project_name=project_name,
+                    project_lead_email=project_lead_email,
+                    member_statuses=member_statuses
+                )
+            
+            return {
+                "success": True,
+                "team_id": team_id,
+                "team_name": project_name,
+                "message": "Team created successfully",
+                "members_added": members_added,
+                "member_statuses": member_statuses,
+                "found_count": found_count,
+                "not_found_count": not_found_count
+            }
                     
         except httpx.HTTPStatusError as e:
             error_msg = f"HTTP error creating team: {e.response.status_code} - {e.response.text}"
@@ -192,25 +271,39 @@ class TeamsService:
                 "error": error_msg
             }
     
-    async def _send_welcome_message(self, team_id: str, lead_id: str, lead_email: str):
+    async def _send_welcome_message(
+        self, 
+        access_token: str,
+        team_id: str, 
+        project_name: str,
+        project_lead_email: str,
+        member_statuses: list
+    ):
         """
-        Send a welcome message to the General channel
-        (This would require getting the channel ID first)
+        Send a welcome message to the General channel with project info
+        (similar to Slack welcome message)
         """
         try:
-            token = await self._get_access_token()
             headers = {
-                "Authorization": f"Bearer {token}",
+                "Authorization": f"Bearer {access_token}",
                 "Content-Type": "application/json"
             }
             
-            # Get channels
-            async with httpx.AsyncClient() as client:
+            # Wait a bit more for the team to be fully provisioned
+            import asyncio
+            await asyncio.sleep(3)
+            
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                # Get channels
                 channels_response = await client.get(
                     f"{self.graph_api_base}/teams/{team_id}/channels",
                     headers=headers
                 )
-                channels_response.raise_for_status()
+                
+                if channels_response.status_code != 200:
+                    logger.warning(f"Could not get channels: {channels_response.status_code}")
+                    return
+                    
                 channels = channels_response.json().get("value", [])
                 
                 # Find General channel
@@ -219,36 +312,54 @@ class TeamsService:
                     None
                 )
                 
-                if general_channel:
-                    channel_id = general_channel["id"]
+                if not general_channel:
+                    logger.warning("General channel not found")
+                    return
                     
-                    # Send welcome message
-                    message_payload = {
-                        "body": {
-                            "contentType": "html",
-                            "content": f"<p>🚀 Project created successfully!</p><p>Owner: <at id='0'>{lead_email}</at></p>"
-                        },
-                        "mentions": [
-                            {
-                                "id": 0,
-                                "mentionText": lead_email,
-                                "mentioned": {
-                                    "user": {
-                                        "id": lead_id,
-                                        "displayName": lead_email,
-                                        "userIdentityType": "aadUser"
-                                    }
-                                }
-                            }
-                        ]
+                channel_id = general_channel["id"]
+                
+                # Build the welcome message (similar to Slack)
+                lead_info = next((m for m in member_statuses if m["role"] == "lead"), None)
+                members_found = [m for m in member_statuses if m["role"] == "member" and m["found"]]
+                members_not_found = [m for m in member_statuses if m["role"] == "member" and not m["found"]]
+                
+                # Build HTML message
+                message_html = f"""
+                    <h2>{project_name}</h2>
+                    <p><strong>Project launched successfully!</strong></p>
+                    <p>This team has been created automatically by SIGMENT.</p>
+                    <hr/>
+                    <p><strong>Project Lead:</strong> {project_lead_email} {'✅' if lead_info and lead_info['found'] else '⚠️'}</p>
+                """
+                
+                if members_found or members_not_found:
+                    message_html += "<p><strong>Team Members:</strong></p><ul>"
+                    
+                    for member in members_found:
+                        message_html += f"<li>✅ {member['email']} - added</li>"
+                    
+                    for member in members_not_found:
+                        message_html += f"<li>⚠️ {member['email']} - <em>add manually</em></li>"
+                    
+                    message_html += "</ul>"
+                
+                message_payload = {
+                    "body": {
+                        "contentType": "html",
+                        "content": message_html
                     }
-                    
-                    await client.post(
-                        f"{self.graph_api_base}/teams/{team_id}/channels/{channel_id}/messages",
-                        headers=headers,
-                        json=message_payload
-                    )
+                }
+                
+                msg_response = await client.post(
+                    f"{self.graph_api_base}/teams/{team_id}/channels/{channel_id}/messages",
+                    headers=headers,
+                    json=message_payload
+                )
+                
+                if msg_response.status_code in [200, 201]:
                     logger.info(f"Welcome message sent to team {team_id}")
+                else:
+                    logger.warning(f"Failed to send welcome message: {msg_response.status_code} - {msg_response.text[:200]}")
                     
         except Exception as e:
             logger.error(f"Error sending welcome message: {e}")

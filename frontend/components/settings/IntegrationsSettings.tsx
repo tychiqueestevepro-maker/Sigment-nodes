@@ -81,16 +81,43 @@ export default function IntegrationsSettings() {
 
             if (response.ok) {
                 const data = await response.json();
-                // Redirect to OAuth authorization URL
-                window.location.href = data.authorization_url;
+
+                // Open OAuth in a new popup window
+                const width = 600;
+                const height = 700;
+                const left = window.screenX + (window.outerWidth - width) / 2;
+                const top = window.screenY + (window.outerHeight - height) / 2;
+
+                const popup = window.open(
+                    data.authorization_url,
+                    `${platform}_oauth`,
+                    `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+                );
+
+                // Poll to check when popup is closed
+                const checkPopupClosed = setInterval(() => {
+                    if (popup && popup.closed) {
+                        clearInterval(checkPopupClosed);
+                        // Refresh integration status after popup closes
+                        fetchIntegrationStatus();
+                        setLoading(prev => ({ ...prev, [platform]: false }));
+                    }
+                }, 500);
+
+                // Safety timeout - stop checking after 5 minutes
+                setTimeout(() => {
+                    clearInterval(checkPopupClosed);
+                    setLoading(prev => ({ ...prev, [platform]: false }));
+                }, 300000);
+
             } else {
                 const error = await response.json();
                 toast.error(error.detail || `Failed to connect ${platform}`);
+                setLoading(prev => ({ ...prev, [platform]: false }));
             }
         } catch (error) {
             console.error(`Error connecting ${platform}:`, error);
             toast.error(`Error connecting to ${platform}`);
-        } finally {
             setLoading(prev => ({ ...prev, [platform]: false }));
         }
     };

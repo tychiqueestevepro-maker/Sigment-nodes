@@ -57,20 +57,25 @@ async def create_project_channel(
 
 
 @router.post("/create-teams-channel")
-async def create_teams_channel(request: CreateProjectChannelRequest):
+async def create_teams_channel(
+    request: CreateProjectChannelRequest,
+    current_user = Depends(get_current_user)
+):
     """
     Create a Microsoft Teams team for a new project
     
     This endpoint is triggered when an admin validates a project via Teams.
-    It creates a private Team, adds the lead as owner and team members.
+    It creates a private Team using the user's OAuth token,
+    adds the lead as owner and team members.
     """
     try:
-        logger.info(f"Creating Teams team for project: {request.projectName}")
+        logger.info(f"Creating Teams team for project: {request.projectName} by user {current_user.id}")
         
         result = await teams_service.create_project_team(
             project_name=request.projectName,
             project_lead_email=request.projectLeadEmail,
-            team_emails=request.teamEmails
+            team_emails=request.teamEmails,
+            user_id=str(current_user.id)
         )
         
         if not result.get("success"):

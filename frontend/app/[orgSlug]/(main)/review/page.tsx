@@ -328,7 +328,8 @@ export default function ReviewPage() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                    'X-Organization-Id': orgSlug
                 },
                 body: JSON.stringify({
                     projectName: slackConfig.projectName,
@@ -339,7 +340,28 @@ export default function ReviewPage() {
 
             if (response.ok) {
                 const result = await response.json();
-                toast.success(`✅ Teams team created: ${result.team_name}`);
+
+                // Build detailed success message
+                let successMessage = `✅ Teams team "${result.team_name}" created!`;
+
+                if (result.found_count > 0) {
+                    successMessage += `\n${result.found_count} member(s) added automatically.`;
+                }
+
+                if (result.not_found_count > 0) {
+                    toast.success(successMessage, { duration: 5000 });
+
+                    // Show separate warning for not found members
+                    const notFoundEmails = result.member_statuses
+                        ?.filter((s: any) => !s.found)
+                        .map((s: any) => s.email)
+                        .join(', ');
+
+                    toast.error(`⚠️ ${result.not_found_count} member(s) not found in Teams: ${notFoundEmails}. Please add them manually.`, { duration: 8000 });
+                } else {
+                    toast.success(successMessage, { duration: 5000 });
+                }
+
                 setIsSlackModalOpen(false);
                 setSlackModalStep(1);
 

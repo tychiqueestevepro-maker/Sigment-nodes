@@ -17,6 +17,7 @@ class TeamsOAuthService:
             "Team.Create",
             "TeamMember.ReadWrite.All",
             "User.Read",
+            "User.Read.All",  # Required to search users by email
             "Group.ReadWrite.All",
             "offline_access"  # For refresh token
         ]
@@ -49,6 +50,10 @@ class TeamsOAuthService:
         """
         scope_string = " ".join(self.scopes)
         
+        # Use 'organizations' for work/school accounts only (Azure AD accounts)
+        # This excludes personal Microsoft accounts (consumers)
+        tenant = "organizations"
+        
         params = {
             "client_id": self.client_id,
             "response_type": "code",
@@ -58,11 +63,12 @@ class TeamsOAuthService:
             "state": state
         }
         
-        # Build query string
-        query = "&".join([f"{k}={v}" for k, v in params.items()])
-        auth_url = f"https://login.microsoftonline.com/{self.tenant_id}/oauth2/v2.0/authorize?{query}"
+        # Build query string with URL encoding
+        from urllib.parse import urlencode
+        query = urlencode(params)
+        auth_url = f"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize?{query}"
         
-        logger.info(f"Generated Microsoft OAuth URL with scopes: {scope_string}")
+        logger.info(f"Generated Microsoft OAuth URL (multi-tenant) with scopes: {scope_string}")
         return auth_url
     
     async def exchange_code_for_token(self, code: str) -> Dict:
@@ -76,7 +82,8 @@ class TeamsOAuthService:
             Dict containing access_token, refresh_token, expires_in, etc.
         """
         try:
-            token_url = f"https://login.microsoftonline.com/{self.tenant_id}/oauth2/v2.0/token"
+            # Use 'organizations' for multi-tenant (work/school accounts only)
+            token_url = "https://login.microsoftonline.com/organizations/oauth2/v2.0/token"
             
             async with httpx.AsyncClient() as client:
                 response = await client.post(
@@ -131,7 +138,8 @@ class TeamsOAuthService:
             Dict with new access_token and expiration info
         """
         try:
-            token_url = f"https://login.microsoftonline.com/{self.tenant_id}/oauth2/v2.0/token"
+            # Use 'organizations' for multi-tenant (work/school accounts only)
+            token_url = "https://login.microsoftonline.com/organizations/oauth2/v2.0/token"
             
             async with httpx.AsyncClient() as client:
                 response = await client.post(
