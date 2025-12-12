@@ -76,7 +76,14 @@ export const PostCard: React.FC<PostCardProps> = ({ item }) => {
                 apiClient.get<Poll>(`/feed/posts/${item.id}/poll`)
                     .then(setPoll)
                     .catch((err) => {
-                        if (!err.message?.includes('500')) {
+                        // Silently handle expected errors (404, 500 for missing polls)
+                        // Only log unexpected errors
+                        const isExpectedError = err.message?.includes('500') ||
+                            err.message?.includes('404') ||
+                            err.response?.status === 404
+                            ||
+                            err.response?.status === 500;
+                        if (!isExpectedError) {
                             console.error('Poll load error:', err);
                         }
                     })

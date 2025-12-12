@@ -122,8 +122,15 @@ export default function PostDetailPage() {
                     try {
                         const pollData = await apiClient.get<any>(`/feed/posts/${postId}/poll`);
                         setPoll(pollData);
-                    } catch (e) {
-                        console.error("Failed to load poll", e);
+                    } catch (e: any) {
+                        // Silently handle expected errors (404, 500 for missing polls)
+                        const isExpectedError = e.message?.includes('500') ||
+                            e.message?.includes('404') ||
+                            e.response?.status === 404 ||
+                            e.response?.status === 500;
+                        if (!isExpectedError) {
+                            console.error("Failed to load poll", e);
+                        }
                     }
                 }
 

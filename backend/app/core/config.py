@@ -55,6 +55,9 @@ class Settings(BaseSettings):
     # Frontend URL for invitation links
     FRONTEND_URL: str = "http://localhost:3000"
     
+    # Slack Integration
+    SLACK_BOT_TOKEN: str = ""
+    
     class Config:
         env_file = ".env"
         case_sensitive = True

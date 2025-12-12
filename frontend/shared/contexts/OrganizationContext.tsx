@@ -91,17 +91,33 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
                 // 2. If we have a user, fetch their role
                 const userId = localStorage.getItem('sigment_user_id');
                 if (userId) {
-                    const accessData = await apiClient.get<any>(
-                        `/organizations/${orgSlug}/me`
-                    );
+                    try {
+                        const accessData = await apiClient.get<any>(
+                            `/organizations/${orgSlug}/me`
+                        );
 
-                    if (accessData && accessData.role) {
-                        setUserRole(accessData.role);
-                        localStorage.setItem('sigment_user_role', accessData.role);
+                        if (accessData && accessData.role) {
+                            setUserRole(accessData.role);
+                            localStorage.setItem('sigment_user_role', accessData.role);
+                        }
+                    } catch (err: any) {
+                        // Silently handle temporary server errors (500)
+                        // Don't log 500 errors during server startup/restart
+                        if (err.response?.status !== 500 && !err.message?.includes('500')) {
+                            console.error("Error fetching user role", err);
+                        }
                     }
                 }
-            } catch (error) {
-                console.error("Error fetching organization data", error);
+            } catch (error: any) {
+                // Only log unexpected errors (not 500 or 404)
+                const isExpectedError = error.message?.includes('500') ||
+                    error.message?.includes('404') ||
+                    error.response?.status === 500 ||
+                    error.response?.status === 404;
+
+                if (!isExpectedError) {
+                    console.error("Error fetching organization data", error);
+                }
 
                 // Only redirect on 404 if we didn't load from cache
                 if (error instanceof Error && error.message.includes('404')) {

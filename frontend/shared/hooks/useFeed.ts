@@ -15,11 +15,27 @@ export function useFeed(): UseFeedResult {
     const { organizationId } = apiClient.auth;
 
     const { data, isLoading, error, refetch } = useQuery({
-        queryKey: ['unifiedFeed', organizationId],
+        queryKey: ['unified Feed', organizationId],
         queryFn: async () => {
             if (!organizationId) return { items: [], total_count: 0 };
-            const response = await apiClient.get<{ items: FeedItem[]; total_count: number }>('/feed/unified/');
-            return response;
+
+            try {
+                const response = await apiClient.get<{ items: FeedItem[]; total_count: number }>('/feed/unified/');
+                return response;
+            } catch (err: any) {
+                // Silently handle temporary server errors (500, network errors)
+                // These are common during server restarts or network issues
+                const isTemporaryError = err.message?.includes('500') ||
+                    err.message?.includes('Network') ||
+                    err.response?.status === 500;
+
+                if (!isTemporaryError) {
+                    console.error('Feed fetch error:', err);
+                }
+
+                // Return empty feed on error to avoid breaking the UI
+                return { items: [], total_count: 0 };
+            }
         },
         enabled: !!organizationId,
         refetchInterval: 30000,

@@ -1,12 +1,16 @@
 """
 SIGMENT FastAPI Main Application
 """
+# Load environment variables from .env file FIRST
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
 from app.core.config import settings
-from app.api.routes import notes, clusters, pillars, users, board, organizations, auth, invitations, social_feed, unified_feed, chat, idea_groups
+from app.api.routes import notes, clusters, pillars, users, board, organizations, auth, invitations, social_feed, unified_feed, chat, idea_groups, projects, integrations
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -39,6 +43,8 @@ app.include_router(social_feed.router, prefix="/api/v1")
 app.include_router(unified_feed.router, prefix="/api/v1")
 app.include_router(chat.router, prefix="/api/v1/chat", tags=["Chat"])
 app.include_router(idea_groups.router, prefix="/api/v1/idea-groups", tags=["Idea Groups"])
+app.include_router(projects.router, prefix="/api/v1/projects", tags=["Projects"])
+app.include_router(integrations.router, prefix="/api/v1/integrations", tags=["Integrations"])
 
 
 @app.on_event("startup")

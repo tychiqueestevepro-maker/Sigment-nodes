@@ -28,12 +28,15 @@ import {
     X,
     Ban,
     Sparkles,
-    Quote
+    Quote,
+    Crown,
+    Search
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useApiClient } from '@/hooks/useApiClient';
 import { useRouter, useParams } from 'next/navigation';
 import { GroupPicker } from '@/components/shared/GroupPicker';
+import toast from 'react-hot-toast';
 
 // Helper function to get color for pillar category
 function getColorForCategory(category: string): string {
@@ -73,6 +76,17 @@ export default function ReviewPage() {
     const [isPlaying, setIsPlaying] = useState(false);
     const [selectedReviewNode, setSelectedReviewNode] = useState<any>(null);
     const [isGroupPickerOpen, setIsGroupPickerOpen] = useState(false);
+    const [isSlackModalOpen, setIsSlackModalOpen] = useState(false);
+    const [slackModalStep, setSlackModalStep] = useState(1); // 1 = selection, 2 = confirmation
+    const [orgMembers, setOrgMembers] = useState<any[]>([]);
+    const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set());
+    const [projectLeadId, setProjectLeadId] = useState<string>('');
+    const [memberSearchQuery, setMemberSearchQuery] = useState('');
+    const [slackConfig, setSlackConfig] = useState({
+        projectName: '',
+        projectLeadEmail: '',
+        teamMembers: [] as Array<{ id: string; name: string; email: string; slackEmail: string; avatar_url?: string }>
+    });
     const router = useRouter();
     const params = useParams();
     const orgSlug = params?.orgSlug as string;
@@ -116,6 +130,228 @@ export default function ReviewPage() {
     const handleArchive = () => {
         if (selectedReview) {
             archiveMutation.mutate(selectedReview.id);
+        }
+    };
+
+    // Open Slack configuration modal
+    const handleOpenSlackModal = async () => {
+        // Reset to step 1
+        setSlackModalStep(1);
+        setSelectedMembers(new Set());
+        setProjectLeadId('');
+        setMemberSearchQuery('');
+
+        // Initialize project name
+        const projectName = reviewData.title || 'Unnamed Project';
+        setSlackConfig(prev => ({ ...prev, projectName }));
+
+        // Fetch organization members
+        try {
+            const response = await fetch(`http://localhost:8000/api/v1/organizations/${orgSlug}/members`);
+            if (response.ok) {
+                const members = await response.json();
+                setOrgMembers(members);
+            }
+        } catch (error) {
+            console.error('Error fetching org members:', error);
+        }
+
+        setIsSlackModalOpen(true);
+    };
+
+    // Move to step 2 (confirmation)
+    const handleConfirmSelection = () => {
+        // Find lead member
+        const lead = orgMembers.find(m => m.id === projectLeadId);
+
+        // Build team members array with pre-filled emails
+        const teamMembers = Array.from(selectedMembers)
+            .filter(id => id !== projectLeadId)
+            .map(id => {
+                const member = orgMembers.find(m => m.id === id);
+                return {
+                    id: member.id,
+                    name: member.name,
+                    email: member.email,
+                    slackEmail: member.email, // Pre-fill with account email
+                    avatar_url: member.avatar_url
+                };
+            });
+
+        setSlackConfig(prev => ({
+            ...prev,
+            projectLeadEmail: lead?.email || '',
+            teamMembers
+        }));
+
+        setSlackModalStep(2);
+    };
+
+    // Check if user has integration connected
+    const checkIntegration = async (platform: 'slack' | 'teams'): Promise<boolean> => {
+        try {
+            const response = await fetch('http://localhost:8000/api/v1/integrations/status', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                    'X-Organization-Id': orgSlug
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                return platform === 'slack' ? data.slack : data.teams;
+            }
+            return false;
+        } catch (error) {
+            console.error('Error checking integration:', error);
+            return false;
+        }
+    };
+
+    // Initiate OAuth connection for a platform
+    const initiateOAuthConnection = async (platform: 'slack' | 'teams') => {
+        try {
+            // Save current action to resume after OAuth
+            localStorage.setItem('pending_action', JSON.stringify({
+                type: platform === 'slack' ? 'create_slack_channel' : 'create_teams_team',
+                projectName: slackConfig.projectName,
+                projectLeadEmail: slackConfig.projectLeadEmail,
+                teamEmails: slackConfig.teamMembers.map(m => m.slackEmail).filter(e => e.trim() !== '')
+            }));
+
+            const response = await fetch(`http://localhost:8000/api/v1/integrations/${platform}/connect`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                    'X-Organization-Id': orgSlug
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                // Redirect to OAuth
+                window.location.href = data.authorization_url;
+            } else {
+                toast.error(`Failed to initiate ${platform} connection`);
+            }
+        } catch (error) {
+            console.error(`Error initiating ${platform} OAuth:`, error);
+            toast.error(`Error connecting to ${platform}`);
+        }
+    };
+
+    // Launch implementation via Slack
+    const handleLaunchImplementation = async () => {
+        // Check if Slack is connected
+        const isConnected = await checkIntegration('slack');
+
+        if (!isConnected) {
+            toast.error('Please connect your Slack account first');
+            await initiateOAuthConnection('slack');
+            return;
+        }
+
+        try {
+            const teamEmails = slackConfig.teamMembers
+                .map(m => m.slackEmail)
+                .filter(email => email.trim() !== '');
+
+            const response = await fetch('http://localhost:8000/api/v1/projects/create-channel', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                    'X-Organization-Id': orgSlug
+                },
+                body: JSON.stringify({
+                    projectName: slackConfig.projectName,
+                    projectLeadEmail: slackConfig.projectLeadEmail,
+                    teamEmails
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+
+                // Build detailed success message
+                let successMessage = `✅ Slack channel "${result.channel_name}" created!`;
+
+                if (result.found_count > 0) {
+                    successMessage += `\n${result.found_count} member(s) added automatically.`;
+                }
+
+                if (result.not_found_count > 0) {
+                    toast.success(successMessage, { duration: 5000 });
+
+                    // Show separate warning for not found members
+                    const notFoundEmails = result.member_statuses
+                        ?.filter((s: any) => !s.found)
+                        .map((s: any) => s.email)
+                        .join(', ');
+
+                    toast.error(`⚠️ ${result.not_found_count} member(s) not found in Slack: ${notFoundEmails}. Please add them manually.`, { duration: 8000 });
+                } else {
+                    toast.success(successMessage, { duration: 5000 });
+                }
+
+                setIsSlackModalOpen(false);
+                setSlackModalStep(1);
+
+                // Clear pending action
+                localStorage.removeItem('pending_action');
+            } else {
+                const error = await response.json();
+                toast.error(`Failed to create Slack channel: ${error.detail || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Error launching implementation:', error);
+            toast.error('Error creating Slack channel. Please try again.');
+        }
+    };
+
+    // Launch implementation via Microsoft Teams
+    const handleLaunchTeams = async () => {
+        // Check if Teams is connected
+        const isConnected = await checkIntegration('teams');
+
+        if (!isConnected) {
+            toast.error('Please connect your Microsoft Teams account first');
+            await initiateOAuthConnection('teams');
+            return;
+        }
+
+        try {
+            const teamEmails = slackConfig.teamMembers
+                .map(m => m.slackEmail)
+                .filter(email => email.trim() !== '');
+
+            const response = await fetch('http://localhost:8000/api/v1/projects/create-teams-channel', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                },
+                body: JSON.stringify({
+                    projectName: slackConfig.projectName,
+                    projectLeadEmail: slackConfig.projectLeadEmail,
+                    teamEmails
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                toast.success(`✅ Teams team created: ${result.team_name}`);
+                setIsSlackModalOpen(false);
+                setSlackModalStep(1);
+
+                // Clear pending action
+                localStorage.removeItem('pending_action');
+            } else {
+                const error = await response.json();
+                toast.error(`Failed to create Teams team: ${error.detail || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Error launching Teams:', error);
+            toast.error('Error creating Teams team. Please try again.');
         }
     };
 
@@ -536,7 +772,10 @@ export default function ReviewPage() {
                         <Users size={18} />
                         Share with Group
                     </button>
-                    <button className="px-8 py-3 rounded-xl font-bold text-white bg-black hover:bg-gray-800 transition-colors shadow-lg hover:shadow-xl flex items-center gap-2">
+                    <button
+                        onClick={handleOpenSlackModal}
+                        className="px-8 py-3 rounded-xl font-bold text-white bg-black hover:bg-gray-800 transition-colors shadow-lg hover:shadow-xl flex items-center gap-2"
+                    >
                         <Rocket size={18} />
                         Launch Implementation
                     </button>
@@ -617,6 +856,332 @@ export default function ReviewPage() {
                 }}
                 noteId={selectedReview?.id}
             />
+
+            {/* Slack Configuration Modal */}
+            {isSlackModalOpen && (
+                <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
+                        {/* Header */}
+                        <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                                    <Rocket size={24} className="text-black" />
+                                    {slackModalStep === 1 ? 'Select Members' : 'Configure Slack Workspace'}
+                                </h2>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    {slackModalStep === 1 ? 'Step 1/2: Choose project members' : 'Step 2/2: Configure Slack emails'}
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setIsSlackModalOpen(false);
+                                    setSlackModalStep(1);
+                                }}
+                                className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6 overflow-y-auto flex-1">
+                            {slackModalStep === 1 ? (
+                                // STEP 1: Member Selection
+                                <div className="space-y-6">
+                                    {/* Project Name */}
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                            Project Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={slackConfig.projectName}
+                                            onChange={(e) => setSlackConfig(prev => ({ ...prev, projectName: e.target.value }))}
+                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-gray-300"
+                                            placeholder="Project name"
+                                        />
+                                    </div>
+
+                                    {/* Unified Member Selection */}
+                                    <div className="bg-white p-5 rounded-xl border border-gray-200">
+                                        <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
+                                            <Users size={16} />
+                                            Select team members
+                                        </h3>
+                                        <p className="text-xs text-gray-500 mb-4">
+                                            Check members and click on <Crown size={14} className="inline" /> to designate the project lead
+                                        </p>
+
+                                        {/* Search Bar */}
+                                        <div className="relative mb-4">
+                                            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                            <input
+                                                type="text"
+                                                value={memberSearchQuery}
+                                                onChange={(e) => setMemberSearchQuery(e.target.value)}
+                                                placeholder="Search by name or role..."
+                                                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-gray-300 text-sm"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2 max-h-96 overflow-y-auto">
+                                            {orgMembers
+                                                .filter(member => {
+                                                    const query = memberSearchQuery.toLowerCase();
+                                                    const name = member.name?.toLowerCase() || '';
+                                                    const jobTitle = member.job_title?.toLowerCase() || '';
+                                                    return name.includes(query) || jobTitle.includes(query);
+                                                })
+                                                .map((member) => (
+                                                    <div
+                                                        key={member.id}
+                                                        className={`flex items-center gap-3 p-3 rounded-lg transition-all ${selectedMembers.has(member.id)
+                                                            ? 'bg-gray-50 border-2 border-gray-300'
+                                                            : 'bg-white border border-gray-200 hover:border-gray-300'
+                                                            } ${projectLeadId === member.id ? 'border-2 border-gray-900' : ''}`}
+                                                    >
+                                                        {/* Checkbox */}
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedMembers.has(member.id)}
+                                                            onChange={(e) => {
+                                                                const newSet = new Set(selectedMembers);
+                                                                if (e.target.checked) {
+                                                                    newSet.add(member.id);
+                                                                } else {
+                                                                    newSet.delete(member.id);
+                                                                    // If unchecking the lead, remove lead status
+                                                                    if (member.id === projectLeadId) {
+                                                                        setProjectLeadId('');
+                                                                    }
+                                                                }
+                                                                setSelectedMembers(newSet);
+                                                            }}
+                                                            className="w-4 h-4 cursor-pointer"
+                                                        />
+
+                                                        {/* Crown Icon */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (projectLeadId === member.id) {
+                                                                    // Unset as lead
+                                                                    setProjectLeadId('');
+                                                                } else {
+                                                                    // Set as lead and auto-select
+                                                                    setProjectLeadId(member.id);
+                                                                    setSelectedMembers(prev => new Set(prev).add(member.id));
+                                                                }
+                                                            }}
+                                                            className={`p-1.5 rounded-md transition-all ${projectLeadId === member.id
+                                                                ? 'bg-black text-white'
+                                                                : 'text-gray-300 hover:text-gray-600 hover:bg-gray-100'
+                                                                }`}
+                                                            title={projectLeadId === member.id ? 'Retirer le rôle de chef' : 'Désigner comme chef'}
+                                                        >
+                                                            <Crown size={16} />
+                                                        </button>
+
+                                                        {/* Avatar */}
+                                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-2 overflow-hidden ${projectLeadId === member.id
+                                                            ? 'bg-black text-white border-black'
+                                                            : 'bg-gray-100 text-gray-700 border-gray-200'
+                                                            }`}>
+                                                            {member.avatar_url ? (
+                                                                <img
+                                                                    src={member.avatar_url}
+                                                                    alt={member.name || 'User'}
+                                                                    className="w-full h-full object-cover"
+                                                                />
+                                                            ) : (
+                                                                <span>{member.name?.substring(0, 2).toUpperCase()}</span>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Member Info */}
+                                                        <div className="flex-1">
+                                                            <div className="font-semibold text-gray-900 flex items-center gap-2">
+                                                                {member.name}
+                                                                {projectLeadId === member.id && (
+                                                                    <span className="text-xs bg-black text-white px-2 py-0.5 rounded font-medium">
+                                                                        Project Lead
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <div className="text-xs text-gray-500">{member.job_title || 'No title'}</div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-gray-500">
+                                            {selectedMembers.size} member(s) selected
+                                        </span>
+                                        {projectLeadId && (
+                                            <span className="text-black font-medium flex items-center gap-1.5">
+                                                <Crown size={14} /> {orgMembers.find(m => m.id === projectLeadId)?.name}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                // STEP 2: Email Confirmation
+                                <div className="space-y-6">
+                                    {/* Project Name (readonly) */}
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                            Project
+                                        </label>
+                                        <div className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 font-medium">
+                                            {slackConfig.projectName}
+                                        </div>
+                                    </div>
+
+                                    {/* Project Lead Email */}
+                                    <div className="bg-gray-50 p-5 rounded-xl border border-gray-200">
+                                        <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                                            <Users size={16} />
+                                            Project Lead
+                                        </h3>
+                                        <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center text-white font-bold overflow-hidden">
+                                                    {orgMembers.find(m => m.id === projectLeadId)?.avatar_url ? (
+                                                        <img
+                                                            src={orgMembers.find(m => m.id === projectLeadId)?.avatar_url}
+                                                            alt={orgMembers.find(m => m.id === projectLeadId)?.name || 'Project Lead'}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <span>{orgMembers.find(m => m.id === projectLeadId)?.name?.substring(0, 2).toUpperCase()}</span>
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <div className="font-semibold text-gray-900">
+                                                        {orgMembers.find(m => m.id === projectLeadId)?.name}
+                                                    </div>
+                                                    <div className="text-xs text-gray-500">Lead</div>
+                                                </div>
+                                            </div>
+                                            <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                                                Associated Email
+                                            </label>
+                                            <input
+                                                type="email"
+                                                value={slackConfig.projectLeadEmail}
+                                                onChange={(e) => setSlackConfig(prev => ({ ...prev, projectLeadEmail: e.target.value }))}
+                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-gray-300 text-sm"
+                                                placeholder="lead@company.com"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Team Members Emails */}
+                                    {slackConfig.teamMembers.length > 0 && (
+                                        <div className="bg-gray-50 p-5 rounded-xl border border-gray-200">
+                                            <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                                                <Users size={16} />
+                                                Team Members
+                                            </h3>
+                                            <div className="space-y-3">
+                                                {slackConfig.teamMembers.map((member, index) => (
+                                                    <div key={member.id} className="bg-white p-4 rounded-lg border border-gray-200">
+                                                        <div className="flex items-center gap-3 mb-3">
+                                                            <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-700 font-bold text-sm overflow-hidden">
+                                                                {member.avatar_url ? (
+                                                                    <img
+                                                                        src={member.avatar_url}
+                                                                        alt={member.name || 'Team member'}
+                                                                        className="w-full h-full object-cover"
+                                                                    />
+                                                                ) : (
+                                                                    <span>{member.name?.substring(0, 2).toUpperCase()}</span>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex-1">
+                                                                <div className="font-semibold text-gray-900 text-sm">
+                                                                    {member.name}
+                                                                </div>
+                                                                <div className="text-xs text-gray-500">{member.email}</div>
+                                                            </div>
+                                                        </div>
+                                                        <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                                                            Associated Email
+                                                        </label>
+                                                        <input
+                                                            type="email"
+                                                            value={member.slackEmail}
+                                                            onChange={(e) => {
+                                                                const newMembers = [...slackConfig.teamMembers];
+                                                                newMembers[index].slackEmail = e.target.value;
+                                                                setSlackConfig(prev => ({ ...prev, teamMembers: newMembers }));
+                                                            }}
+                                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-gray-300 text-sm"
+                                                            placeholder="member@company.com"
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-6 border-t border-gray-100 flex gap-3 justify-between bg-gray-50">
+                            {slackModalStep === 2 && (
+                                <button
+                                    onClick={() => setSlackModalStep(1)}
+                                    className="px-6 py-3 rounded-xl font-medium text-gray-600 hover:bg-gray-100 transition-colors flex items-center gap-2"
+                                >
+                                    <ArrowLeft size={18} />
+                                    Back
+                                </button>
+                            )}
+                            <div className="flex gap-3 ml-auto">
+                                {slackModalStep === 1 ? (
+                                    <button
+                                        onClick={handleConfirmSelection}
+                                        disabled={!projectLeadId || selectedMembers.size === 0}
+                                        className="px-8 py-3 rounded-xl font-bold text-white bg-black hover:bg-gray-800 transition-colors shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Next
+                                        <ChevronRight size={18} />
+                                    </button>
+                                ) : (
+                                    <>
+                                        {/* Platform Selection Buttons - Step 2 Only */}
+                                        <div className="flex gap-3">
+                                            {/* Slack Option */}
+                                            <button
+                                                onClick={handleLaunchImplementation}
+                                                className="px-6 py-3 rounded-xl font-medium hover:bg-white border-2 border-gray-200 hover:border-gray-900 transition-all flex items-center gap-3 group"
+                                                title="Continue with Slack"
+                                            >
+                                                <img src="/logos/slack.png" alt="Slack" className="w-6 h-6 object-contain" />
+                                                <span className="font-semibold text-gray-700 group-hover:text-gray-900">Slack</span>
+                                            </button>
+
+                                            {/* Teams Option */}
+                                            <button
+                                                onClick={handleLaunchTeams}
+                                                className="px-6 py-3 rounded-xl font-medium hover:bg-white border-2 border-gray-200 hover:border-gray-900 transition-all flex items-center gap-3 group"
+                                                title="Continue with Microsoft Teams"
+                                            >
+                                                <img src="/logos/teams.webp" alt="Microsoft Teams" className="w-6 h-6 object-contain" />
+                                                <span className="font-semibold text-gray-700 group-hover:text-gray-900">Teams</span>
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

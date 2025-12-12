@@ -137,10 +137,20 @@ def get_current_user(
     if not org_id:
         x_org_id = request.headers.get("X-Organization-Id")
         if x_org_id:
+            # Try to parse as UUID first
             try:
                 org_id = UUID(x_org_id)
             except ValueError:
-                pass
+                # Not a UUID, try to resolve as slug
+                try:
+                    org_res = supabase.table("organizations").select("id, status").eq("slug", x_org_id).single().execute()
+                    if org_res.data:
+                        org_id = UUID(org_res.data["id"])
+                        if org_res.data.get("status") == "suspended":
+                            raise HTTPException(status_code=403, detail="Organization suspended")
+                except Exception as e:
+                    if "JSON object requested, multiple (or no) rows returned" not in str(e) and "Results contain 0 rows" not in str(e):
+                        logger.error(f"DB Error resolving org slug from header: {e}")
 
     # CRITICAL: Enforce Organization Context
     if not org_id:

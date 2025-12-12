@@ -15,6 +15,7 @@ import {
     Settings,
     X
 } from 'lucide-react';
+import IntegrationsSettings from '../settings/IntegrationsSettings';
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -26,7 +27,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     const [theme, setTheme] = useState('light');
     const [density, setDensity] = useState('comfortable');
     const [startupView, setStartupView] = useState('Home');
-    const [integrations, setIntegrations] = useState({ jira: false, slack: true, github: false });
 
     if (!isOpen) return null;
 
@@ -113,60 +113,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     </div>
                 );
             case 'integrations':
-                return (
-                    <div className="space-y-4">
-                        {/* Jira */}
-                        <div className="p-4 border border-gray-200 rounded-xl flex items-center justify-between hover:border-gray-300 transition-colors">
-                            <div className="flex items-start gap-4">
-                                <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center font-bold text-white shadow-sm shrink-0 text-xl">J</div>
-                                <div>
-                                    <div className="font-bold text-sm text-gray-900">Jira Software</div>
-                                    <div className="text-xs text-gray-500 mt-1 leading-relaxed max-w-[200px]">Plan, track, and manage your agile and software development projects.</div>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => setIntegrations(prev => ({ ...prev, jira: !prev.jira }))}
-                                className={`text-xs px-4 py-2 rounded-lg font-bold transition-colors ${integrations.jira ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-black text-white hover:bg-gray-800'}`}
-                            >
-                                {integrations.jira ? 'Disconnect' : 'Connect'}
-                            </button>
-                        </div>
-
-                        {/* Slack */}
-                        <div className="p-4 border border-gray-200 rounded-xl flex items-center justify-between hover:border-gray-300 transition-colors">
-                            <div className="flex items-start gap-4">
-                                <div className="w-12 h-12 bg-[#4A154B] rounded-xl flex items-center justify-center font-bold text-white shadow-sm shrink-0"><Hash size={24} /></div>
-                                <div>
-                                    <div className="font-bold text-sm text-gray-900">Slack</div>
-                                    <div className="text-xs text-gray-500 mt-1 leading-relaxed max-w-[200px]">Bring all your communication together in one place. Real-time messaging and archiving.</div>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => setIntegrations(prev => ({ ...prev, slack: !prev.slack }))}
-                                className={`text-xs px-4 py-2 rounded-lg font-bold transition-colors ${integrations.slack ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-black text-white hover:bg-gray-800'}`}
-                            >
-                                {integrations.slack ? 'Disconnect' : 'Connect'}
-                            </button>
-                        </div>
-
-                        {/* GitHub */}
-                        <div className="p-4 border border-gray-200 rounded-xl flex items-center justify-between hover:border-gray-300 transition-colors">
-                            <div className="flex items-start gap-4">
-                                <div className="w-12 h-12 bg-gray-900 rounded-xl flex items-center justify-center font-bold text-white shadow-sm shrink-0"><Github size={24} /></div>
-                                <div>
-                                    <div className="font-bold text-sm text-gray-900">GitHub</div>
-                                    <div className="text-xs text-gray-500 mt-1 leading-relaxed max-w-[200px]">Complete development platform to build, scale, and deliver secure software.</div>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => setIntegrations(prev => ({ ...prev, github: !prev.github }))}
-                                className={`text-xs px-4 py-2 rounded-lg font-bold transition-colors ${integrations.github ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-black text-white hover:bg-gray-800'}`}
-                            >
-                                {integrations.github ? 'Disconnect' : 'Connect'}
-                            </button>
-                        </div>
-                    </div>
-                );
+                return <IntegrationsSettings />;
             default: return null;
         }
     }

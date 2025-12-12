@@ -276,9 +276,13 @@ BEGIN
     FROM (
         SELECT
             cm.id,
+            cm.post_id,
+            cm.user_id,
             cm.content,
             cm.media_url,
+            cm.parent_comment_id,
             cm.created_at,
+            cm.updated_at,
             (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = cm.id) as likes_count,
             -- User Info
             jsonb_build_object(
@@ -303,9 +307,13 @@ BEGIN
                     FROM (
                         SELECT
                             rep.id,
+                            rep.post_id,
+                            rep.user_id,
                             rep.content,
                             rep.media_url,
+                            rep.parent_comment_id,
                             rep.created_at,
+                            rep.updated_at,
                             (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = rep.id) as likes_count,
                              jsonb_build_object(
                                 'id', ru.id,
@@ -318,7 +326,9 @@ BEGIN
                                     SELECT 1 FROM comment_likes cl2
                                     WHERE cl2.comment_id = rep.id AND cl2.user_id = p_current_user_id
                                 )
-                            ELSE FALSE END as is_liked
+                            ELSE FALSE END as is_liked,
+                            rep.poll_data,
+                            0 as replies_count
                         FROM post_comments rep
                         JOIN users ru ON ru.id = rep.user_id
                         WHERE rep.parent_comment_id = cm.id
@@ -361,9 +371,13 @@ BEGIN
     FROM (
         SELECT
             rep.id,
+            rep.post_id,
+            rep.user_id,
             rep.content,
             rep.media_url,
+            rep.parent_comment_id,
             rep.created_at,
+            rep.updated_at,
             (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = rep.id) as likes_count,
             rep.poll_data,
              jsonb_build_object(
@@ -377,7 +391,9 @@ BEGIN
                     SELECT 1 FROM comment_likes cl2
                     WHERE cl2.comment_id = rep.id AND cl2.user_id = p_current_user_id
                 )
-            ELSE FALSE END as is_liked
+            ELSE FALSE END as is_liked,
+            0 as replies_count,
+            '[]'::jsonb as replies
         FROM post_comments rep
         JOIN users ru ON ru.id = rep.user_id
         WHERE rep.parent_comment_id = p_comment_id
