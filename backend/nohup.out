@@ -1,0 +1,1692 @@
+INFO:     Will watch for changes in these directories: ['/Users/tychiqueesteve/SIGMENT-NODES/Sigment-nodes/backend']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [87502] using WatchFiles
+INFO:     Started server process [87566]
+INFO:     Waiting for application startup.
+2025-12-13 18:19:32.952 | INFO     | main:startup_event:53 - 🚀 SIGMENT API Starting...
+2025-12-13 18:19:32.952 | INFO     | main:startup_event:54 - Environment: development
+2025-12-13 18:19:32.953 | INFO     | main:startup_event:55 - Supabase URL: https://tkgyfhewbvtkrwcyahdn.supabase.co
+INFO:     Application startup complete.
+INFO:     127.0.0.1:52029 - "OPTIONS /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52031 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52029 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52029 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52031 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52088 - "OPTIONS /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52088 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52102 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52112 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52088 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52112 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52118 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52167 - "OPTIONS /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52167 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52167 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52167 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52167 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52169 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52197 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52243 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52254 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52254 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52243 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52256 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52310 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52310 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52310 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52310 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52331 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52325 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52385 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52393 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52399 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52451 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52451 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52463 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52471 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52465 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52463 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52451 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52530 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52533 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52530 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52555 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52554 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52551 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52554 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52555 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52601 - "GET /api/v1/organizations/sigment/public HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52603 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52608 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52601 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52610 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52601 - "GET /api/v1/organizations/sigment/public HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52606 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52620 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52612 - "POST /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52614 - "POST /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52610 - "GET /api/v1/organizations/sigment/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52606 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52608 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52601 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52610 - "GET /api/v1/organizations/sigment/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52606 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52626 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52614 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52606 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52608 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52610 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52606 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52626 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52606 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52636 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52608 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52606 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52626 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52642 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52636 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52606 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52608 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52606 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52606 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52608 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52606 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52606 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52608 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52606 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52608 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52606 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52608 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52608 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52608 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52608 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52608 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52608 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52608 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52608 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52719 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52729 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52800 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52800 - "OPTIONS /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52800 - "OPTIONS /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52808 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52809 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52811 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52813 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52813 - "OPTIONS /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52811 - "OPTIONS /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52813 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52811 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52834 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52884 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52891 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52906 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52952 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52959 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52961 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52969 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52967 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52959 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52952 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52967 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52961 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52967 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53032 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53035 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53032 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53089 - "OPTIONS /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53089 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53098 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53089 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53091 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53098 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53104 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53112 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53112 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53167 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53174 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53196 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53231 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53231 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53240 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53238 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53246 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53240 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53246 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53246 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53246 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53305 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53313 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53339 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53371 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53371 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53380 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53378 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53383 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53389 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53389 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53383 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53383 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53421 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53436 - "OPTIONS /api/v1/board/review-notes HTTP/1.1" 200 OK
+2025-12-13 18:24:14.917 | INFO     | app.api.routes.board:get_review_notes:461 - ✅ Retrieved 2 notes for review (org: eb320a7f-5d5a-4dcd-b0e3-cfdedae68267)
+INFO:     127.0.0.1:53436 - "GET /api/v1/board/review-notes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53453 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53455 - "OPTIONS /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53455 - "OPTIONS /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53459 - "OPTIONS /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53453 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53457 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53455 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53459 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53461 - "POST /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53453 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53467 - "OPTIONS /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53455 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53453 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53461 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53457 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53467 - "POST /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53455 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53473 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53459 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53453 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53461 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53453 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53453 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53459 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53453 - "OPTIONS /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53459 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53453 - "OPTIONS /api/v1/idea-groups/2d713d23-e478-49ee-ae86-b2e2577eef5c/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53455 - "OPTIONS /api/v1/idea-groups/2d713d23-e478-49ee-ae86-b2e2577eef5c/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53467 - "OPTIONS /api/v1/idea-groups/2d713d23-e478-49ee-ae86-b2e2577eef5c/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53459 - "GET /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1/items HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:53461 - "DELETE /api/v1/idea-groups/14c963ed-04b1-491a-bad0-6a389c62bdc1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53453 - "GET /api/v1/idea-groups/2d713d23-e478-49ee-ae86-b2e2577eef5c/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53459 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+2025-12-13 18:24:24.752 | ERROR    | app.api.dependencies:get_current_user:181 - Membership check failed: [Errno 35] Resource temporarily unavailable
+2025-12-13 18:24:24.753 | ERROR    | app.api.routes.idea_groups:mark_group_as_read:1247 - Error marking group as read: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:53453 - "GET /api/v1/idea-groups/2d713d23-e478-49ee-ae86-b2e2577eef5c/messages HTTP/1.1" 500 Internal Server Error
+2025-12-13 18:24:24.754 | ERROR    | app.api.routes.idea_groups:get_group_items:793 - Error fetching group items: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:53455 - "POST /api/v1/idea-groups/2d713d23-e478-49ee-ae86-b2e2577eef5c/mark-read HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:53480 - "GET /api/v1/idea-groups/2d713d23-e478-49ee-ae86-b2e2577eef5c/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53455 - "GET /api/v1/idea-groups/2d713d23-e478-49ee-ae86-b2e2577eef5c/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53480 - "GET /api/v1/idea-groups/2d713d23-e478-49ee-ae86-b2e2577eef5c/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53480 - "GET /api/v1/idea-groups/2d713d23-e478-49ee-ae86-b2e2577eef5c/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53485 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53488 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53490 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53488 - "OPTIONS /api/v1/idea-groups/2d713d23-e478-49ee-ae86-b2e2577eef5c HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53488 - "DELETE /api/v1/idea-groups/2d713d23-e478-49ee-ae86-b2e2577eef5c HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53494 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53488 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53488 - "OPTIONS /api/v1/idea-groups/9ab24c12-d883-4f34-a0f4-050e90a36fd5/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53494 - "OPTIONS /api/v1/idea-groups/9ab24c12-d883-4f34-a0f4-050e90a36fd5/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53498 - "OPTIONS /api/v1/idea-groups/9ab24c12-d883-4f34-a0f4-050e90a36fd5/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53496 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53488 - "GET /api/v1/idea-groups/9ab24c12-d883-4f34-a0f4-050e90a36fd5/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53488 - "GET /api/v1/idea-groups/9ab24c12-d883-4f34-a0f4-050e90a36fd5/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53500 - "POST /api/v1/idea-groups/9ab24c12-d883-4f34-a0f4-050e90a36fd5/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53494 - "GET /api/v1/idea-groups/9ab24c12-d883-4f34-a0f4-050e90a36fd5/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53488 - "GET /api/v1/idea-groups/9ab24c12-d883-4f34-a0f4-050e90a36fd5/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53494 - "GET /api/v1/idea-groups/9ab24c12-d883-4f34-a0f4-050e90a36fd5/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53494 - "GET /api/v1/idea-groups/9ab24c12-d883-4f34-a0f4-050e90a36fd5/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53494 - "OPTIONS /api/v1/idea-groups/9ab24c12-d883-4f34-a0f4-050e90a36fd5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53504 - "OPTIONS /api/v1/idea-groups/8523b0a0-e6b9-4c49-a00a-889ed0d662f1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53507 - "OPTIONS /api/v1/idea-groups/8523b0a0-e6b9-4c49-a00a-889ed0d662f1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53508 - "OPTIONS /api/v1/idea-groups/8523b0a0-e6b9-4c49-a00a-889ed0d662f1/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53494 - "DELETE /api/v1/idea-groups/9ab24c12-d883-4f34-a0f4-050e90a36fd5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53507 - "POST /api/v1/idea-groups/8523b0a0-e6b9-4c49-a00a-889ed0d662f1/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53504 - "GET /api/v1/idea-groups/8523b0a0-e6b9-4c49-a00a-889ed0d662f1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53494 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53510 - "GET /api/v1/idea-groups/8523b0a0-e6b9-4c49-a00a-889ed0d662f1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53512 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53504 - "GET /api/v1/idea-groups/8523b0a0-e6b9-4c49-a00a-889ed0d662f1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53510 - "GET /api/v1/idea-groups/8523b0a0-e6b9-4c49-a00a-889ed0d662f1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53504 - "GET /api/v1/idea-groups/8523b0a0-e6b9-4c49-a00a-889ed0d662f1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53510 - "GET /api/v1/idea-groups/8523b0a0-e6b9-4c49-a00a-889ed0d662f1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53510 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53510 - "GET /api/v1/idea-groups/8523b0a0-e6b9-4c49-a00a-889ed0d662f1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53514 - "GET /api/v1/idea-groups/8523b0a0-e6b9-4c49-a00a-889ed0d662f1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53519 - "OPTIONS /api/v1/idea-groups/8523b0a0-e6b9-4c49-a00a-889ed0d662f1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53520 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53519 - "DELETE /api/v1/idea-groups/8523b0a0-e6b9-4c49-a00a-889ed0d662f1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53519 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53519 - "GET /api/v1/organizations/sigment/members HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53525 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53519 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53519 - "POST /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53529 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53519 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53522 - "OPTIONS /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53531 - "OPTIONS /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53522 - "OPTIONS /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53535 - "OPTIONS /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53536 - "OPTIONS /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53531 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53519 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53537 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53531 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53522 - "POST /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53531 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53537 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53531 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53537 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53529 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53537 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53531 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53570 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53602 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53641 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53641 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53664 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53664 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53666 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53641 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53713 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53740 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53740 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53786 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53786 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53806 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53806 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53808 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53786 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53857 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53881 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53938 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53938 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53953 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53959 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53959 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53953 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53938 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'app/api/routes/idea_groups.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-12-13 18:26:46.479 | INFO     | main:shutdown_event:61 - 👋 SIGMENT API Shutting down...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [87566]
+INFO:     Started server process [88003]
+INFO:     Waiting for application startup.
+2025-12-13 18:26:47.387 | INFO     | main:startup_event:53 - 🚀 SIGMENT API Starting...
+2025-12-13 18:26:47.387 | INFO     | main:startup_event:54 - Environment: development
+2025-12-13 18:26:47.387 | INFO     | main:startup_event:55 - Supabase URL: https://tkgyfhewbvtkrwcyahdn.supabase.co
+INFO:     Application startup complete.
+INFO:     127.0.0.1:54012 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54035 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54087 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54087 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54094 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54094 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54096 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54087 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54166 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54173 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54242 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54249 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54249 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54251 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54242 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54242 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54316 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54327 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54378 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54381 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54381 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54387 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54378 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54378 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54450 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54450 - "OPTIONS /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54450 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54461 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54450 - "OPTIONS /api/v1/organizations/sigment/public HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54465 - "OPTIONS /api/v1/organizations/sigment/public HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54450 - "GET /api/v1/organizations/sigment/public HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54450 - "GET /api/v1/organizations/sigment/public HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54494 - "POST /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/mark-read HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:54465 - "POST /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/mark-read HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:54523 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54523 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:28:40.951 | INFO     | app.api.routes.auth:login:212 - User tychiqueesteve2005@gmail.com authenticated via Supabase Auth
+2025-12-13 18:28:41.810 | INFO     | app.api.routes.auth:login:267 - User tychiqueesteve2005@gmail.com logged in successfully
+INFO:     127.0.0.1:54554 - "POST /api/v1/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54523 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54574 - "OPTIONS /api/v1/organizations/sigment/public HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54574 - "OPTIONS /api/v1/organizations/sigment/public HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54576 - "GET /api/v1/organizations/sigment/public HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54578 - "OPTIONS /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54576 - "GET /api/v1/organizations/sigment/public HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54581 - "OPTIONS /api/v1/feed/unified/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54583 - "OPTIONS /api/v1/board/pillars HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54576 - "OPTIONS /api/v1/organizations/sigment/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54585 - "OPTIONS /api/v1/organizations/sigment/me HTTP/1.1" 200 OK
+2025-12-13 18:28:43.257 | INFO     | app.api.routes.board:get_pillars:142 - 🔍 Fetching pillars for Org ID: eb320a7f-5d5a-4dcd-b0e3-cfdedae68267
+INFO:     127.0.0.1:54579 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54578 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54574 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:28:43.744 | INFO     | app.api.routes.board:get_pillars:177 - ✅ Retrieved 6 pillars for org eb320a7f-5d5a-4dcd-b0e3-cfdedae68267
+INFO:     127.0.0.1:54583 - "GET /api/v1/board/pillars HTTP/1.1" 200 OK
+2025-12-13 18:28:43.988 | INFO     | app.api.routes.unified_feed:get_unified_feed:215 - 📊 Feed (optimized RPC): 20 items returned
+INFO:     127.0.0.1:54591 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54576 - "GET /api/v1/organizations/sigment/me HTTP/1.1" 200 OK
+2025-12-13 18:28:45.267 | INFO     | app.api.routes.unified_feed:get_unified_feed:318 - ✅ Enriched 4 posts with poll data
+INFO:     127.0.0.1:54576 - "GET /api/v1/organizations/sigment/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54581 - "GET /api/v1/feed/unified/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54581 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54581 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54576 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54574 - "POST /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54583 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54576 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54576 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54576 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54583 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54583 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54583 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54635 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54674 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54681 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54709 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54720 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54742 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54742 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54748 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54782 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54797 - "GET /api/v1/organizations/sigment/public HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54797 - "GET /api/v1/organizations/sigment/public HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54798 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54806 - "GET /api/v1/organizations/sigment/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54804 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54800 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54811 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54802 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54806 - "GET /api/v1/organizations/sigment/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54804 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54797 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54800 - "POST /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54797 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54817 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54804 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54797 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54804 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54797 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54817 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54797 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54817 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54797 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54797 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54817 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54797 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54817 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54840 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54817 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54817 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54817 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54870 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54870 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54892 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54939 - "OPTIONS /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54939 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54953 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54953 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54959 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54977 - "OPTIONS /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54977 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55014 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55014 - "OPTIONS /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55014 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55031 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55094 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55101 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55101 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55108 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55133 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'app/models/idea_groups.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-12-13 18:30:42.975 | INFO     | main:shutdown_event:61 - 👋 SIGMENT API Shutting down...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [88003]
+INFO:     Started server process [88155]
+INFO:     Waiting for application startup.
+2025-12-13 18:30:43.902 | INFO     | main:startup_event:53 - 🚀 SIGMENT API Starting...
+2025-12-13 18:30:43.903 | INFO     | main:startup_event:54 - Environment: development
+2025-12-13 18:30:43.903 | INFO     | main:startup_event:55 - Supabase URL: https://tkgyfhewbvtkrwcyahdn.supabase.co
+INFO:     Application startup complete.
+INFO:     127.0.0.1:55189 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55195 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55206 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55283 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55283 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55290 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55292 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55292 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55358 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55355 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55358 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55420 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55420 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55427 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55433 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55433 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55498 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55491 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55498 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55556 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55556 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55563 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55577 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55577 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55630 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55644 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55644 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55697 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55697 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55700 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55722 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55700 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55722 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55744 - "OPTIONS /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55746 - "OPTIONS /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55748 - "OPTIONS /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55741 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55744 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55750 - "POST /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55748 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55744 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55746 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55744 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55746 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55744 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55746 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55754 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55757 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55754 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55759 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55757 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55759 - "OPTIONS /api/v1/board/galaxy HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55761 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+2025-12-13 18:33:01.739 | INFO     | app.api.routes.board:get_pillars:142 - 🔍 Fetching pillars for Org ID: eb320a7f-5d5a-4dcd-b0e3-cfdedae68267
+INFO:     127.0.0.1:55754 - "GET /api/v1/board/galaxy HTTP/1.1" 200 OK
+2025-12-13 18:33:02.075 | INFO     | app.api.routes.board:get_pillars:177 - ✅ Retrieved 6 pillars for org eb320a7f-5d5a-4dcd-b0e3-cfdedae68267
+INFO:     127.0.0.1:55757 - "GET /api/v1/board/pillars HTTP/1.1" 200 OK
+2025-12-13 18:33:02.888 | INFO     | app.api.routes.board:get_review_notes:461 - ✅ Retrieved 2 notes for review (org: eb320a7f-5d5a-4dcd-b0e3-cfdedae68267)
+INFO:     127.0.0.1:55759 - "GET /api/v1/board/review-notes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55761 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55761 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55770 - "OPTIONS /api/v1/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55771 - "OPTIONS /api/v1/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55770 - "GET /api/v1/chat HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:55770 - "GET /api/v1/chat HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:55771 - "OPTIONS /api/v1/chat/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55772 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55770 - "GET /api/v1/chat/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55772 - "OPTIONS /api/v1/chat/6ac133af-3f1f-4e7e-bd3b-796184d60314/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55771 - "OPTIONS /api/v1/chat/6ac133af-3f1f-4e7e-bd3b-796184d60314/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55765 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55776 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55774 - "GET /api/v1/chat/6ac133af-3f1f-4e7e-bd3b-796184d60314/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55770 - "GET /api/v1/chat/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55771 - "GET /api/v1/chat/6ac133af-3f1f-4e7e-bd3b-796184d60314/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55785 - "OPTIONS /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55786 - "OPTIONS /api/v1/idea-groups/containing?note_id=ee528499-7c91-4085-8359-0f43acc0fee4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55781 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55786 - "GET /api/v1/idea-groups/containing?note_id=ee528499-7c91-4085-8359-0f43acc0fee4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55785 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55781 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55790 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55792 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55792 - "OPTIONS /api/v1/notes/user/a72e7bb5-a885-42fe-b2a6-d8f9e9aa73aa HTTP/1.1" 200 OK
+2025-12-13 18:33:23.669 | INFO     | app.api.routes.notes:get_user_notes:417 - ✅ Retrieved 2 notes for user a72e7bb5-a885-42fe-b2a6-d8f9e9aa73aa
+INFO:     127.0.0.1:55792 - "GET /api/v1/notes/user/a72e7bb5-a885-42fe-b2a6-d8f9e9aa73aa HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55806 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55809 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55813 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55817 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55820 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55824 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55827 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55832 - "OPTIONS /api/v1/feed/unified/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55834 - "OPTIONS /api/v1/board/pillars HTTP/1.1" 200 OK
+2025-12-13 18:34:41.156 | INFO     | app.api.routes.board:get_pillars:142 - 🔍 Fetching pillars for Org ID: eb320a7f-5d5a-4dcd-b0e3-cfdedae68267
+2025-12-13 18:34:41.495 | INFO     | app.api.routes.board:get_pillars:177 - ✅ Retrieved 6 pillars for org eb320a7f-5d5a-4dcd-b0e3-cfdedae68267
+2025-12-13 18:34:41.497 | INFO     | app.api.routes.unified_feed:get_unified_feed:215 - 📊 Feed (optimized RPC): 20 items returned
+INFO:     127.0.0.1:55836 - "GET /api/v1/board/pillars HTTP/1.1" 200 OK
+2025-12-13 18:34:42.621 | INFO     | app.api.routes.unified_feed:get_unified_feed:318 - ✅ Enriched 4 posts with poll data
+INFO:     127.0.0.1:55832 - "GET /api/v1/feed/unified/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55832 - "OPTIONS /api/v1/feed/unified/note/6674bd0b-b34c-4111-b653-a36f2beb4b9e HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55836 - "OPTIONS /api/v1/feed/unified/note/6674bd0b-b34c-4111-b653-a36f2beb4b9e HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55836 - "GET /api/v1/feed/unified/note/6674bd0b-b34c-4111-b653-a36f2beb4b9e HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55840 - "OPTIONS /api/v1/feed/posts/6674bd0b-b34c-4111-b653-a36f2beb4b9e/comments?limit=20 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55841 - "OPTIONS /api/v1/feed/posts/6674bd0b-b34c-4111-b653-a36f2beb4b9e/comments?limit=20 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55836 - "GET /api/v1/feed/unified/note/6674bd0b-b34c-4111-b653-a36f2beb4b9e HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55841 - "GET /api/v1/feed/posts/6674bd0b-b34c-4111-b653-a36f2beb4b9e/comments?limit=20 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55844 - "GET /api/v1/organizations/sigment/members HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55841 - "GET /api/v1/feed/posts/6674bd0b-b34c-4111-b653-a36f2beb4b9e/comments?limit=20 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55841 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55841 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55841 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55857 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:35:16.660 | INFO     | app.api.routes.unified_feed:get_unified_feed:215 - 📊 Feed (optimized RPC): 20 items returned
+2025-12-13 18:35:17.728 | INFO     | app.api.routes.unified_feed:get_unified_feed:318 - ✅ Enriched 4 posts with poll data
+INFO:     127.0.0.1:55861 - "GET /api/v1/feed/unified/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55865 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55872 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55876 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:35:48.875 | INFO     | app.api.routes.unified_feed:get_unified_feed:215 - 📊 Feed (optimized RPC): 20 items returned
+2025-12-13 18:35:50.096 | INFO     | app.api.routes.unified_feed:get_unified_feed:318 - ✅ Enriched 4 posts with poll data
+INFO:     127.0.0.1:55892 - "GET /api/v1/feed/unified/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55892 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55896 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55902 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:36:21.135 | INFO     | app.api.routes.unified_feed:get_unified_feed:215 - 📊 Feed (optimized RPC): 20 items returned
+2025-12-13 18:36:22.711 | INFO     | app.api.routes.unified_feed:get_unified_feed:318 - ✅ Enriched 4 posts with poll data
+INFO:     127.0.0.1:55905 - "GET /api/v1/feed/unified/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55908 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55913 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55916 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:36:53.760 | INFO     | app.api.routes.unified_feed:get_unified_feed:215 - 📊 Feed (optimized RPC): 20 items returned
+INFO:     127.0.0.1:55924 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:36:54.672 | INFO     | app.api.routes.unified_feed:get_unified_feed:318 - ✅ Enriched 4 posts with poll data
+INFO:     127.0.0.1:55921 - "GET /api/v1/feed/unified/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55929 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55937 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55937 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55942 - "OPTIONS /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55944 - "OPTIONS /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55946 - "OPTIONS /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55942 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55948 - "POST /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55937 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55944 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55946 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55944 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55937 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55946 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55944 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55946 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55953 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55952 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55946 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:37:28.383 | INFO     | app.api.routes.board:get_pillars:142 - 🔍 Fetching pillars for Org ID: eb320a7f-5d5a-4dcd-b0e3-cfdedae68267
+2025-12-13 18:37:28.714 | INFO     | app.api.routes.board:get_pillars:177 - ✅ Retrieved 6 pillars for org eb320a7f-5d5a-4dcd-b0e3-cfdedae68267
+2025-12-13 18:37:28.715 | INFO     | app.api.routes.unified_feed:get_unified_feed:215 - 📊 Feed (optimized RPC): 20 items returned
+INFO:     127.0.0.1:55961 - "GET /api/v1/board/pillars HTTP/1.1" 200 OK
+2025-12-13 18:37:29.653 | INFO     | app.api.routes.unified_feed:get_unified_feed:318 - ✅ Enriched 4 posts with poll data
+INFO:     127.0.0.1:55960 - "GET /api/v1/feed/unified/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55960 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55965 - "OPTIONS /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55966 - "OPTIONS /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55969 - "OPTIONS /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55960 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55965 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55970 - "POST /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55965 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55966 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55965 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55966 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55965 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+2025-12-13 18:37:33.498 | WARNING  | app.api.routes.chat:get_unread_status:108 - RPC get_unread_conversations_count not available: [Errno 35] Resource temporarily unavailable
+2025-12-13 18:37:33.500 | WARNING  | app.api.routes.idea_groups:get_group_items:720 - ⚠️ Group Items RPC not available: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:55966 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55972 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55965 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55976 - "OPTIONS /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55977 - "OPTIONS /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55980 - "OPTIONS /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55981 - "OPTIONS /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55976 - "OPTIONS /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/items HTTP/1.1" 200 OK
+2025-12-13 18:37:35.437 | ERROR    | app.api.routes.idea_groups:get_group_items:793 - Error fetching group items: [Errno 35] Resource temporarily unavailable
+2025-12-13 18:37:35.437 | ERROR    | app.api.routes.idea_groups:mark_group_as_read:1248 - Error marking group as read: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:55981 - "POST /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/mark-read HTTP/1.1" 500 Internal Server Error
+2025-12-13 18:37:35.438 | ERROR    | app.api.dependencies:get_current_user:181 - Membership check failed: [Errno 35] Resource temporarily unavailable
+2025-12-13 18:37:35.438 | WARNING  | app.api.routes.idea_groups:get_idea_groups:53 - ⚠️ Groups RPC not available, using fallback: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:55977 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:55980 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55966 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55977 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55984 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55980 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55966 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 200 OK
+2025-12-13 18:37:37.125 | WARNING  | app.api.routes.idea_groups:get_group_items:720 - ⚠️ Group Items RPC not available: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:55965 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+/Users/tychiqueesteve/SIGMENT-NODES/Sigment-nodes/backend/venv/lib/python3.9/site-packages/pydantic/type_adapter.py:605: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `datetime` - serialized value may not be as expected [field_name='created_date', input_value='2025-12-04T02:59:52.683414+00:00', input_type=str])
+  PydanticSerializationUnexpectedValue(Expected `datetime` - serialized value may not be as expected [field_name='created_date', input_value='2025-12-05T09:14:31.056949+00:00', input_type=str])
+  PydanticSerializationUnexpectedValue(Expected `datetime` - serialized value may not be as expected [field_name='created_date', input_value='2025-12-05T08:40:00.219403+00:00', input_type=str])
+  return self.serializer.to_python(
+INFO:     127.0.0.1:55977 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55965 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55977 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55965 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55980 - "POST /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55977 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55966 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55980 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55977 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55966 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55977 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55966 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55966 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55988 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55988 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55991 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55993 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55997 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55999 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55993 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55999 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55999 - "GET /api/v1/board/galaxy HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56001 - "GET /api/v1/organizations/sigment/members HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55999 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56004 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56004 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56009 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56009 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56014 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56014 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56014 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56035 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56041 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56055 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56055 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56058 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56058 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56065 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56075 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56075 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56080 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56083 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56080 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56083 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56083 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56108 - "OPTIONS /api/v1/organizations/sigment/public HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56110 - "OPTIONS /api/v1/organizations/sigment/public HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56108 - "GET /api/v1/organizations/sigment/public HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56108 - "GET /api/v1/organizations/sigment/public HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56110 - "OPTIONS /api/v1/organizations/sigment/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56083 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56080 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56113 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56108 - "GET /api/v1/organizations/sigment/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56080 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56120 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56108 - "GET /api/v1/organizations/sigment/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56125 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56125 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56146 - "GET /api/v1/organizations/sigment/public HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56146 - "GET /api/v1/organizations/sigment/public HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56151 - "OPTIONS /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56152 - "OPTIONS /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56156 - "OPTIONS /api/v1/feed/unified/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56157 - "OPTIONS /api/v1/board/pillars HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56208 - "OPTIONS /api/v1/idea-groups HTTP/1.1" 200 OK
+2025-12-13 18:41:53.362 | WARNING  | app.api.routes.idea_groups:get_group_messages:925 - ⚠️ Group Messages RPC not available: The read operation timed out
+2025-12-13 18:41:53.364 | ERROR    | app.api.dependencies:get_current_user:133 - DB Error resolving org slug: The read operation timed out
+2025-12-13 18:41:53.365 | ERROR    | app.api.dependencies:get_current_user:181 - Membership check failed: The read operation timed out
+2025-12-13 18:41:53.367 | ERROR    | app.api.dependencies:get_current_user:181 - Membership check failed: The read operation timed out
+2025-12-13 18:41:53.371 | ERROR    | app.api.dependencies:get_current_user:181 - Membership check failed: The read operation timed out
+2025-12-13 18:41:53.372 | ERROR    | app.api.dependencies:get_current_user:181 - Membership check failed: The read operation timed out
+2025-12-13 18:41:53.372 | ERROR    | app.api.dependencies:get_current_user:181 - Membership check failed: The read operation timed out
+2025-12-13 18:41:53.373 | ERROR    | app.api.routes.idea_groups:get_group_items:793 - Error fetching group items: The read operation timed out
+2025-12-13 18:41:53.373 | ERROR    | app.api.dependencies:get_current_user:181 - Membership check failed: The read operation timed out
+2025-12-13 18:41:53.373 | ERROR    | app.api.dependencies:get_current_user:181 - Membership check failed: The read operation timed out
+2025-12-13 18:41:53.373 | ERROR    | app.api.dependencies:get_current_user:181 - Membership check failed: The read operation timed out
+2025-12-13 18:41:53.374 | ERROR    | app.api.dependencies:get_current_user:181 - Membership check failed: The read operation timed out
+2025-12-13 18:41:53.375 | ERROR    | app.api.dependencies:get_current_user:181 - Membership check failed: The read operation timed out
+2025-12-13 18:41:53.375 | ERROR    | app.api.routes.organizations:get_org_members:308 - Error in get_org_members: The read operation timed out
+INFO:     127.0.0.1:56221 - "GET /api/v1/organizations/sigment/members HTTP/1.1" 500 Internal Server Error
+2025-12-13 18:41:53.375 | ERROR    | app.api.dependencies:get_current_user:181 - Membership check failed: The read operation timed out
+INFO:     127.0.0.1:56151 - "GET /api/v1/organizations/sigment/me HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:56146 - "GET /api/v1/chat/unread-status HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:56152 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:56156 - "GET /api/v1/feed/unified/ HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:56163 - "GET /api/v1/idea-groups HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:56157 - "GET /api/v1/board/pillars HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:56168 - "GET /api/v1/chat/unread-status HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:56171 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:56210 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:56154 - "GET /api/v1/idea-groups HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:56142 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/items HTTP/1.1" 200 OK
+2025-12-13 18:41:54.033 | INFO     | app.api.routes.board:get_pillars:142 - 🔍 Fetching pillars for Org ID: eb320a7f-5d5a-4dcd-b0e3-cfdedae68267
+2025-12-13 18:41:54.356 | INFO     | app.api.routes.board:get_pillars:177 - ✅ Retrieved 6 pillars for org eb320a7f-5d5a-4dcd-b0e3-cfdedae68267
+2025-12-13 18:41:54.489 | INFO     | app.api.routes.unified_feed:get_unified_feed:215 - 📊 Feed (optimized RPC): 20 items returned
+2025-12-13 18:41:54.599 | WARNING  | app.api.routes.unified_feed:get_unified_feed:321 - ⚠️ Failed to enrich polls (non-blocking): [Errno 35] Resource temporarily unavailable
+2025-12-13 18:41:54.600 | WARNING  | app.api.routes.idea_groups:get_group_messages:977 - Could not enrich notes: [Errno 35] Resource temporarily unavailable
+2025-12-13 18:41:54.601 | ERROR    | app.api.routes.organizations:get_user_org_access:93 - Error checking org access: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:56265 - "GET /api/v1/organizations/sigment/me HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:56210 - "GET /api/v1/board/pillars HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56269 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56267 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56271 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56269 - "OPTIONS /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56269 - "OPTIONS /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56140 - "GET /api/v1/idea-groups/61000622-de3a-4952-a49b-b38baba4d1b1/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56171 - "GET /api/v1/feed/unified/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56271 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56210 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56267 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56276 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:42:26.449 | INFO     | app.api.routes.unified_feed:get_unified_feed:215 - 📊 Feed (optimized RPC): 20 items returned
+INFO:     127.0.0.1:56290 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:42:26.760 | WARNING  | app.api.routes.chat:get_unread_status:108 - RPC get_unread_conversations_count not available: [Errno 35] Resource temporarily unavailable
+2025-12-13 18:42:26.761 | WARNING  | app.api.routes.unified_feed:get_unified_feed:321 - ⚠️ Failed to enrich polls (non-blocking): [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:56287 - "GET /api/v1/feed/unified/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56293 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56304 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56309 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:42:58.769 | INFO     | app.api.routes.unified_feed:get_unified_feed:215 - 📊 Feed (optimized RPC): 20 items returned
+2025-12-13 18:43:00.514 | INFO     | app.api.routes.unified_feed:get_unified_feed:318 - ✅ Enriched 4 posts with poll data
+INFO:     127.0.0.1:56316 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56309 - "GET /api/v1/feed/unified/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56327 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56341 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:43:31.541 | INFO     | app.api.routes.unified_feed:get_unified_feed:215 - 📊 Feed (optimized RPC): 20 items returned
+2025-12-13 18:43:32.526 | INFO     | app.api.routes.unified_feed:get_unified_feed:318 - ✅ Enriched 4 posts with poll data
+INFO:     127.0.0.1:56343 - "GET /api/v1/feed/unified/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56345 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56353 - "GET /api/v1/organizations/sigment/members HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56362 - "OPTIONS /api/v1/organizations/sigment/public HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56364 - "OPTIONS /api/v1/organizations/sigment/public HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56364 - "GET /api/v1/organizations/sigment/public HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56364 - "GET /api/v1/organizations/sigment/public HTTP/1.1" 200 OK
+2025-12-13 18:43:47.045 | ERROR    | app.api.dependencies:get_current_user:181 - Membership check failed: [Errno 35] Resource temporarily unavailable
+2025-12-13 18:43:47.046 | ERROR    | app.api.routes.users:get_current_user_profile:80 - Error fetching current user: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:56365 - "GET /api/v1/users/me HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:56364 - "OPTIONS /api/v1/organizations/sigment/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56370 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:56364 - "OPTIONS /api/v1/organizations/sigment/me HTTP/1.1" 200 OK
+2025-12-13 18:43:47.052 | INFO     | app.api.routes.board:get_pillars:142 - 🔍 Fetching pillars for Org ID: eb320a7f-5d5a-4dcd-b0e3-cfdedae68267
+2025-12-13 18:43:47.411 | INFO     | app.api.routes.board:get_pillars:177 - ✅ Retrieved 6 pillars for org eb320a7f-5d5a-4dcd-b0e3-cfdedae68267
+INFO:     127.0.0.1:56377 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56362 - "GET /api/v1/board/pillars HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56367 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56370 - "GET /api/v1/organizations/sigment/me HTTP/1.1" 200 OK
+2025-12-13 18:43:48.238 | ERROR    | app.api.routes.unified_feed:get_unified_feed:328 - ❌ RPC Failed provided by optimized feed with error: [Errno 35] Resource temporarily unavailable
+2025-12-13 18:43:48.239 | ERROR    | app.api.dependencies:get_current_user:181 - Membership check failed: [Errno 35] Resource temporarily unavailable
+2025-12-13 18:43:48.239 | ERROR    | app.api.dependencies:get_current_user:181 - Membership check failed: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:56373 - "GET /api/v1/feed/unified/ HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:56370 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 500 Internal Server Error
+2025-12-13 18:43:48.240 | WARNING  | app.api.routes.idea_groups:get_idea_groups:53 - ⚠️ Groups RPC not available, using fallback: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:56367 - "GET /api/v1/organizations/sigment/me HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:56371 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56367 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56389 - "OPTIONS /api/v1/idea-groups HTTP/1.1" 200 OK
+2025-12-13 18:43:54.773 | INFO     | app.api.routes.board:get_pillars:142 - 🔍 Fetching pillars for Org ID: eb320a7f-5d5a-4dcd-b0e3-cfdedae68267
+INFO:     127.0.0.1:56384 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:43:56.341 | INFO     | app.api.routes.board:get_pillars:177 - ✅ Retrieved 6 pillars for org eb320a7f-5d5a-4dcd-b0e3-cfdedae68267
+INFO:     127.0.0.1:56388 - "GET /api/v1/board/pillars HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56389 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+2025-12-13 18:43:56.457 | INFO     | app.api.routes.unified_feed:get_unified_feed:215 - 📊 Feed (optimized RPC): 20 items returned
+INFO:     127.0.0.1:56386 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:43:57.626 | INFO     | app.api.routes.unified_feed:get_unified_feed:318 - ✅ Enriched 4 posts with poll data
+INFO:     127.0.0.1:56391 - "GET /api/v1/feed/unified/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56423 - "GET /api/v1/organizations/sigment/members HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56433 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56439 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:44:18.863 | INFO     | app.api.routes.unified_feed:get_unified_feed:215 - 📊 Feed (optimized RPC): 20 items returned
+INFO:     127.0.0.1:56504 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:44:19.863 | INFO     | app.api.routes.unified_feed:get_unified_feed:318 - ✅ Enriched 4 posts with poll data
+INFO:     127.0.0.1:56501 - "GET /api/v1/feed/unified/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56519 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56586 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56658 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56661 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56710 - "GET /api/v1/organizations/sigment/members HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56713 - "OPTIONS /api/v1/feed/unified/ HTTP/1.1" 200 OK
+2025-12-13 18:45:04.379 | INFO     | app.api.routes.unified_feed:get_unified_feed:215 - 📊 Feed (optimized RPC): 20 items returned
+2025-12-13 18:45:05.614 | INFO     | app.api.routes.unified_feed:get_unified_feed:318 - ✅ Enriched 4 posts with poll data
+INFO:     127.0.0.1:56713 - "GET /api/v1/feed/unified/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56713 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56752 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56752 - "GET /api/v1/organizations/sigment/public HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56752 - "GET /api/v1/organizations/sigment/public HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56772 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+2025-12-13 18:45:23.504 | INFO     | app.api.routes.board:get_pillars:142 - 🔍 Fetching pillars for Org ID: eb320a7f-5d5a-4dcd-b0e3-cfdedae68267
+INFO:     127.0.0.1:56774 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:45:27.328 | INFO     | app.api.routes.unified_feed:get_unified_feed:215 - 📊 Feed (optimized RPC): 20 items returned
+2025-12-13 18:45:27.336 | INFO     | app.api.routes.board:get_pillars:177 - ✅ Retrieved 6 pillars for org eb320a7f-5d5a-4dcd-b0e3-cfdedae68267
+INFO:     127.0.0.1:56820 - "GET /api/v1/users/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56776 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56794 - "GET /api/v1/organizations/sigment/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56780 - "GET /api/v1/board/pillars HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56826 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56832 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:45:41.671 | INFO     | app.api.routes.unified_feed:get_unified_feed:318 - ✅ Enriched 4 posts with poll data
+INFO:     127.0.0.1:56780 - "GET /api/v1/organizations/sigment/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56778 - "GET /api/v1/feed/unified/ HTTP/1.1" 200 OK
+2025-12-13 18:45:41.961 | INFO     | app.api.routes.unified_feed:get_unified_feed:215 - 📊 Feed (optimized RPC): 20 items returned
+2025-12-13 18:45:45.543 | INFO     | app.api.routes.unified_feed:get_unified_feed:318 - ✅ Enriched 4 posts with poll data
+INFO:     127.0.0.1:56920 - "GET /api/v1/feed/unified/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56998 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56998 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:46:20.819 | INFO     | app.api.routes.unified_feed:get_unified_feed:215 - 📊 Feed (optimized RPC): 20 items returned
+INFO:     127.0.0.1:57103 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:46:21.930 | INFO     | app.api.routes.unified_feed:get_unified_feed:318 - ✅ Enriched 4 posts with poll data
+INFO:     127.0.0.1:57097 - "GET /api/v1/feed/unified/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57196 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57196 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:46:55.268 | INFO     | app.api.routes.unified_feed:get_unified_feed:215 - 📊 Feed (optimized RPC): 20 items returned
+2025-12-13 18:46:56.383 | INFO     | app.api.routes.unified_feed:get_unified_feed:318 - ✅ Enriched 4 posts with poll data
+INFO:     127.0.0.1:57279 - "GET /api/v1/feed/unified/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57279 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57379 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57379 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:47:27.626 | INFO     | app.api.routes.unified_feed:get_unified_feed:215 - 📊 Feed (optimized RPC): 20 items returned
+2025-12-13 18:47:32.294 | INFO     | app.api.routes.unified_feed:get_unified_feed:318 - ✅ Enriched 4 posts with poll data
+INFO:     127.0.0.1:57452 - "GET /api/v1/feed/unified/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57483 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57571 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57571 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:48:06.480 | INFO     | app.api.routes.unified_feed:get_unified_feed:215 - 📊 Feed (optimized RPC): 20 items returned
+2025-12-13 18:48:06.968 | ERROR    | app.api.dependencies:get_current_user:181 - Membership check failed: [Errno 35] Resource temporarily unavailable
+2025-12-13 18:48:06.969 | WARNING  | app.api.routes.unified_feed:get_unified_feed:321 - ⚠️ Failed to enrich polls (non-blocking): [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:57655 - "GET /api/v1/chat/unread-status HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:57648 - "GET /api/v1/feed/unified/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57648 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57725 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57725 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:48:39.108 | INFO     | app.api.routes.unified_feed:get_unified_feed:215 - 📊 Feed (optimized RPC): 20 items returned
+2025-12-13 18:48:39.386 | ERROR    | app.api.dependencies:get_current_user:181 - Membership check failed: [Errno 35] Resource temporarily unavailable
+2025-12-13 18:48:39.386 | WARNING  | app.api.routes.unified_feed:get_unified_feed:321 - ⚠️ Failed to enrich polls (non-blocking): [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:57806 - "GET /api/v1/chat/unread-status HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:57794 - "GET /api/v1/feed/unified/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57794 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57854 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57856 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:49:11.900 | INFO     | app.api.routes.unified_feed:get_unified_feed:215 - 📊 Feed (optimized RPC): 20 items returned
+INFO:     127.0.0.1:57944 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:49:14.196 | INFO     | app.api.routes.unified_feed:get_unified_feed:318 - ✅ Enriched 4 posts with poll data
+INFO:     127.0.0.1:57979 - "GET /api/v1/feed/unified/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58014 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58061 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58111 - "GET /api/v1/organizations/sigment/members HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58118 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+2025-12-13 18:49:45.303 | INFO     | app.api.routes.unified_feed:get_unified_feed:215 - 📊 Feed (optimized RPC): 20 items returned
+2025-12-13 18:49:46.233 | INFO     | app.api.routes.unified_feed:get_unified_feed:318 - ✅ Enriched 4 posts with poll data
+INFO:     127.0.0.1:58118 - "GET /api/v1/feed/unified/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58118 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58118 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58216 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:50:17.108 | INFO     | app.api.routes.unified_feed:get_unified_feed:215 - 📊 Feed (optimized RPC): 20 items returned
+2025-12-13 18:50:20.464 | INFO     | app.api.routes.unified_feed:get_unified_feed:318 - ✅ Enriched 4 posts with poll data
+INFO:     127.0.0.1:58290 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58292 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58273 - "GET /api/v1/feed/unified/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58375 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58404 - "GET /api/v1/organizations/sigment/members HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58412 - "OPTIONS /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58413 - "OPTIONS /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58412 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58430 - "OPTIONS /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58432 - "OPTIONS /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58430 - "OPTIONS /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58434 - "OPTIONS /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58437 - "OPTIONS /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58412 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58432 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58430 - "POST /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58438 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58432 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+2025-12-13 18:50:47.624 | ERROR    | app.api.dependencies:get_current_user:181 - Membership check failed: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:58432 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 500 Internal Server Error
+2025-12-13 18:50:47.626 | WARNING  | app.api.routes.idea_groups:get_group_items:720 - ⚠️ Group Items RPC not available: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:58438 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58432 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58438 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58438 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58468 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58468 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58509 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58561 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58568 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+2025-12-13 18:51:15.696 | WARNING  | app.api.routes.idea_groups:get_group_messages:925 - ⚠️ Group Messages RPC not available: [Errno 35] Resource temporarily unavailable
+2025-12-13 18:51:15.698 | WARNING  | app.api.routes.idea_groups:get_group_items:720 - ⚠️ Group Items RPC not available: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:58561 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58613 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58568 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58613 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58568 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+2025-12-13 18:51:54.775 | ERROR    | app.api.dependencies:get_current_user:181 - Membership check failed: [Errno 54] Connection reset by peer
+INFO:     127.0.0.1:58726 - "GET /api/v1/idea-groups HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:58799 - "OPTIONS /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:52:11.541 | ERROR    | app.api.dependencies:get_current_user:181 - Membership check failed: [Errno 54] Connection reset by peer
+INFO:     127.0.0.1:58799 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:58732 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58749 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58732 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58749 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58799 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58799 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58749 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58943 - "OPTIONS /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58943 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58945 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58948 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59022 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59020 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59013 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59013 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59020 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59020 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59097 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59126 - "OPTIONS /api/v1/board/pillars HTTP/1.1" 200 OK
+2025-12-13 18:53:06.998 | INFO     | app.api.routes.board:get_pillars:142 - 🔍 Fetching pillars for Org ID: eb320a7f-5d5a-4dcd-b0e3-cfdedae68267
+2025-12-13 18:53:09.860 | INFO     | app.api.routes.board:get_pillars:177 - ✅ Retrieved 6 pillars for org eb320a7f-5d5a-4dcd-b0e3-cfdedae68267
+INFO:     127.0.0.1:59143 - "GET /api/v1/organizations/sigment/members HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59126 - "GET /api/v1/board/pillars HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59128 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:53:11.636 | INFO     | app.api.routes.unified_feed:get_unified_feed:215 - 📊 Feed (optimized RPC): 20 items returned
+INFO:     127.0.0.1:59149 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+2025-12-13 18:53:12.817 | INFO     | app.api.routes.unified_feed:get_unified_feed:318 - ✅ Enriched 4 posts with poll data
+INFO:     127.0.0.1:59124 - "GET /api/v1/feed/unified/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59124 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59214 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59221 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59214 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59223 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59225 - "POST /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59221 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59221 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59223 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59221 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+2025-12-13 18:53:26.859 | WARNING  | app.api.routes.chat:get_unread_status:108 - RPC get_unread_conversations_count not available: [Errno 35] Resource temporarily unavailable
+2025-12-13 18:53:26.860 | ERROR    | app.api.routes.idea_groups:get_group_items:793 - Error fetching group items: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:59223 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+2025-12-13 18:53:27.737 | ERROR    | app.api.routes.chat:get_unread_status:143 - Fallback unread check failed: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:59240 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:53:27.738 | WARNING  | app.api.routes.idea_groups:get_group_items:720 - ⚠️ Group Items RPC not available: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:59223 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59297 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59317 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59335 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59388 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59373 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59373 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59388 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59388 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59529 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59529 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59529 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59588 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59588 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59594 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59631 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59668 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59706 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59706 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59736 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59742 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59736 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59742 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59782 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59815 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59862 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59869 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59888 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59888 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59890 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59945 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59960 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60013 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60016 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60016 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60016 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60013 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60089 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60089 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60153 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60153 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60153 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60165 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+2025-12-13 18:56:30.718 | WARNING  | app.api.routes.idea_groups:get_group_messages:925 - ⚠️ Group Messages RPC not available: [Errno 35] Resource temporarily unavailable
+2025-12-13 18:56:30.719 | ERROR    | app.api.routes.idea_groups:get_group_items:793 - Error fetching group items: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:60153 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60165 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60165 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60165 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60317 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60317 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60335 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60341 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60341 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60335 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60416 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60419 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'app/api/routes/idea_groups.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-12-13 18:57:14.476 | INFO     | main:shutdown_event:61 - 👋 SIGMENT API Shutting down...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [88155]
+INFO:     Started server process [88918]
+INFO:     Waiting for application startup.
+2025-12-13 18:57:15.448 | INFO     | main:startup_event:53 - 🚀 SIGMENT API Starting...
+2025-12-13 18:57:15.448 | INFO     | main:startup_event:54 - Environment: development
+2025-12-13 18:57:15.448 | INFO     | main:startup_event:55 - Supabase URL: https://tkgyfhewbvtkrwcyahdn.supabase.co
+INFO:     Application startup complete.
+INFO:     127.0.0.1:60485 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60478 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60493 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60506 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+2025-12-13 18:57:28.187 | WARNING  | app.api.routes.idea_groups:get_group_messages:945 - ⚠️ Group Messages RPC not available: [Errno 35] Resource temporarily unavailable
+2025-12-13 18:57:28.189 | WARNING  | app.api.routes.idea_groups:get_group_items:740 - ⚠️ Group Items RPC not available: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:60478 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60493 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60571 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60571 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60624 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60624 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60627 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60641 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60641 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60695 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60721 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60763 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60763 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60766 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60784 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60784 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60835 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60868 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60899 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60906 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60906 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60899 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60925 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60939 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60974 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61013 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61041 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61041 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61048 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61076 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61087 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'app/api/routes/idea_groups.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-12-13 18:59:35.217 | INFO     | main:shutdown_event:61 - 👋 SIGMENT API Shutting down...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [88918]
+INFO:     Started server process [88998]
+INFO:     Waiting for application startup.
+2025-12-13 18:59:36.147 | INFO     | main:startup_event:53 - 🚀 SIGMENT API Starting...
+2025-12-13 18:59:36.147 | INFO     | main:startup_event:54 - Environment: development
+2025-12-13 18:59:36.147 | INFO     | main:startup_event:55 - Supabase URL: https://tkgyfhewbvtkrwcyahdn.supabase.co
+INFO:     Application startup complete.
+INFO:     127.0.0.1:61125 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61166 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61189 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61189 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61195 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61209 - "OPTIONS /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61209 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61209 - "OPTIONS /api/v1/board/pillars HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61211 - "OPTIONS /api/v1/board/galaxy HTTP/1.1" 200 OK
+2025-12-13 18:59:59.361 | INFO     | app.api.routes.board:get_pillars:142 - 🔍 Fetching pillars for Org ID: eb320a7f-5d5a-4dcd-b0e3-cfdedae68267
+2025-12-13 18:59:59.720 | INFO     | app.api.routes.board:get_pillars:177 - ✅ Retrieved 6 pillars for org eb320a7f-5d5a-4dcd-b0e3-cfdedae68267
+INFO:     127.0.0.1:61209 - "GET /api/v1/board/pillars HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61211 - "GET /api/v1/board/galaxy HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61233 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61211 - "OPTIONS /api/v1/board/review-notes HTTP/1.1" 200 OK
+2025-12-13 19:00:01.879 | INFO     | app.api.routes.board:get_review_notes:461 - ✅ Retrieved 2 notes for review (org: eb320a7f-5d5a-4dcd-b0e3-cfdedae68267)
+INFO:     127.0.0.1:61211 - "GET /api/v1/board/review-notes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61250 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61211 - "GET /api/v1/organizations/sigment/members HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61277 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61297 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61326 - "OPTIONS /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61323 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61326 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61340 - "OPTIONS /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61340 - "POST /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61354 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61340 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61340 - "OPTIONS /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61340 - "OPTIONS /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61340 - "OPTIONS /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61360 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61342 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61362 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61340 - "POST /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/mark-read HTTP/1.1" 200 OK
+2025-12-13 19:00:24.617 | WARNING  | app.api.routes.idea_groups:get_group_messages:940 - ⚠️ Group Messages RPC not available: [Errno 35] Resource temporarily unavailable
+2025-12-13 19:00:24.617 | ERROR    | app.api.routes.idea_groups:get_group_items:808 - Error fetching group items: [Errno 35] Resource temporarily unavailable
+2025-12-13 19:00:24.617 | WARNING  | app.api.routes.idea_groups:get_group_messages:940 - ⚠️ Group Messages RPC not available: [Errno 35] Resource temporarily unavailable
+2025-12-13 19:00:24.618 | ERROR    | app.api.routes.idea_groups:get_group_items:808 - Error fetching group items: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:61354 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61364 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+2025-12-13 19:00:25.257 | ERROR    | app.api.routes.idea_groups:get_group_messages:1079 - Error fetching group messages: [Errno 35] Resource temporarily unavailable
+2025-12-13 19:00:25.257 | ERROR    | app.api.routes.idea_groups:get_group_items:808 - Error fetching group items: [Errno 35] Resource temporarily unavailable
+2025-12-13 19:00:25.257 | ERROR    | app.api.routes.idea_groups:get_group_messages:1079 - Error fetching group messages: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:61362 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61364 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61360 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61362 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61364 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61362 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61364 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61364 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61382 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61382 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61384 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61386 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61390 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61390 - "OPTIONS /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61393 - "OPTIONS /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61390 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61390 - "OPTIONS /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61393 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61399 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61404 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61393 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61399 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61401 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61404 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61408 - "OPTIONS /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61409 - "OPTIONS /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61411 - "OPTIONS /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61408 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61411 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61409 - "POST /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61408 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61413 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61416 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61413 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61418 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61437 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61442 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61439 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61444 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61442 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61444 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61446 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61448 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61453 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61457 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61457 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61459 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61463 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61468 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61466 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61466 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61472 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61463 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61470 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61468 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61475 - "OPTIONS /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61475 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61475 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61481 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61483 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61494 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61487 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61492 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61490 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61500 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61490 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+2025-12-13 19:02:32.592 | ERROR    | app.api.routes.idea_groups:get_group_items:808 - Error fetching group items: [Errno 35] Resource temporarily unavailable
+2025-12-13 19:02:32.593 | ERROR    | app.api.routes.idea_groups:get_group_items:808 - Error fetching group items: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:61494 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61487 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61492 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61503 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61507 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61509 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61507 - "OPTIONS /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61507 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61523 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61528 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61523 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61525 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61528 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61529 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61525 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61529 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+2025-12-13 19:03:10.528 | WARNING  | app.api.routes.idea_groups:get_idea_groups:53 - ⚠️ Groups RPC not available, using fallback: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:61533 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+2025-12-13 19:03:10.530 | ERROR    | app.api.dependencies:get_current_user:181 - Membership check failed: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:61544 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 500 Internal Server Error
+2025-12-13 19:03:10.531 | WARNING  | app.api.routes.chat:get_unread_status:108 - RPC get_unread_conversations_count not available: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:61538 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61540 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61546 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+2025-12-13 19:03:14.534 | ERROR    | app.api.routes.idea_groups:get_idea_groups:165 - Error fetching idea groups: [Errno 35] Resource temporarily unavailable
+2025-12-13 19:03:14.535 | WARNING  | app.api.routes.idea_groups:get_group_messages:940 - ⚠️ Group Messages RPC not available: [Errno 35] Resource temporarily unavailable
+2025-12-13 19:03:14.535 | ERROR    | app.api.routes.chat:get_unread_status:143 - Fallback unread check failed: [Errno 35] Resource temporarily unavailable
+2025-12-13 19:03:14.535 | ERROR    | app.api.routes.idea_groups:get_group_items:808 - Error fetching group items: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:61525 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61535 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61533 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61538 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61553 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61556 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61553 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61556 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61558 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61560 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61556 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61560 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61558 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61572 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61569 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61569 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61569 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61569 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61585 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61586 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61582 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61591 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61586 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61594 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61591 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61600 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61598 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61600 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61586 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61598 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61604 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61606 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61612 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61611 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61606 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61608 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61611 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61612 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61608 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61624 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61622 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61619 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61619 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61628 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61628 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61631 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61637 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61641 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61645 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61649 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61651 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61655 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61658 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61661 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61658 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61661 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61664 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61669 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61672 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61675 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61693 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61689 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+2025-12-13 19:05:43.453 | WARNING  | app.api.routes.idea_groups:get_group_items:735 - ⚠️ Group Items RPC not available: [Errno 35] Resource temporarily unavailable
+2025-12-13 19:05:43.454 | ERROR    | app.api.dependencies:get_current_user:181 - Membership check failed: [Errno 35] Resource temporarily unavailable
+2025-12-13 19:05:43.454 | ERROR    | app.api.dependencies:get_current_user:181 - Membership check failed: [Errno 35] Resource temporarily unavailable
+2025-12-13 19:05:43.455 | WARNING  | app.api.routes.idea_groups:get_idea_groups:53 - ⚠️ Groups RPC not available, using fallback: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:61689 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 500 Internal Server Error
+2025-12-13 19:05:43.455 | ERROR    | app.api.routes.idea_groups:get_group_items:808 - Error fetching group items: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:61693 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:61690 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61694 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61689 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61689 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61690 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61702 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61694 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+2025-12-13 19:05:47.393 | WARNING  | app.api.routes.idea_groups:get_group_items:735 - ⚠️ Group Items RPC not available: [Errno 35] Resource temporarily unavailable
+2025-12-13 19:05:47.393 | ERROR    | app.api.routes.idea_groups:get_idea_groups:165 - Error fetching idea groups: [Errno 35] Resource temporarily unavailable
+2025-12-13 19:05:47.394 | ERROR    | app.api.dependencies:get_current_user:181 - Membership check failed: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:61702 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:61696 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61690 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61696 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61696 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61690 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61694 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61696 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61694 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61706 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61694 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61706 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61694 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61708 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61710 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61714 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61721 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61725 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61729 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61729 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61733 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61733 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61737 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61735 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61737 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61739 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61748 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61752 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61755 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61764 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61761 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61767 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61767 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61769 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61771 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61779 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61779 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61783 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61785 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61785 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61785 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61789 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+2025-12-13 19:07:24.712 | ERROR    | app.api.dependencies:get_current_user:181 - Membership check failed: [Errno 35] Resource temporarily unavailable
+2025-12-13 19:07:24.712 | WARNING  | app.api.routes.idea_groups:get_group_messages:940 - ⚠️ Group Messages RPC not available: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:61791 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 500 Internal Server Error
+2025-12-13 19:07:24.713 | WARNING  | app.api.routes.idea_groups:get_group_items:735 - ⚠️ Group Items RPC not available: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:61785 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61789 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61798 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61798 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61801 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'app/api/routes/idea_groups.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-12-13 19:07:46.682 | INFO     | main:shutdown_event:61 - 👋 SIGMENT API Shutting down...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [88998]
+INFO:     Started server process [89211]
+INFO:     Waiting for application startup.
+2025-12-13 19:07:47.641 | INFO     | main:startup_event:53 - 🚀 SIGMENT API Starting...
+2025-12-13 19:07:47.641 | INFO     | main:startup_event:54 - Environment: development
+2025-12-13 19:07:47.641 | INFO     | main:startup_event:55 - Supabase URL: https://tkgyfhewbvtkrwcyahdn.supabase.co
+INFO:     Application startup complete.
+INFO:     127.0.0.1:61807 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+2025-12-13 19:07:55.929 | ERROR    | app.api.dependencies:get_current_user:106 - Auth validation error: The read operation timed out
+2025-12-13 19:07:55.929 | ERROR    | app.api.dependencies:get_current_user:106 - Auth validation error: The read operation timed out
+2025-12-13 19:07:55.929 | ERROR    | app.api.dependencies:get_current_user:106 - Auth validation error: The read operation timed out
+INFO:     127.0.0.1:61816 - "GET /api/v1/idea-groups/unread-status HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:61818 - "GET /api/v1/chat/unread-status HTTP/1.1" 401 Unauthorized
+2025-12-13 19:07:55.929 | ERROR    | app.api.dependencies:get_current_user:106 - Auth validation error: The read operation timed out
+INFO:     127.0.0.1:61822 - "GET /api/v1/idea-groups HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:61824 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 401 Unauthorized
+2025-12-13 19:07:56.500 | WARNING  | app.api.routes.idea_groups:get_group_messages:966 - ⚠️ Group Messages RPC not available: [Errno 35] Resource temporarily unavailable
+2025-12-13 19:07:56.501 | WARNING  | app.api.routes.idea_groups:get_group_items:761 - ⚠️ Group Items RPC not available: [Errno 35] Resource temporarily unavailable
+2025-12-13 19:07:59.498 | ERROR    | app.api.dependencies:get_current_user:106 - Auth validation error: invalid JWT: unable to parse or verify signature, token has invalid claims: token is expired
+INFO:     127.0.0.1:61837 - "GET /api/v1/users/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:61813 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+2025-12-13 19:07:59.740 | ERROR    | app.api.dependencies:get_current_user:106 - Auth validation error: invalid JWT: unable to parse or verify signature, token has invalid claims: token is expired
+INFO:     127.0.0.1:61840 - "GET /api/v1/users/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:61807 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61843 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61847 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61861 - "OPTIONS /api/v1/idea-groups/unread-status?is_project=false HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61862 - "OPTIONS /api/v1/idea-groups/unread-status?is_project=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61847 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+2025-12-13 19:08:24.180 | WARNING  | app.api.routes.idea_groups:get_groups_unread_status:246 - Groups RPC not available: {'message': 'Could not find the function public.get_user_idea_groups_optimized(p_is_project, p_limit, p_offset, p_org_id, p_user_id) in the schema cache', 'code': 'PGRST202', 'hint': 'Perhaps you meant to call the function public.get_user_idea_groups_optimized(p_limit, p_offset, p_org_id, p_user_id)', 'details': 'Searched for the function public.get_user_idea_groups_optimized with parameters p_is_project, p_limit, p_offset, p_org_id, p_user_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.'}
+INFO:     127.0.0.1:61864 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61868 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+2025-12-13 19:08:24.404 | WARNING  | app.api.routes.idea_groups:get_groups_unread_status:246 - Groups RPC not available: {'message': 'Could not find the function public.get_user_idea_groups_optimized(p_is_project, p_limit, p_offset, p_org_id, p_user_id) in the schema cache', 'code': 'PGRST202', 'hint': 'Perhaps you meant to call the function public.get_user_idea_groups_optimized(p_limit, p_offset, p_org_id, p_user_id)', 'details': 'Searched for the function public.get_user_idea_groups_optimized with parameters p_is_project, p_limit, p_offset, p_org_id, p_user_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.'}
+INFO:     127.0.0.1:61866 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61861 - "GET /api/v1/idea-groups/unread-status?is_project=false HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61868 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61862 - "GET /api/v1/idea-groups/unread-status?is_project=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61861 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61876 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61881 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61881 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61887 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61881 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61887 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61902 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61906 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61906 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61909 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61917 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61920 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+2025-12-13 19:09:54.731 | WARNING  | app.api.routes.idea_groups:get_group_messages:966 - ⚠️ Group Messages RPC not available: [Errno 35] Resource temporarily unavailable
+2025-12-13 19:09:54.732 | WARNING  | app.api.routes.idea_groups:get_group_items:761 - ⚠️ Group Items RPC not available: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:61923 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61920 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61929 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61937 - "OPTIONS /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61937 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61945 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61948 - "OPTIONS /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61948 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61950 - "OPTIONS /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61948 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61950 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61956 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61961 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61967 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61971 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61971 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61977 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61982 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61989 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62007 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62013 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62018 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62018 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62013 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62025 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62032 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62037 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62040 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+2025-12-13 19:13:48.785 | WARNING  | app.api.routes.idea_groups:get_group_messages:966 - ⚠️ Group Messages RPC not available: [Errno 35] Resource temporarily unavailable
+2025-12-13 19:13:48.786 | WARNING  | app.api.routes.idea_groups:get_group_items:761 - ⚠️ Group Items RPC not available: [Errno 35] Resource temporarily unavailable
+2025-12-13 19:13:48.867 | ERROR    | app.api.routes.idea_groups:get_group_messages:1105 - Error fetching group messages: [Errno 35] Resource temporarily unavailable
+2025-12-13 19:13:48.867 | ERROR    | app.api.routes.idea_groups:get_group_items:834 - Error fetching group items: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:62040 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62043 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62051 - "OPTIONS /api/v1/chat/unread-status HTTP/1.1" 200 OK
+2025-12-13 19:14:00.564 | WARNING  | app.api.routes.idea_groups:get_groups_unread_status:246 - Groups RPC not available: {'message': 'Could not find the function public.get_user_idea_groups_optimized(p_is_project, p_limit, p_offset, p_org_id, p_user_id) in the schema cache', 'code': 'PGRST202', 'hint': 'Perhaps you meant to call the function public.get_user_idea_groups_optimized(p_limit, p_offset, p_org_id, p_user_id)', 'details': 'Searched for the function public.get_user_idea_groups_optimized with parameters p_is_project, p_limit, p_offset, p_org_id, p_user_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.'}
+2025-12-13 19:14:00.578 | WARNING  | app.api.routes.idea_groups:get_groups_unread_status:246 - Groups RPC not available: {'message': 'Could not find the function public.get_user_idea_groups_optimized(p_is_project, p_limit, p_offset, p_org_id, p_user_id) in the schema cache', 'code': 'PGRST202', 'hint': 'Perhaps you meant to call the function public.get_user_idea_groups_optimized(p_limit, p_offset, p_org_id, p_user_id)', 'details': 'Searched for the function public.get_user_idea_groups_optimized with parameters p_is_project, p_limit, p_offset, p_org_id, p_user_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.'}
+INFO:     127.0.0.1:62048 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62051 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62053 - "GET /api/v1/idea-groups/unread-status?is_project=false HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62048 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62054 - "GET /api/v1/idea-groups/unread-status?is_project=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62059 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62076 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62086 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62086 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62095 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62098 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62101 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62101 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62104 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+2025-12-13 19:15:17.742 | WARNING  | app.api.routes.idea_groups:get_groups_unread_status:246 - Groups RPC not available: {'message': 'Could not find the function public.get_user_idea_groups_optimized(p_is_project, p_limit, p_offset, p_org_id, p_user_id) in the schema cache', 'code': 'PGRST202', 'hint': 'Perhaps you meant to call the function public.get_user_idea_groups_optimized(p_limit, p_offset, p_org_id, p_user_id)', 'details': 'Searched for the function public.get_user_idea_groups_optimized with parameters p_is_project, p_limit, p_offset, p_org_id, p_user_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.'}
+2025-12-13 19:15:17.743 | WARNING  | app.api.routes.idea_groups:get_groups_unread_status:246 - Groups RPC not available: {'message': 'Could not find the function public.get_user_idea_groups_optimized(p_is_project, p_limit, p_offset, p_org_id, p_user_id) in the schema cache', 'code': 'PGRST202', 'hint': 'Perhaps you meant to call the function public.get_user_idea_groups_optimized(p_limit, p_offset, p_org_id, p_user_id)', 'details': 'Searched for the function public.get_user_idea_groups_optimized with parameters p_is_project, p_limit, p_offset, p_org_id, p_user_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.'}
+INFO:     127.0.0.1:62115 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62122 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+2025-12-13 19:15:18.040 | ERROR    | app.api.routes.idea_groups:get_groups_unread_status:293 - Error checking groups unread status: [Errno 35] Resource temporarily unavailable
+2025-12-13 19:15:18.040 | ERROR    | app.api.routes.idea_groups:get_groups_unread_status:293 - Error checking groups unread status: [Errno 35] Resource temporarily unavailable
+INFO:     127.0.0.1:62120 - "GET /api/v1/idea-groups/unread-status?is_project=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62118 - "GET /api/v1/idea-groups/unread-status?is_project=false HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62137 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62137 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62140 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+2025-12-13 19:15:51.464 | ERROR    | app.api.dependencies:get_current_user:181 - Membership check failed: [Errno 54] Connection reset by peer
+INFO:     127.0.0.1:62154 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:62154 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62154 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62162 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62165 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62171 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62171 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62181 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62181 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62183 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62186 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62190 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62202 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62205 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62208 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62208 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62205 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62212 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62217 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62225 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62228 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62228 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62231 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62235 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62240 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62246 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62249 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62249 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62252 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62254 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62261 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62267 - "OPTIONS /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62267 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62272 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62272 - "OPTIONS /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62275 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62275 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62272 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62279 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62285 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62295 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62299 - "OPTIONS /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62299 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62299 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62301 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62304 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62308 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62326 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62334 - "OPTIONS /api/v1/idea-groups/unread-status?is_project=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62335 - "OPTIONS /api/v1/idea-groups/unread-status?is_project=false HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62331 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+2025-12-13 19:22:39.365 | WARNING  | app.api.routes.idea_groups:get_groups_unread_status:246 - Groups RPC not available: {'message': 'Could not find the function public.get_user_idea_groups_optimized(p_is_project, p_limit, p_offset, p_org_id, p_user_id) in the schema cache', 'code': 'PGRST202', 'hint': 'Perhaps you meant to call the function public.get_user_idea_groups_optimized(p_limit, p_offset, p_org_id, p_user_id)', 'details': 'Searched for the function public.get_user_idea_groups_optimized with parameters p_is_project, p_limit, p_offset, p_org_id, p_user_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.'}
+INFO:     127.0.0.1:62330 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+2025-12-13 19:22:39.621 | WARNING  | app.api.routes.idea_groups:get_groups_unread_status:246 - Groups RPC not available: {'message': 'Could not find the function public.get_user_idea_groups_optimized(p_is_project, p_limit, p_offset, p_org_id, p_user_id) in the schema cache', 'code': 'PGRST202', 'hint': 'Perhaps you meant to call the function public.get_user_idea_groups_optimized(p_limit, p_offset, p_org_id, p_user_id)', 'details': 'Searched for the function public.get_user_idea_groups_optimized with parameters p_is_project, p_limit, p_offset, p_org_id, p_user_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.'}
+INFO:     127.0.0.1:62330 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62335 - "GET /api/v1/idea-groups/unread-status?is_project=false HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62334 - "GET /api/v1/idea-groups/unread-status?is_project=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62331 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62343 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62343 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62346 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62348 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62354 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62354 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62357 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62369 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62366 - "GET /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62374 - "OPTIONS /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84 HTTP/1.1" 200 OK
+2025-12-13 19:23:42.738 | WARNING  | app.api.routes.idea_groups:get_groups_unread_status:246 - Groups RPC not available: {'message': 'Could not find the function public.get_user_idea_groups_optimized(p_is_project, p_limit, p_offset, p_org_id, p_user_id) in the schema cache', 'code': 'PGRST202', 'hint': 'Perhaps you meant to call the function public.get_user_idea_groups_optimized(p_limit, p_offset, p_org_id, p_user_id)', 'details': 'Searched for the function public.get_user_idea_groups_optimized with parameters p_is_project, p_limit, p_offset, p_org_id, p_user_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.'}
+INFO:     127.0.0.1:62378 - "OPTIONS /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62381 - "OPTIONS /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62382 - "OPTIONS /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/mark-read HTTP/1.1" 200 OK
+2025-12-13 19:23:42.980 | WARNING  | app.api.routes.idea_groups:get_groups_unread_status:246 - Groups RPC not available: {'message': 'Could not find the function public.get_user_idea_groups_optimized(p_is_project, p_limit, p_offset, p_org_id, p_user_id) in the schema cache', 'code': 'PGRST202', 'hint': 'Perhaps you meant to call the function public.get_user_idea_groups_optimized(p_limit, p_offset, p_org_id, p_user_id)', 'details': 'Searched for the function public.get_user_idea_groups_optimized with parameters p_is_project, p_limit, p_offset, p_org_id, p_user_id or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.'}
+INFO:     127.0.0.1:62374 - "DELETE /api/v1/idea-groups/75aba4d5-26ce-4502-9d1f-6dfcb70c9e84 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62375 - "GET /api/v1/idea-groups/unread-status?is_project=false HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62378 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62376 - "GET /api/v1/idea-groups/unread-status?is_project=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62382 - "POST /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/mark-read HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62374 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62378 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62381 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62378 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62381 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62381 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62384 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62384 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/messages HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62389 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62387 - "GET /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0/items HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62387 - "OPTIONS /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62389 - "DELETE /api/v1/idea-groups/c0c30f36-31fd-462a-a7ab-93a39786ace0 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62389 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62401 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62407 - "OPTIONS /api/v1/chat/unread-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62407 - "GET /api/v1/chat/unread-status HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'app/models/projects.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-12-13 19:24:41.620 | INFO     | main:shutdown_event:61 - 👋 SIGMENT API Shutting down...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [89211]
+INFO:     Started server process [89712]
+INFO:     Waiting for application startup.
+2025-12-13 19:24:42.710 | INFO     | main:startup_event:53 - 🚀 SIGMENT API Starting...
+2025-12-13 19:24:42.710 | INFO     | main:startup_event:54 - Environment: development
+2025-12-13 19:24:42.710 | INFO     | main:startup_event:55 - Supabase URL: https://tkgyfhewbvtkrwcyahdn.supabase.co
+INFO:     Application startup complete.
+INFO:     127.0.0.1:62433 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62485 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62509 - "GET /api/v1/idea-groups HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'app/api/routes/projects.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2025-12-13 19:26:52.804 | INFO     | main:shutdown_event:61 - 👋 SIGMENT API Shutting down...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [89712]
+Process SpawnProcess-8:
+Traceback (most recent call last):
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/multiprocessing/process.py", line 315, in _bootstrap
+    self.run()
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/Users/tychiqueesteve/SIGMENT-NODES/Sigment-nodes/backend/venv/lib/python3.9/site-packages/uvicorn/_subprocess.py", line 78, in subprocess_started
+    target(sockets=sockets)
+  File "/Users/tychiqueesteve/SIGMENT-NODES/Sigment-nodes/backend/venv/lib/python3.9/site-packages/uvicorn/server.py", line 62, in run
+    return asyncio.run(self.serve(sockets=sockets))
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "uvloop/loop.pyx", line 1518, in uvloop.loop.Loop.run_until_complete
+  File "/Users/tychiqueesteve/SIGMENT-NODES/Sigment-nodes/backend/venv/lib/python3.9/site-packages/uvicorn/server.py", line 69, in serve
+    config.load()
+  File "/Users/tychiqueesteve/SIGMENT-NODES/Sigment-nodes/backend/venv/lib/python3.9/site-packages/uvicorn/config.py", line 458, in load
+    self.loaded_app = import_from_string(self.app)
+  File "/Users/tychiqueesteve/SIGMENT-NODES/Sigment-nodes/backend/venv/lib/python3.9/site-packages/uvicorn/importer.py", line 24, in import_from_string
+    raise exc from None
+  File "/Users/tychiqueesteve/SIGMENT-NODES/Sigment-nodes/backend/venv/lib/python3.9/site-packages/uvicorn/importer.py", line 21, in import_from_string
+    module = importlib.import_module(module_str)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/importlib/__init__.py", line 127, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1030, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1007, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 986, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 680, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 850, in exec_module
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "/Users/tychiqueesteve/SIGMENT-NODES/Sigment-nodes/backend/main.py", line 13, in <module>
+    from app.api.routes import notes, clusters, pillars, users, board, organizations, auth, invitations, social_feed, unified_feed, chat, idea_groups, projects, integrations
+  File "/Users/tychiqueesteve/SIGMENT-NODES/Sigment-nodes/backend/app/api/routes/projects.py", line 17, in <module>
+    from app.core.supabase import supabase
+ModuleNotFoundError: No module named 'app.core.supabase'
+WARNING:  WatchFiles detected changes in 'app/api/routes/projects.py'. Reloading...
+Process SpawnProcess-9:
+Traceback (most recent call last):
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/multiprocessing/process.py", line 315, in _bootstrap
+    self.run()
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/Users/tychiqueesteve/SIGMENT-NODES/Sigment-nodes/backend/venv/lib/python3.9/site-packages/uvicorn/_subprocess.py", line 78, in subprocess_started
+    target(sockets=sockets)
+  File "/Users/tychiqueesteve/SIGMENT-NODES/Sigment-nodes/backend/venv/lib/python3.9/site-packages/uvicorn/server.py", line 62, in run
+    return asyncio.run(self.serve(sockets=sockets))
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "uvloop/loop.pyx", line 1518, in uvloop.loop.Loop.run_until_complete
+  File "/Users/tychiqueesteve/SIGMENT-NODES/Sigment-nodes/backend/venv/lib/python3.9/site-packages/uvicorn/server.py", line 69, in serve
+    config.load()
+  File "/Users/tychiqueesteve/SIGMENT-NODES/Sigment-nodes/backend/venv/lib/python3.9/site-packages/uvicorn/config.py", line 458, in load
+    self.loaded_app = import_from_string(self.app)
+  File "/Users/tychiqueesteve/SIGMENT-NODES/Sigment-nodes/backend/venv/lib/python3.9/site-packages/uvicorn/importer.py", line 24, in import_from_string
+    raise exc from None
+  File "/Users/tychiqueesteve/SIGMENT-NODES/Sigment-nodes/backend/venv/lib/python3.9/site-packages/uvicorn/importer.py", line 21, in import_from_string
+    module = importlib.import_module(module_str)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/importlib/__init__.py", line 127, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1030, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1007, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 986, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 680, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 850, in exec_module
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "/Users/tychiqueesteve/SIGMENT-NODES/Sigment-nodes/backend/main.py", line 13, in <module>
+    from app.api.routes import notes, clusters, pillars, users, board, organizations, auth, invitations, social_feed, unified_feed, chat, idea_groups, projects, integrations
+  File "/Users/tychiqueesteve/SIGMENT-NODES/Sigment-nodes/backend/app/api/routes/projects.py", line 17, in <module>
+    from app.core.supabase import supabase
+ModuleNotFoundError: No module named 'app.core.supabase'

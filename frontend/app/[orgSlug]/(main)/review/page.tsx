@@ -36,6 +36,7 @@ import { api } from '@/lib/api';
 import { useApiClient } from '@/hooks/useApiClient';
 import { useRouter, useParams } from 'next/navigation';
 import { GroupPicker } from '@/components/shared/GroupPicker';
+import { SigmentLogo } from '@/components/shared/SigmentLogo';
 import toast from 'react-hot-toast';
 
 // Helper function to get color for pillar category
@@ -374,6 +375,45 @@ export default function ReviewPage() {
         } catch (error) {
             console.error('Error launching Teams:', error);
             toast.error('Error creating Teams team. Please try again.');
+        }
+    };
+
+    // Launch implementation via Sigment (Project)
+    const handleLaunchSigment = async () => {
+        if (!slackConfig.projectName.trim()) {
+            toast.error('Please enter a project name');
+            return;
+        }
+        if (selectedMembers.size === 0) {
+            toast.error('Please select at least one member');
+            return;
+        }
+
+        try {
+            const memberIds = Array.from(selectedMembers);
+
+            // Create project via new API
+            // API returns the UUID string directly (response_model=UUID)
+            const newProjectId = await apiClient.post<string>('/projects', {
+                name: slackConfig.projectName,
+                description: reviewData.description,
+                color: '#000000',
+                member_ids: memberIds,
+                status: 'active'
+            });
+
+            const newGroupId = newProjectId;
+
+            toast.success('Project created successfully! 🚀');
+
+            // Close modal and redirect
+            setIsSlackModalOpen(false);
+            setSlackModalStep(1);
+            router.push(`/${orgSlug}/projects?selected=${newGroupId}`);
+
+        } catch (error: any) {
+            console.error('Error creating project:', error);
+            toast.error(error.message || 'Failed to create project');
         }
     };
 
@@ -1177,6 +1217,16 @@ export default function ReviewPage() {
                                     <>
                                         {/* Platform Selection Buttons - Step 2 Only */}
                                         <div className="flex gap-3">
+                                            {/* Sigment Option */}
+                                            <button
+                                                onClick={handleLaunchSigment}
+                                                className="px-6 py-3 rounded-xl font-medium hover:bg-white border-2 border-gray-200 hover:border-gray-900 transition-all flex items-center gap-3 group"
+                                                title="Continue with Sigment"
+                                            >
+                                                <SigmentLogo className="w-6 h-6 text-black" />
+                                                <span className="font-semibold text-gray-700 group-hover:text-gray-900">Sigment</span>
+                                            </button>
+
                                             {/* Slack Option */}
                                             <button
                                                 onClick={handleLaunchImplementation}

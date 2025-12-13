@@ -921,100 +921,115 @@ function ChatWindow({ conversation, currentUser, apiClient, onRefresh, onMarkAsR
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 key={msg.id}
-                                className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} ${isGroupedWithPrev ? 'mt-1' : 'mt-4 first:mt-0'}`}
+                                className={`flex ${isMe ? 'flex-row-reverse' : 'flex-row'} gap-2 ${isGroupedWithPrev ? 'mt-1' : 'mt-4 first:mt-0'}`}
                             >
-                                {/* Group Sender Name */}
-                                {!isMe && (conversation.is_group || (conversation.participants && conversation.participants.length > 2)) && (!prevMsg || prevMsg.sender_id !== msg.sender_id) && (
-                                    <div className="ml-1 mb-1 text-xs text-gray-500 font-medium">
+                                {/* Avatar for received messages - only show if not grouped */}
+                                {!isMe && !isGroupedWithPrev && (
+                                    <div className="flex-shrink-0">
                                         {(() => {
-                                            const p = conversation.participants?.find((p: any) => p.id === msg.sender_id || p.user_id === msg.sender_id);
-                                            return p ? (getDisplayName ? getDisplayName(p) : (p.first_name || 'User')) : 'Unknown';
+                                            const sender = conversation.participants?.find((p: any) => p.id === msg.sender_id || p.user_id === msg.sender_id);
+                                            return sender?.avatar_url ? (
+                                                <img
+                                                    src={sender.avatar_url}
+                                                    alt={getDisplayName ? getDisplayName(sender) : (sender.first_name || 'User')}
+                                                    className="w-8 h-8 rounded-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold ${getAvatarColor(msg.sender_id)}`}>
+                                                    {sender ? getInitials(sender) : 'U'}
+                                                </div>
+                                            );
                                         })()}
                                     </div>
                                 )}
 
-                                {/* Shared Post Card */}
-                                {hasSharedPost && (
-                                    <div className="mb-1" onClick={(e) => e.stopPropagation()}>
-                                        <SharedPostCard post={msg.shared_post} />
-                                    </div>
-                                )}
+                                {/* Spacer for grouped messages */}
+                                {!isMe && isGroupedWithPrev && <div className="w-8 flex-shrink-0" />}
 
-                                {/* Shared Note Card */}
-                                {msg.shared_note && (
-                                    <div className="mb-1" onClick={(e) => e.stopPropagation()}>
-                                        <SharedNoteCard note={msg.shared_note} />
-                                    </div>
-                                )}
+                                <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} flex-1`}>
+                                    {/* Shared Post Card */}
+                                    {hasSharedPost && (
+                                        <div className="mb-1" onClick={(e) => e.stopPropagation()}>
+                                            <SharedPostCard post={msg.shared_post} />
+                                        </div>
+                                    )}
 
-                                {/* Attachment */}
-                                {msg.attachment_url && (
-                                    <div className="mb-1 max-w-[70%]">
-                                        {msg.attachment_type?.startsWith('image/') ? (
-                                            <div className="relative group">
-                                                <img
-                                                    src={msg.attachment_url}
-                                                    alt={msg.attachment_name || 'Image'}
-                                                    className="rounded-xl max-w-full max-h-64 object-cover shadow-sm cursor-pointer"
-                                                    onClick={() => setLightboxImage({ url: msg.attachment_url!, name: msg.attachment_name || 'Image' })}
-                                                />
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); setLightboxImage({ url: msg.attachment_url!, name: msg.attachment_name || 'Image' }); }}
-                                                    className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                    {/* Shared Note Card */}
+                                    {msg.shared_note && (
+                                        <div className="mb-1" onClick={(e) => e.stopPropagation()}>
+                                            <SharedNoteCard note={msg.shared_note} />
+                                        </div>
+                                    )}
+
+                                    {/* Attachment */}
+                                    {msg.attachment_url && (
+                                        <div className="mb-1 max-w-[70%]">
+                                            {msg.attachment_type?.startsWith('image/') ? (
+                                                <div className="relative group">
+                                                    <img
+                                                        src={msg.attachment_url}
+                                                        alt={msg.attachment_name || 'Image'}
+                                                        className="rounded-xl max-w-full max-h-64 object-cover shadow-sm cursor-pointer"
+                                                        onClick={() => setLightboxImage({ url: msg.attachment_url!, name: msg.attachment_name || 'Image' })}
+                                                    />
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); setLightboxImage({ url: msg.attachment_url!, name: msg.attachment_name || 'Image' }); }}
+                                                        className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    >
+                                                        <Maximize2 size={14} />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <a
+                                                    href={msg.attachment_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${isMe ? 'bg-black text-white border-black' : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-50'
+                                                        }`}
                                                 >
-                                                    <Maximize2 size={14} />
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <a
-                                                href={msg.attachment_url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${isMe ? 'bg-black text-white border-black' : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-50'
-                                                    }`}
-                                            >
-                                                <div className={`p-2 rounded-lg ${isMe ? 'bg-white/20' : 'bg-gray-100'}`}>
-                                                    <FileText size={20} />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="font-medium text-sm truncate">{msg.attachment_name || 'Attachment'}</p>
-                                                    <p className="text-xs opacity-70">Click to open</p>
-                                                </div>
-                                            </a>
-                                        )}
-                                    </div>
-                                )}
+                                                    <div className={`p-2 rounded-lg ${isMe ? 'bg-white/20' : 'bg-gray-100'}`}>
+                                                        <FileText size={20} />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-medium text-sm truncate">{msg.attachment_name || 'Attachment'}</p>
+                                                        <p className="text-xs opacity-70">Click to open</p>
+                                                    </div>
+                                                </a>
+                                            )}
+                                        </div>
+                                    )}
 
-                                {/* Text Content */}
-                                {hasTextContent && (
-                                    <div
-                                        className={`
+                                    {/* Text Content */}
+                                    {hasTextContent && (
+                                        <div
+                                            className={`
                                             max-w-[70%] px-5 py-3 text-sm shadow-sm
                                             ${isMe
-                                                ? 'bg-black text-white rounded-2xl rounded-tr-sm'
-                                                : 'bg-white text-gray-900 border border-gray-100 rounded-2xl rounded-tl-sm'
-                                            }
+                                                    ? 'bg-black text-white rounded-2xl rounded-tr-sm'
+                                                    : 'bg-white text-gray-900 border border-gray-100 rounded-2xl rounded-tl-sm'
+                                                }
                                         `}
-                                    >
-                                        <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                                    </div>
-                                )}
+                                        >
+                                            <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                                        </div>
+                                    )}
 
-                                {/* Timestamp & Read Receipt */}
-                                {(showTimestamp || readReceiptText) && (
-                                    <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} mt-1`}>
-                                        {showTimestamp && (
-                                            <p className="text-[10px] text-gray-400 opacity-70">
-                                                {msgTime}
-                                            </p>
-                                        )}
-                                        {readReceiptText && (
-                                            <p className="text-[10px] text-gray-400 font-medium">
-                                                {readReceiptText}
-                                            </p>
-                                        )}
-                                    </div>
-                                )}
+                                    {/* Timestamp & Read Receipt */}
+                                    {(showTimestamp || readReceiptText) && (
+                                        <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} mt-1`}>
+                                            {showTimestamp && (
+                                                <p className="text-[10px] text-gray-400 opacity-70">
+                                                    {msgTime}
+                                                </p>
+                                            )}
+                                            {readReceiptText && (
+                                                <p className="text-[10px] text-gray-400 font-medium">
+                                                    {readReceiptText}
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                             </motion.div>
                         );
                     })

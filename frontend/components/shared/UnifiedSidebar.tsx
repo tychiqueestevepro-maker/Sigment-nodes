@@ -9,7 +9,7 @@ import { useUser } from '@/contexts';
 import {
     Home, Orbit, FileCheck, BarChart2, MessageCircle, Users,
     Archive, User, MoreHorizontal, PanelLeftClose, PanelLeftOpen,
-    LayoutDashboard, Edit3, Settings, HelpCircle, LogOut, UserCircle
+    LayoutDashboard, Edit3, Settings, HelpCircle, LogOut, UserCircle, Rocket
 } from 'lucide-react';
 import { SigmentLogo } from './SigmentLogo';
 import { SettingsModal } from './SettingsModal';
@@ -50,18 +50,31 @@ export const UnifiedSidebar: React.FC = () => {
 
     const chatUnreadCount = unreadStatus?.unread_conversations_count || 0;
 
-    // Fetch unread status for groups (Count)
+    // Fetch unread status for groups (Count) - Only non-project groups
     const { data: groupsUnreadStatus } = useQuery({
         queryKey: ['groupsUnreadStatus', user?.id],
         queryFn: async () => {
             if (!user) return { has_unread: false, unread_groups_count: 0 };
-            return api.get<{ has_unread: boolean; unread_groups_count: number }>('/idea-groups/unread-status');
+            return api.get<{ has_unread: boolean; unread_groups_count: number }>('/idea-groups/unread-status?is_project=false');
         },
         refetchInterval: 30000,
         enabled: !!user,
     });
 
     const groupsUnreadCount = groupsUnreadStatus?.unread_groups_count || 0;
+
+    // Fetch unread status for projects (Count) - Only projects
+    const { data: projectsUnreadStatus } = useQuery({
+        queryKey: ['projectsUnreadStatus', user?.id],
+        queryFn: async () => {
+            if (!user) return { has_unread: false, unread_projects_count: 0 };
+            return api.get<{ has_unread: boolean; unread_projects_count: number }>('/projects/unread-status');
+        },
+        refetchInterval: 30000,
+        enabled: !!user,
+    });
+
+    const projectsUnreadCount = projectsUnreadStatus?.unread_projects_count || 0;
 
     const menuConfig: MenuItem[] = useMemo(() => [
         { label: "Home", icon: <Home size={18} />, href: `/${orgSlug}` },
@@ -72,6 +85,7 @@ export const UnifiedSidebar: React.FC = () => {
         { label: "Track", icon: <FileCheck size={18} />, href: `/${orgSlug}/tracking`, roles: ['MEMBER'] },
         { label: "Chat", icon: <MessageCircle size={18} />, href: `/${orgSlug}/chat` },
         { label: "Groups", icon: <Users size={18} />, href: `/${orgSlug}/groups` },
+        { label: "Projects", icon: <Rocket size={18} />, href: `/${orgSlug}/projects` },
     ], [orgSlug]);
 
     const storageConfig: MenuItem[] = useMemo(() => [
@@ -142,6 +156,11 @@ export const UnifiedSidebar: React.FC = () => {
                                             {groupsUnreadCount > 99 ? '99+' : groupsUnreadCount}
                                         </span>
                                     )}
+                                    {item.label === 'Projects' && projectsUnreadCount > 0 && (
+                                        <span className="absolute top-0 right-0 min-w-[16px] h-4 px-1 bg-black text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white translate-x-1/3 -translate-y-1/3">
+                                            {projectsUnreadCount > 99 ? '99+' : projectsUnreadCount}
+                                        </span>
+                                    )}
                                 </div>
                                 {isOpen && <span>{item.label}</span>}
                             </Link>
@@ -149,7 +168,7 @@ export const UnifiedSidebar: React.FC = () => {
                     })}
 
                     {filteredStorage.length > 0 && (
-                        <div className="mt-6">
+                        <div className="mt-auto">
                             {isOpen && (
                                 <div className="px-3 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
                                     Storage

@@ -21,6 +21,7 @@ class IdeaGroupBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
     color: Optional[str] = "#6366f1"
+    is_project: bool = False
 
 class IdeaGroupCreate(IdeaGroupBase):
     member_ids: List[UUID] = []
@@ -29,6 +30,7 @@ class IdeaGroupUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = None
     color: Optional[str] = None
+    is_project: Optional[bool] = None
 
 class IdeaGroup(IdeaGroupBase):
     id: UUID
@@ -41,6 +43,7 @@ class IdeaGroup(IdeaGroupBase):
     members: List[GroupMemberInfo] = []
     is_admin: bool = False  # Whether current user is admin of this group
     has_unread: bool = False  # Whether there are unread messages for current user
+    is_project: bool = False
 
 # --- Group Item (Linked Note/Cluster) ---
 
@@ -103,6 +106,7 @@ class GroupMessage(BaseModel):
     shared_post: Optional[dict] = None
     created_at: datetime
     read_by: List[GroupMessageReadReceipt] = []
+    is_system_message: bool = False
 
 # --- Response models ---
 

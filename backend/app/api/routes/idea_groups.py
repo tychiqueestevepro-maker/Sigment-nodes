@@ -28,26 +28,36 @@ router = APIRouter(redirect_slashes=False)
 def get_idea_groups(
     current_user: CurrentUser = Depends(get_current_user),
     limit: int = 50,
-    offset: int = 0
+    offset: int = 0,
+    is_project: Optional[bool] = False  # By default, exclude projects
 ):
     """
     Get all idea groups the current user is a member of.
     Uses 'get_user_idea_groups_optimized' RPC for maximum performance.
     """
     # Optimized RPC attempt
+    
+    # Prepare params
+    rpc_params = {
+        'p_user_id': str(current_user.id),
+        'p_org_id': str(current_user.organization_id),
+        'p_limit': limit,
+        'p_offset': offset
+    }
+    
+    # Try RPC
     try:
         rpc_response = supabase.rpc(
             'get_user_idea_groups_optimized',
-            {
-                'p_user_id': str(current_user.id),
-                'p_org_id': str(current_user.organization_id),
-                'p_limit': limit,
-                'p_offset': offset
-            }
+            rpc_params
         ).execute()
         
-        if rpc_response.data is not None:
-            return rpc_response.data
+        if rpc_response.data:
+            # Filter in Python because RPC might not support p_is_project yet
+            results = rpc_response.data
+            if is_project is not None:
+                results = [r for r in results if r.get('is_project') == is_project]
+            return results
             
     except Exception as rpc_error:
         logger.warning(f"⚠️ Groups RPC not available, using fallback: {rpc_error}")
@@ -55,6 +65,8 @@ def get_idea_groups(
     # Fallback to Python implementation
     try:
         # Get groups where user is a member
+        # Need to join with idea_groups to filter by is_project ideally, but RLS/Supabase might not support deep filtering easily in one go
+        # Let's get IDs first
         response = supabase.table("idea_group_members")\
             .select("idea_group_id")\
             .eq("user_id", str(current_user.id))\
@@ -65,14 +77,18 @@ def get_idea_groups(
         
         group_ids = [item["idea_group_id"] for item in response.data]
         
-        # Fetch full group details
-        groups_response = supabase.table("idea_groups")\
+        # Fetch full group details AND filter
+        query = supabase.table("idea_groups")\
             .select("*")\
             .in_("id", group_ids)\
             .eq("organization_id", str(current_user.organization_id))\
             .order("updated_at", desc=True)\
-            .range(offset, offset + limit - 1)\
-            .execute()
+            .range(offset, offset + limit - 1)
+            
+        if is_project is not None:
+            query = query.eq("is_project", is_project)
+            
+        groups_response = query.execute()
         
         if not groups_response.data:
             return []
@@ -155,7 +171,8 @@ def get_idea_groups(
                 item_count=item_count,
                 members=members,
                 is_admin=is_admin,
-                has_unread=has_unread
+                has_unread=has_unread,
+                is_project=group.get("is_project", False)
             ))
             
         return groups_out
@@ -197,31 +214,46 @@ def get_groups_containing_item(
 
 
 @router.get("/unread-status")
-def get_groups_unread_status(current_user: CurrentUser = Depends(get_current_user)):
+def get_groups_unread_status(
+    is_project: Optional[bool] = None,  # Filter by is_project (None = all, True = projects only, False = groups only)
+    current_user: CurrentUser = Depends(get_current_user)
+):
     """
-    Get count of groups with unread messages.
+    Get count of groups/projects with unread messages.
     A group is unread only if:
     - The last message was sent by someone OTHER than the current user
     - AND the user hasn't read it yet (last_read_at < last message time)
+    
+    Args:
+        is_project: Optional filter - None for all, True for projects only, False for groups only
     """
     unread_count = 0
     user_id = str(current_user.id)
     
     try:
-        # Try optimized RPC first
+        # Try optimized RPC approach
         try:
+            rpc_params = {
+                'p_user_id': user_id,
+                'p_org_id': str(current_user.organization_id), # Keep organization_id
+                'p_limit': 100,
+                'p_offset': 0
+            }
+            if is_project is not None:
+                rpc_params['p_is_project'] = is_project # Pass filter to RPC if supported
+            
             rpc_response = supabase.rpc(
                 'get_user_idea_groups_optimized',
-                {
-                    'p_user_id': user_id,
-                    'p_org_id': str(current_user.organization_id),
-                    'p_limit': 100, 
-                    'p_offset': 0
-                }
+                rpc_params
             ).execute()
             
             if rpc_response.data:
                 for group in rpc_response.data:
+                    # Filter by is_project if parameter is provided and RPC didn't filter
+                    if is_project is not None:
+                        if group.get('is_project') != is_project:
+                            continue
+                    
                     if group.get('has_unread', False):
                         unread_count += 1
                         
@@ -230,16 +262,27 @@ def get_groups_unread_status(current_user: CurrentUser = Depends(get_current_use
             logger.warning(f"Groups RPC not available: {rpc_err}")
         
         # Fallback: Count groups with unread in Python
-        # Get user's group memberships
-        memberships = supabase.table("idea_group_members")\
-            .select("idea_group_id, last_read_at")\
-            .eq("user_id", user_id)\
-            .execute()
+        # Get user's group memberships with group info
+        query = supabase.table("idea_group_members")\
+            .select("idea_group_id, last_read_at, idea_groups!inner(is_project)")\
+            .eq("user_id", user_id)
+        
+        # Apply is_project filter to the fallback query
+        if is_project is not None:
+            query = query.eq("idea_groups.is_project", is_project)
+            
+        memberships = query.execute()
         
         if not memberships.data:
             return {"has_unread": False, "unread_groups_count": 0}
         
         for membership in memberships.data:
+            # Filter by is_project if parameter is provided (redundant if filtered in query, but safe)
+            group_data = membership.get("idea_groups")
+            if is_project is not None and group_data:
+                if group_data.get("is_project") != is_project:
+                    continue
+            
             group_id = membership.get("idea_group_id")
             last_read = membership.get("last_read_at")
             
@@ -289,14 +332,55 @@ def create_idea_group(
                 "p_description": payload.description or "",
                 "p_color": payload.color or "#6366f1",
                 "p_member_ids": member_ids_str,
-                "p_current_user_id": str(current_user.id)
+                "p_current_user_id": str(current_user.id),
+                "p_is_project": payload.is_project
             }
         ).execute()
 
         if not response.data:
             raise HTTPException(status_code=500, detail="Failed to create idea group")
         
-        return response.data
+        group_id = response.data
+
+        # Post-creation automation: Welcome Message for Projects
+        if payload.is_project:
+            try:
+                # Get project lead (creator) info
+                lead_user = supabase.table("users").select("first_name, last_name, email").eq("id", str(current_user.id)).single().execute()
+                lead_name = f"{lead_user.data.get('first_name', '')} {lead_user.data.get('last_name', '')}".strip() or lead_user.data.get('email', 'Unknown')
+                
+                # Get all team members info
+                member_details = []
+                if payload.member_ids:
+                    members_resp = supabase.table("users").select("first_name, last_name, email").in_("id", [str(mid) for mid in payload.member_ids]).execute()
+                    for member in (members_resp.data or []):
+                        member_name = f"{member.get('first_name', '')} {member.get('last_name', '')}".strip() or member.get('email', 'Unknown')
+                        member_details.append(member_name)
+                
+                # Build welcome message - simple and professional
+                welcome_msg = f"{payload.name}\n\n"
+                welcome_msg += "Project launched successfully!\n\n"
+                welcome_msg += "This team has been created automatically by SIGMENT.\n\n"
+                welcome_msg += f"Project Lead: {lead_name}\n"
+                
+                if member_details:
+                    welcome_msg += "Team Members:\n"
+                    for member in member_details:
+                        welcome_msg += f"• {member}\n"
+                else:
+                    welcome_msg += "Team Members: No additional members yet"
+                
+                # Insert message as system message (will be displayed with workspace info)
+                supabase.table("idea_group_messages").insert({
+                    "idea_group_id": str(group_id),
+                    "sender_id": str(current_user.id),  # Required but will be overridden in display
+                    "content": welcome_msg,
+                    "is_system_message": True
+                }).execute()
+            except Exception as e:
+                logger.error(f"Failed to post welcome message: {e}")
+
+        return group_id
 
     except HTTPException:
         raise
@@ -384,7 +468,8 @@ def get_idea_group(
             item_count=item_count,
             members=members,
             is_admin=is_admin,
-            has_unread=False # Detail view doesn't need unread flag usually, or we can fetch it
+            has_unread=False,  # Detail view doesn't need unread flag usually, or we can fetch it
+            is_project=group.get("is_project", False)
         )
 
     except HTTPException:
@@ -1024,7 +1109,8 @@ def get_group_messages(
                 shared_post_id=msg.get("shared_post_id"),
                 shared_post=shared_post,
                 created_at=msg["created_at"],
-                read_by=read_by
+                read_by=read_by,
+                is_system_message=msg.get("is_system_message", False)
             ))
         
         # Return in ascending order for display

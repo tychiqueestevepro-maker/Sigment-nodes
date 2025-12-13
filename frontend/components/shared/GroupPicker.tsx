@@ -16,6 +16,7 @@ interface IdeaGroup {
     member_count: number;
     item_count: number;
     is_admin: boolean;
+    is_project?: boolean;
 }
 
 interface GroupPickerProps {
@@ -129,10 +130,12 @@ export function GroupPicker({ isOpen, onClose, onSelect, noteId, clusterId }: Gr
         }
     };
 
-    const filteredGroups = groups.filter(g =>
-        g.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        g.description?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filteredGroups = groups
+        .filter(g => !g.is_project) // Exclude projects from group picker
+        .filter(g =>
+            g.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            g.description?.toLowerCase().includes(searchQuery.toLowerCase())
+        );
 
     if (typeof document === 'undefined') return null;
 

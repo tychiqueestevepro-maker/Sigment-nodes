@@ -45,18 +45,21 @@ import { SharedNoteCard, SharedPostCard } from '@/components/feed/share';
 // --- Types ---
 type ApiClient = ReturnType<typeof useApiClient>;
 
-interface GroupMember {
+interface ProjectMember {
     id: string;
+    user_id: string; // Added user_id
+    project_id: string; // Added
     first_name?: string;
     last_name?: string;
     job_title?: string;
     email: string;
     avatar_url?: string;
-    role: 'admin' | 'member';
-    added_at: string;
+    role: 'lead' | 'member'; // admin changed to lead
+    joined_at: string; // joined_at changed to joined_at
+    last_read_at?: string;
 }
 
-interface IdeaGroup {
+interface Project {
     id: string;
     organization_id: string;
     name: string;
@@ -67,9 +70,10 @@ interface IdeaGroup {
     updated_at: string;
     member_count: number;
     item_count: number;
-    members: GroupMember[];
-    is_admin: boolean;
+    // members: ProjectMember[]; // Remove members array if not returned directly by GET /projects
+    is_lead: boolean; // is_lead changed to is_lead
     has_unread?: boolean;
+    status: string; // Added status
 }
 
 interface ReadReceipt {
@@ -79,9 +83,9 @@ interface ReadReceipt {
     read_at: string;
 }
 
-interface GroupMessage {
+interface ProjectMessage {
     id: string;
-    idea_group_id: string;
+    project_id: string; // project_id changed to project_id
     sender_id: string;
     sender_name?: string;
     sender_avatar_url?: string;
@@ -105,37 +109,37 @@ interface Collaborator {
     date?: string;
 }
 
-interface GroupItem {
+interface ProjectItem {
     id: string;
-    idea_group_id: string;
+    project_id: string;
     note_id?: string;
     cluster_id?: string;
     added_by: string;
-    added_at: string;
-    item_type: 'note' | 'cluster';
+    joined_at: string;
+    // Details from join
+    note?: any;
+    cluster?: any;
+
+    // Optional flattened fields used for rendering
+    category?: string;
+    status?: string;
+    item_type?: string;
+    created_date?: string;
     title?: string;
     summary?: string;
     note_count?: number;
-    // Full review data
-    category?: string;
-    author_name?: string;
-    author_avatar?: string;
-    content_raw?: string;
-    relevance_score?: number;
-    created_date?: string;
     collaborators?: Collaborator[];
-    status?: string;
 }
 
 // --- Helpers ---
-function getInitials(member: GroupMember | null): string {
+function getInitials(member: ProjectMember | null): string {
     if (!member) return '?';
     const first = member.first_name?.charAt(0) || '';
     const last = member.last_name?.charAt(0) || '';
     return (first + last).toUpperCase() || '?';
 }
 
-function getDisplayName(member: GroupMember | null): string {
+function getDisplayName(member: ProjectMember | null): string {
     if (!member) return 'Unknown';
     if (member.first_name) {
         return `${member.first_name} ${member.last_name || ''}`.trim();
@@ -201,14 +205,14 @@ export default function GroupsPage() {
     const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
     const initialSelectedId = searchParams?.get('selected') || null;
 
-    const [groups, setGroups] = useState<IdeaGroup[]>([]);
+    const [groups, setGroups] = useState<Project[]>([]);
     const [selectedGroupId, setSelectedGroupId] = useState<string | null>(initialSelectedId);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
 
     const fetchGroups = useCallback(async (silent: boolean = false) => {
         try {
-            const data = await apiClient.get<IdeaGroup[]>('/idea-groups');
+            const data = await apiClient.get<Project[]>('/projects');
 
             // Sort by updated_at DESC (most recent first)
             const sorted = [...data].sort((a, b) =>
@@ -217,17 +221,24 @@ export default function GroupsPage() {
 
             setGroups(sorted);
 
-            // Cache for instant load next time
+            // Clear old cache and save new one
             if (user && organization) {
-                localStorage.setItem(`cached_groups_${organization.id}_${user.id}`, JSON.stringify(sorted));
+                // Remove old cache keys
+                const oldCacheKeys = Object.keys(localStorage).filter(k =>
+                    k.startsWith('cached_groups_') || k.startsWith('cached_projects_')
+                );
+                oldCacheKeys.forEach(k => localStorage.removeItem(k));
+
+                // Save new cache
+                localStorage.setItem(`cached_projects_${organization.id}_${user.id}`, JSON.stringify(sorted));
             }
 
             return sorted;
         } catch (error) {
             console.error('Error fetching groups:', error);
-            // Only show toast on initial load, not during polling
-            if (!silent) {
-                toast.error('Could not load groups');
+            // Only show toast on initial load error if we have no data
+            if (!silent && groups.length === 0) {
+                toast.error('Could not load projects');
             }
             return [];
         } finally {
@@ -238,7 +249,7 @@ export default function GroupsPage() {
     // Load from cache immediately on mount
     useEffect(() => {
         if (user && organization) {
-            const cached = localStorage.getItem(`cached_groups_${organization.id}_${user.id}`);
+            const cached = localStorage.getItem(`cached_projects_${organization.id}_${user.id}`);
             if (cached) {
                 try {
                     setGroups(JSON.parse(cached));
@@ -276,7 +287,7 @@ export default function GroupsPage() {
                 g.id === selectedGroupId ? { ...g, has_unread: false } : g
             ));
             // Also notify the server
-            apiClient.post(`/idea-groups/${selectedGroupId}/mark-read`, {}).catch(() => { });
+            apiClient.post(`/projects/${selectedGroupId}/mark-read`, {}).catch(() => { });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedGroupId]);
@@ -298,7 +309,7 @@ export default function GroupsPage() {
             <div className="w-80 border-r border-gray-100 flex flex-col bg-white">
                 {/* Header */}
                 <div className="h-16 px-6 flex items-center justify-between border-b border-gray-100">
-                    <h1 className="text-lg font-bold text-gray-900">Groups</h1>
+                    <h1 className="text-lg font-bold text-gray-900">Projects</h1>
 
                 </div>
 
@@ -308,7 +319,7 @@ export default function GroupsPage() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                         <input
                             type="text"
-                            placeholder="Search groups..."
+                            placeholder="Search projects..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full pl-9 pr-4 py-2 bg-gray-50 border-0 rounded-lg text-sm focus:ring-2 focus:ring-black/5"
@@ -335,7 +346,7 @@ export default function GroupsPage() {
                             <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3">
                                 <Users className="w-6 h-6 text-gray-300" />
                             </div>
-                            <p className="text-sm text-gray-500">No groups yet</p>
+                            <p className="text-sm text-gray-500">No projects yet</p>
 
                         </div>
                     ) : (
@@ -360,7 +371,7 @@ export default function GroupsPage() {
                                             <span className="font-medium text-gray-900 text-sm truncate">
                                                 {group.name}
                                             </span>
-                                            {group.is_admin && (
+                                            {group.is_lead && (
                                                 <Crown className="w-3 h-3 text-amber-500 shrink-0" />
                                             )}
                                         </div>
@@ -399,8 +410,8 @@ export default function GroupsPage() {
                             <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <Users className="w-8 h-8 text-gray-300" />
                             </div>
-                            <h3 className="font-semibold text-gray-900">Your Groups</h3>
-                            <p className="text-sm text-gray-500 mt-1">Select a group to view discussions</p>
+                            <h3 className="font-semibold text-gray-900">Your Projects</h3>
+                            <p className="text-sm text-gray-500 mt-1">Select a project to view discussions</p>
                         </div>
                     </div>
                 )}
@@ -413,7 +424,7 @@ export default function GroupsPage() {
 
 // --- Group View Component ---
 interface GroupViewProps {
-    group: IdeaGroup;
+    group: Project;
     currentUser: any;
     apiClient: ApiClient;
     onRefresh: () => Promise<any>;
@@ -421,9 +432,43 @@ interface GroupViewProps {
 }
 
 function GroupView({ group, currentUser, apiClient, onRefresh, organization }: GroupViewProps) {
-    const [messages, setMessages] = useState<GroupMessage[]>([]);
-    const [items, setItems] = useState<GroupItem[]>([]);
+    const [messages, setMessages] = useState<ProjectMessage[]>([]);
     const [isLoadingMessages, setIsLoadingMessages] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [members, setMembers] = useState<ProjectMember[]>([]);
+
+    // Fetch members when group changes
+    // Fetch members when group changes
+    useEffect(() => {
+        let isCancelled = false;
+        const cacheKey = `cached_members_project_${group.id}`;
+
+        async function fetchMembers() {
+            // 1. Try Cache First (Optimistic UI)
+            const cached = localStorage.getItem(cacheKey);
+            if (cached) {
+                try {
+                    const parsed = JSON.parse(cached);
+                    if (parsed && Array.isArray(parsed)) {
+                        setMembers(parsed);
+                    }
+                } catch (e) { console.error("Cache members parse error", e); }
+            }
+
+            try {
+                const data = await apiClient.get<ProjectMember[]>(`/projects/${group.id}/members`);
+                if (!isCancelled) {
+                    setMembers(data);
+                    localStorage.setItem(cacheKey, JSON.stringify(data));
+                }
+            } catch (e) {
+                console.error("Failed to load members", e);
+            }
+        }
+        fetchMembers();
+        return () => { isCancelled = true; };
+    }, [group.id, apiClient]);
+    const [items, setItems] = useState<ProjectItem[]>([]);
     const [isLoadingItems, setIsLoadingItems] = useState(true);
     const [showMenu, setShowMenu] = useState(false);
     const [showMembersModal, setShowMembersModal] = useState(false);
@@ -462,7 +507,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization }: G
     };
     const handleUpdateGroup = async (name: string, description: string, color: string) => {
         try {
-            await apiClient.put(`/idea-groups/${group.id}`, { name, description, color });
+            await apiClient.put(`/projects/${group.id}`, { name, description, color });
             toast.success('Group updated');
             setShowEditModal(false);
             onRefresh();
@@ -539,7 +584,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization }: G
             }
 
             try {
-                const data = await apiClient.get<GroupMessage[]>(`/idea-groups/${group.id}/messages`);
+                const data = await apiClient.get<ProjectMessage[]>(`/projects/${group.id}/messages`);
 
                 if (!isCancelled) {
                     setMessages(data);
@@ -611,7 +656,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization }: G
             }
 
             try {
-                const data = await apiClient.get<GroupItem[]>(`/idea-groups/${group.id}/items`);
+                const data = await apiClient.get<ProjectItem[]>(`/projects/${group.id}/items`);
 
                 if (!isCancelled) {
                     setItems(data);
@@ -657,7 +702,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization }: G
         if (!confirm('Are you sure you want to remove this idea from the group?')) return;
 
         try {
-            await apiClient.delete(`/idea-groups/${group.id}/items/${currentItem.id}`);
+            await apiClient.delete(`/projects/${group.id}/items/${currentItem.id}`);
             toast.success('Idea removed from group');
             // Refresh items locally
             const newItems = items.filter(i => i.id !== currentItem.id);
@@ -729,12 +774,12 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization }: G
                         attachment_type: attachment.type,
                         attachment_name: attachment.name
                     };
-                    const newMsg = await apiClient.post<GroupMessage>(`/idea-groups/${group.id}/messages`, payload);
+                    const newMsg = await apiClient.post<ProjectMessage>(`/projects/${group.id}/messages`, payload);
                     setMessages(prev => [...prev, newMsg]);
                 }
             } else {
                 // No attachments, just text
-                const newMsg = await apiClient.post<GroupMessage>(`/idea-groups/${group.id}/messages`, { content });
+                const newMsg = await apiClient.post<ProjectMessage>(`/projects/${group.id}/messages`, { content });
                 setMessages(prev => [...prev, newMsg]);
             }
         } catch (error) {
@@ -744,7 +789,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization }: G
 
     const handleAddMember = async (userId: string) => {
         try {
-            await apiClient.post(`/idea-groups/${group.id}/members`, { user_id: userId });
+            await apiClient.post(`/projects/${group.id}/members`, { user_id: userId });
             toast.success('Member added');
             onRefresh();
         } catch (error: any) {
@@ -754,7 +799,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization }: G
 
     const handleRemoveMember = async (userId: string) => {
         try {
-            await apiClient.delete(`/idea-groups/${group.id}/members/${userId}`);
+            await apiClient.delete(`/projects/${group.id}/members/${userId}`);
             toast.success('Member removed');
             onRefresh();
         } catch (error: any) {
@@ -764,7 +809,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization }: G
 
     const handleLeaveGroup = async () => {
         try {
-            await apiClient.post(`/idea-groups/${group.id}/leave`, {});
+            await apiClient.post(`/projects/${group.id}/leave`, {});
             toast.success('Left the group');
             onRefresh();
         } catch (error: any) {
@@ -775,7 +820,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization }: G
     const handleDeleteGroup = async () => {
         if (!confirm('Are you sure you want to delete this group?')) return;
         try {
-            await apiClient.delete(`/idea-groups/${group.id}`);
+            await apiClient.delete(`/projects/${group.id}`);
             toast.success('Group deleted');
             onRefresh();
         } catch (error: any) {
@@ -798,7 +843,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization }: G
                     <div>
                         <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1">
                             {group.name}
-                            {group.is_admin && <Crown className="w-3 h-3 text-amber-500" />}
+                            {group.is_lead && <Crown className="w-3 h-3 text-amber-500" />}
                         </h3>
                         <p className="text-xs text-gray-500">{group.member_count} members</p>
                     </div>
@@ -858,7 +903,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization }: G
                                     >
                                         <Eye size={16} /> View Members
                                     </button>
-                                    {group.is_admin && (
+                                    {group.is_lead && (
                                         <button
                                             onClick={() => { setShowAddMemberModal(true); setShowMenu(false); }}
                                             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
@@ -874,7 +919,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization }: G
                                             <LogOut size={16} /> Leave Group
                                         </button>
                                     )}
-                                    {group.is_admin && (
+                                    {group.is_lead && (
                                         <button
                                             onClick={() => { handleDeleteGroup(); setShowMenu(false); }}
                                             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50"
@@ -992,7 +1037,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization }: G
                                             {!msg.shared_note && !msg.shared_post && (msg.content || msg.attachment_url) && (
                                                 <div className={`px-4 py-2.5 rounded-2xl ${isMe
                                                     ? 'bg-black text-white rounded-br-md'
-                                                    : 'bg-gray-100 text-gray-900 rounded-bl-md'
+                                                    : 'bg-white text-gray-900 border border-gray-100 rounded-bl-md shadow-sm'
                                                     }`}>
                                                     {msg.content && <p className="text-sm whitespace-pre-line">{msg.content}</p>}
                                                     {/* Attachment Display - Same as Chat */}
@@ -1083,7 +1128,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization }: G
                                                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${getColorForCategory(item.category)}`}>
                                                     {item.category?.toUpperCase() || (item.item_type === 'cluster' ? 'CLUSTER' : 'UNCATEGORIZED')}
                                                 </span>
-                                                <span className="text-[10px] text-gray-400 truncate flex-1">{formatDate(item.created_date || item.added_at || new Date().toISOString())}</span>
+                                                <span className="text-[10px] text-gray-400 truncate flex-1">{formatDate(item.created_date || item.joined_at || new Date().toISOString())}</span>
                                             </div>
                                             <p className={`text-sm font-semibold pl-2 line-clamp-2 ${isSelected ? 'text-gray-900' : 'text-gray-600'}`}>
                                                 {item.title || 'Untitled Idea'}
@@ -1196,7 +1241,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization }: G
                                                         <polygon points="0 0, 10 3.5, 0 7" fill="#94A3B8" />
                                                     </marker>
                                                 </defs>
-                                                {(currentItem.collaborators || []).slice(0, 4).map((_, i) => {
+                                                {(currentItem.collaborators || []).slice(0, 4).map((_: Collaborator, i: number) => {
                                                     const positions = [
                                                         { x: 18, y: 25 },
                                                         { x: 82, y: 25 },
@@ -1236,7 +1281,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization }: G
                                             </div>
 
                                             {/* Contributor Nodes */}
-                                            {(currentItem.collaborators || []).slice(0, 4).map((collab, i) => {
+                                            {(currentItem.collaborators || []).slice(0, 4).map((collab: Collaborator, i: number) => {
                                                 const positions = [
                                                     { x: 18, y: 25 },
                                                     { x: 82, y: 25 },
@@ -1269,7 +1314,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization }: G
                                                             {collab.avatar_url ? (
                                                                 <img src={collab.avatar_url} alt="" className="w-full h-full object-cover" />
                                                             ) : (
-                                                                collab.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'
+                                                                collab.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) || '?'
                                                             )}
                                                         </div>
                                                     </div>
@@ -1400,8 +1445,8 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization }: G
             <AnimatePresence>
                 {showMembersModal && (
                     <MembersModal
-                        members={group.members}
-                        isAdmin={group.is_admin}
+                        members={members}
+                        isAdmin={group.is_lead}
                         creatorId={group.created_by}
                         currentUserId={currentUser?.id}
                         onRemove={handleRemoveMember}
@@ -1419,7 +1464,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization }: G
                         handleAddMember(memberId);
                         setShowAddMemberModal(false);
                     }}
-                    excludeIds={group.members.map(m => m.id)}
+                    excludeIds={members.map(m => m.id)}
                     title="Add member to group"
                 />
             )}
@@ -1490,7 +1535,7 @@ function MessageInput({ onSend }: MessageInputProps) {
     const [isUploading, setIsUploading] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const apiClient = useApiClient();
+    const apiClient = useApiClient(); // Make sure this is first
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
@@ -1535,7 +1580,7 @@ function MessageInput({ onSend }: MessageInputProps) {
                     });
 
                     const result = await apiClient.post<{ url: string; filename: string; content_type: string }>(
-                        '/idea-groups/upload-attachment',
+                        '/projects/upload-attachment',
                         { file: base64, filename: file.name, content_type: file.type }
                     );
 
@@ -1661,7 +1706,7 @@ function MessageInput({ onSend }: MessageInputProps) {
 
 // --- Members Modal ---
 interface MembersModalProps {
-    members: GroupMember[];
+    members: ProjectMember[];
     isAdmin: boolean;
     creatorId: string;
     currentUserId?: string;
@@ -1713,8 +1758,8 @@ function MembersModal({ members, isAdmin, creatorId, currentUserId, onRemove, on
                                                 {getDisplayName(member)}
                                             </span>
                                             {isMemberCreator && <Crown className="w-3 h-3 text-amber-500" />}
-                                            {member.role === 'admin' && !isMemberCreator && (
-                                                <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">Admin</span>
+                                            {member.role === 'lead' && !isMemberCreator && (
+                                                <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">Lead</span>
                                             )}
                                         </div>
                                         <p className="text-xs text-gray-500 truncate">{member.job_title || member.email}</p>
@@ -1839,7 +1884,7 @@ function CreateGroupModal({ onClose, onCreate }: CreateGroupModalProps) {
 }
 
 interface EditGroupModalProps {
-    group: IdeaGroup;
+    group: Project;
     onClose: () => void;
     onUpdate: (name: string, description: string, color: string) => void;
 }
