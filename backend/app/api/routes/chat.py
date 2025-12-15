@@ -314,6 +314,61 @@ def get_messages(
                 except Exception as note_err:
                     logger.warning(f"Could not enrich notes: {note_err}")
             
+            # Enrich messages with shared posts (if any)
+            post_ids = [msg.get('shared_post_id') for msg in messages if msg.get('shared_post_id')]
+            if post_ids:
+                try:
+                    posts_resp = supabase.table('posts').select(
+                        'id, content, media_urls, post_type, has_poll, likes_count, comments_count, user_id, created_at, users(first_name, last_name, avatar_url)'
+                    ).in_('id', post_ids).execute()
+                    
+                    # Fetch polls for poll-type posts
+                    polls_map = {}
+                    if posts_resp.data:
+                        poll_post_ids = [p['id'] for p in posts_resp.data if p.get('post_type') == 'poll']
+                        if poll_post_ids:
+                            try:
+                                polls_resp = supabase.table('polls').select('*, poll_options(*)').in_('post_id', poll_post_ids).execute()
+                                for pl in (polls_resp.data or []):
+                                    raw_options = pl.get('poll_options') or []
+                                    raw_options.sort(key=lambda x: x.get('display_order', 0))
+                                    options = [{'id': opt['id'], 'text': opt.get('option_text', '')} for opt in raw_options]
+                                    polls_map[pl['post_id']] = {
+                                        'question': pl.get('question'),
+                                        'options': options
+                                    }
+                            except Exception as poll_err:
+                                logger.warning(f"Could not fetch polls: {poll_err}")
+                    
+                    if posts_resp.data:
+                        posts_map = {}
+                        for p in posts_resp.data:
+                            author = p.get('users') or {}
+                            post_data = {
+                                'id': p['id'],
+                                'content': p.get('content'),
+                                'media_urls': p.get('media_urls'),
+                                'post_type': p.get('post_type'),
+                                'likes_count': p.get('likes_count', 0),
+                                'comments_count': p.get('comments_count', 0),
+                                'user_info': {
+                                    'first_name': author.get('first_name'),
+                                    'last_name': author.get('last_name'),
+                                    'avatar_url': author.get('avatar_url')
+                                }
+                            }
+                            # Add poll data if it's a poll
+                            if p.get('post_type') == 'poll' and p['id'] in polls_map:
+                                post_data['poll'] = polls_map[p['id']]
+                            posts_map[str(p['id'])] = post_data
+                        
+                        for msg in messages:
+                            post_id = msg.get('shared_post_id')
+                            if post_id and str(post_id) in posts_map:
+                                msg['shared_post'] = posts_map[str(post_id)]
+                except Exception as post_err:
+                    logger.warning(f"Could not enrich posts: {post_err}")
+            
             return messages
             
         return []

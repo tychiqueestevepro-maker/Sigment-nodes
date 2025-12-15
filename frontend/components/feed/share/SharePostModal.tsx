@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
-import { X, Search, Users, Send, Loader2, Check, MessageCircle } from 'lucide-react';
+import { X, Search, Users, Send, Loader2, Check, MessageCircle, Rocket } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useUser } from '@/contexts/UserContext';
@@ -28,6 +28,14 @@ interface IdeaGroup {
     member_count?: number;
 }
 
+interface Project {
+    id: string;
+    name: string;
+    description?: string;
+    color?: string;
+    member_count?: number;
+}
+
 interface SharePostModalProps {
     postId: string;
     postContent: string;
@@ -41,8 +49,8 @@ export const SharePostModal: React.FC<SharePostModalProps> = ({ postId, postCont
     const { user } = useUser();
     const api = useApiClient();
 
-    // Tab state: 'chat' or 'groups'
-    const [activeTab, setActiveTab] = useState<'chat' | 'groups'>('chat');
+    // Tab state: 'chat' | 'groups' | 'projects'
+    const [activeTab, setActiveTab] = useState<'chat' | 'groups' | 'projects'>('chat');
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
     const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
@@ -76,6 +84,19 @@ export const SharePostModal: React.FC<SharePostModalProps> = ({ postId, postCont
         enabled: activeTab === 'groups',
     });
 
+    // Fetch user's projects
+    const { data: projects = [], isLoading: projectsLoading } = useQuery<Project[]>({
+        queryKey: ['userProjects'],
+        queryFn: async () => {
+            try {
+                return await api.get<Project[]>('/projects');
+            } catch {
+                return [];
+            }
+        },
+        enabled: activeTab === 'projects',
+    });
+
     const filteredMembers = members.filter((member) => {
         const name = member.name?.toLowerCase() || '';
         const email = member.email?.toLowerCase() || '';
@@ -85,6 +106,12 @@ export const SharePostModal: React.FC<SharePostModalProps> = ({ postId, postCont
 
     const filteredGroups = groups.filter((group) => {
         const name = group.name?.toLowerCase() || '';
+        const search = searchTerm.toLowerCase();
+        return name.includes(search);
+    });
+
+    const filteredProjects = projects.filter((project) => {
+        const name = project.name?.toLowerCase() || '';
         const search = searchTerm.toLowerCase();
         return name.includes(search);
     });
@@ -149,23 +176,30 @@ export const SharePostModal: React.FC<SharePostModalProps> = ({ postId, postCont
 
     const handleShareToGroup = async () => {
         if (!selectedGroup) {
-            toast.error('Please select a group');
+            toast.error(`Please select a ${activeTab === 'groups' ? 'group' : 'project'}`);
             return;
         }
 
         setIsSending(true);
 
         try {
-            // Send message to the group with shared post
-            await api.post(`/idea-groups/${selectedGroup}/messages`, {
-                content: `📌 Shared Post`,
-                shared_post_id: postId,
-            });
-            toast.success('Post shared to group');
+            // Determine endpoint based on active tab
+            if (activeTab === 'projects') {
+                await api.post(`/projects/${selectedGroup}/messages`, {
+                    content: `📌 Shared Post`,
+                    shared_post_id: postId,
+                });
+            } else {
+                await api.post(`/idea-groups/${selectedGroup}/messages`, {
+                    content: `📌 Shared Post`,
+                    shared_post_id: postId,
+                });
+            }
+            toast.success(`Post shared to ${activeTab === 'groups' ? 'group' : 'project'}`);
             onClose();
         } catch (error) {
             console.error('Error sharing to group:', error);
-            toast.error('Failed to share to group');
+            toast.error(`Failed to share to ${activeTab === 'groups' ? 'group' : 'project'}`);
         } finally {
             setIsSending(false);
         }
@@ -219,6 +253,16 @@ export const SharePostModal: React.FC<SharePostModalProps> = ({ postId, postCont
                         <Users size={16} />
                         Groups
                     </button>
+                    <button
+                        onClick={() => { setActiveTab('projects'); setSelectedMembers([]); }}
+                        className={`flex-1 py-3 px-4 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${activeTab === 'projects'
+                            ? 'text-black border-b-2 border-black bg-gray-50'
+                            : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                    >
+                        <Rocket size={16} />
+                        Projects
+                    </button>
                 </div>
 
                 {/* Search */}
@@ -227,7 +271,7 @@ export const SharePostModal: React.FC<SharePostModalProps> = ({ postId, postCont
                         <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                         <input
                             type="text"
-                            placeholder={activeTab === 'chat' ? "Search members..." : "Search groups..."}
+                            placeholder={activeTab === 'chat' ? "Search members..." : activeTab === 'groups' ? "Search groups..." : "Search projects..."}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10 text-sm"
@@ -320,7 +364,7 @@ export const SharePostModal: React.FC<SharePostModalProps> = ({ postId, postCont
                                 ))}
                             </div>
                         )
-                    ) : (
+                    ) : activeTab === 'groups' ? (
                         // Groups List
                         groupsLoading ? (
                             <div className="flex items-center justify-center py-8">
@@ -358,6 +402,44 @@ export const SharePostModal: React.FC<SharePostModalProps> = ({ postId, postCont
                                 ))}
                             </div>
                         )
+                    ) : (
+                        // Projects List
+                        projectsLoading ? (
+                            <div className="flex items-center justify-center py-8">
+                                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                            </div>
+                        ) : filteredProjects.length === 0 ? (
+                            <div className="text-center py-8 text-gray-500">
+                                No projects found
+                            </div>
+                        ) : (
+                            <div className="divide-y divide-gray-50">
+                                {filteredProjects.map((project) => (
+                                    <button
+                                        key={project.id}
+                                        onClick={() => setSelectedGroup(project.id === selectedGroup ? null : project.id)}
+                                        className="w-full flex items-center gap-3 px-5 py-3 hover:bg-gray-50 transition-colors text-left"
+                                    >
+                                        <div
+                                            className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold shrink-0"
+                                            style={{ backgroundColor: project.color || '#6366f1' }}
+                                        >
+                                            <Rocket size={20} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-medium text-gray-900 truncate">{project.name}</div>
+                                            <div className="text-sm text-gray-500 truncate">
+                                                {project.member_count || 0} members
+                                            </div>
+                                        </div>
+                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${selectedGroup === project.id ? 'bg-black border-black' : 'border-gray-300'
+                                            }`}>
+                                            {selectedGroup === project.id && <Check size={12} className="text-white" />}
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        )
                     )}
                 </div>
 
@@ -365,7 +447,7 @@ export const SharePostModal: React.FC<SharePostModalProps> = ({ postId, postCont
                 <div className="px-5 py-4 border-t border-gray-100 bg-gray-50">
                     <button
                         onClick={activeTab === 'chat' ? handleShareToChat : handleShareToGroup}
-                        disabled={(activeTab === 'chat' && selectedMembers.length === 0) || (activeTab === 'groups' && !selectedGroup) || isSending}
+                        disabled={(activeTab === 'chat' && selectedMembers.length === 0) || ((activeTab === 'groups' || activeTab === 'projects') && !selectedGroup) || isSending}
                         className="w-full bg-black text-white py-3 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isSending ? (
@@ -378,7 +460,9 @@ export const SharePostModal: React.FC<SharePostModalProps> = ({ postId, postCont
                                 <Send size={18} />
                                 {activeTab === 'chat'
                                     ? `Share with ${selectedMembers.length || 0} member${selectedMembers.length !== 1 ? 's' : ''}`
-                                    : selectedGroup ? 'Share to Group' : 'Select a Group'
+                                    : activeTab === 'groups'
+                                        ? (selectedGroup ? 'Share to Group' : 'Select a Group')
+                                        : (selectedGroup ? 'Share to Project' : 'Select a Project')
                                 }
                             </>
                         )}

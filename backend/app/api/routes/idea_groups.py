@@ -1042,10 +1042,28 @@ def get_group_messages(
                     .select("id, content, media_urls, post_type, has_poll, likes_count, comments_count, user_id, created_at, users(first_name, last_name, avatar_url)")\
                     .in_("id", post_ids)\
                     .execute()
+                
+                # Fetch polls for these posts if any are poll type
+                polls_map = {}
+                poll_post_ids = [p["id"] for p in (posts_resp.data or []) if p.get("post_type") == "poll"]
+                if poll_post_ids:
+                    try:
+                        polls_resp = supabase.table("polls").select("*, poll_options(*)").in_("post_id", poll_post_ids).execute()
+                        for pl in (polls_resp.data or []):
+                            raw_options = pl.get("poll_options") or []
+                            raw_options.sort(key=lambda x: x.get("display_order", 0))
+                            options = [{"id": opt["id"], "text": opt.get("option_text", "")} for opt in raw_options]
+                            polls_map[pl["post_id"]] = {
+                                "question": pl.get("question"),
+                                "options": options
+                            }
+                    except Exception as poll_err:
+                        logger.warning(f"Could not fetch polls: {poll_err}")
+                
                 if posts_resp.data:
                     for p in posts_resp.data:
                         author = p.get("users") or {}
-                        posts_map[str(p["id"])] = {
+                        post_data = {
                             "id": p["id"],
                             "content": p.get("content"),
                             "media_urls": p.get("media_urls"),
@@ -1058,6 +1076,10 @@ def get_group_messages(
                                 "avatar_url": author.get("avatar_url")
                             }
                         }
+                        # Add poll data if it's a poll
+                        if p.get("post_type") == "poll" and p["id"] in polls_map:
+                            post_data["poll"] = polls_map[p["id"]]
+                        posts_map[str(p["id"])] = post_data
             except Exception as post_err:
                 logger.warning(f"Could not enrich posts: {post_err}")
         

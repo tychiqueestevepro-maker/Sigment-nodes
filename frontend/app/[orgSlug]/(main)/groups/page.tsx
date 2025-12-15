@@ -554,7 +554,8 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization }: G
                 if (!isCancelled && !isPolling) {
                     console.error('Error loading messages:', error);
 
-                    if (error.status === 403 || error.message?.includes('403') || error.message?.includes('member')) {
+                    // Only show "no longer a member" for actual 403 errors, not 500 errors
+                    if (error.status === 403 || (error.message?.includes('403') && !error.message?.includes('500'))) {
                         toast.error('You are no longer a member of this group');
                         onRefresh();
                     }
@@ -569,8 +570,8 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization }: G
         // Initial fetch
         fetchMessages(false);
 
-        // Poll every 15 seconds for new messages
-        const pollInterval = setInterval(() => fetchMessages(true), 15000);
+        // Poll every 30 seconds for new messages (reduced to avoid resource exhaustion)
+        const pollInterval = setInterval(() => fetchMessages(true), 30000);
 
         return () => {
             isCancelled = true;

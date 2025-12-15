@@ -102,38 +102,14 @@ def get_user_projects(
                 logger.error(f"Error processing project {item.get('project_id')}: {e}")
                 return None
 
-        # Execute in parallel with fallback
-        import concurrent.futures
-        
+        # Execute sequentially for stability (parallel execution was causing [Errno 35] issues)
         projects_list = []
-        try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-                futures = [executor.submit(fetch_project_details, item) for item in response.data]
-                for future in concurrent.futures.as_completed(futures):
-                    res = future.result()
-                    if res:
-                        projects_list.append(res)
-        except OSError as e:
-            # Fallback to sequential execution if resource unavailable (e.g. too many threads)
-            if e.errno == 35 or "temporarily unavailable" in str(e).lower():
-                logger.warning("ThreadPool resource exhausted, falling back to sequential execution")
-                projects_list = []
-                for item in response.data:
-                    res = fetch_project_details(item)
-                    if res:
-                        projects_list.append(res)
-            else:
-                raise e
-        except Exception as e:
-            logger.error(f"Parallel execution failed: {e}")
-            # Fallback sequential
-            projects_list = []
-            for item in response.data:
-                res = fetch_project_details(item)
-                if res:
-                    projects_list.append(res)
+        for item in response.data:
+            res = fetch_project_details(item)
+            if res:
+                projects_list.append(res)
         
-        # Sort by updated_at because parallel execution might shuffle, and as_completed definitely does
+        # Sort by updated_at
         projects_list.sort(key=lambda x: x.updated_at, reverse=True)
         
         return projects_list
@@ -384,6 +360,79 @@ def get_messages(project_id: UUID, limit: int = 50, offset: int = 0, current_use
         members_last_read = supabase.table("project_members").select("user_id, last_read_at, users!project_members_user_id_fkey(first_name, last_name)").eq("project_id", str(project_id)).neq("user_id", str(current_user.id)).execute()
         members_data = members_last_read.data or []
         
+        # Get all shared note IDs for enrichment
+        note_ids = [msg.get("shared_note_id") for msg in (messages_resp.data or []) if msg.get("shared_note_id")]
+        notes_map = {}
+        if note_ids:
+            try:
+                notes_resp = supabase.table("notes")\
+                    .select("id, content_raw, content_clarified, title_clarified, status, pillar_id, pillars(name, color)")\
+                    .in_("id", note_ids)\
+                    .execute()
+                if notes_resp.data:
+                    for n in notes_resp.data:
+                        pillar = n.get("pillars") or {}
+                        notes_map[str(n["id"])] = {
+                            "id": n["id"],
+                            "title": n.get("title_clarified") or (n.get("content_clarified") or "")[:60] or (n.get("content_raw") or "")[:60],
+                            "content": n.get("content_clarified") or n.get("content_raw"),
+                            "status": n.get("status"),
+                            "pillar_name": pillar.get("name"),
+                            "pillar_color": pillar.get("color")
+                        }
+            except Exception as note_err:
+                logger.warning(f"Could not enrich notes: {note_err}")
+        
+        # Get all shared post IDs for enrichment
+        post_ids = [msg.get("shared_post_id") for msg in (messages_resp.data or []) if msg.get("shared_post_id")]
+        posts_map = {}
+        if post_ids:
+            try:
+                posts_resp = supabase.table("posts")\
+                    .select("id, content, media_urls, post_type, has_poll, likes_count, comments_count, user_id, created_at, users(first_name, last_name, avatar_url)")\
+                    .in_("id", post_ids)\
+                    .execute()
+                
+                # Fetch polls for these posts if any are poll type
+                polls_map = {}
+                poll_post_ids = [p["id"] for p in (posts_resp.data or []) if p.get("post_type") == "poll"]
+                if poll_post_ids:
+                    try:
+                        polls_resp = supabase.table("polls").select("*, poll_options(*)").in_("post_id", poll_post_ids).execute()
+                        for pl in (polls_resp.data or []):
+                            raw_options = pl.get("poll_options") or []
+                            raw_options.sort(key=lambda x: x.get("display_order", 0))
+                            options = [{"id": opt["id"], "text": opt.get("option_text", "")} for opt in raw_options]
+                            polls_map[pl["post_id"]] = {
+                                "question": pl.get("question"),
+                                "options": options
+                            }
+                    except Exception as poll_err:
+                        logger.warning(f"Could not fetch polls: {poll_err}")
+                
+                if posts_resp.data:
+                    for p in posts_resp.data:
+                        author = p.get("users") or {}
+                        post_data = {
+                            "id": p["id"],
+                            "content": p.get("content"),
+                            "media_urls": p.get("media_urls"),
+                            "post_type": p.get("post_type"),
+                            "likes_count": p.get("likes_count", 0),
+                            "comments_count": p.get("comments_count", 0),
+                            "user_info": {
+                                "first_name": author.get("first_name"),
+                                "last_name": author.get("last_name"),
+                                "avatar_url": author.get("avatar_url")
+                            }
+                        }
+                        # Add poll data if it's a poll
+                        if p.get("post_type") == "poll" and p["id"] in polls_map:
+                            post_data["poll"] = polls_map[p["id"]]
+                        posts_map[str(p["id"])] = post_data
+            except Exception as post_err:
+                logger.warning(f"Could not enrich posts: {post_err}")
+        
         messages = []
         for msg in (messages_resp.data or []):
             u = msg.get("users", {})
@@ -395,7 +444,35 @@ def get_messages(project_id: UUID, limit: int = 50, offset: int = 0, current_use
                     if m.get("last_read_at") and m.get("last_read_at") >= msg_time:
                         mu = m.get("users") or {}
                         read_by.append({"user_id": m["user_id"], "first_name": mu.get("first_name"), "last_name": mu.get("last_name"), "read_at": m["last_read_at"]})
-            messages.append(ProjectMessage(id=msg["id"], project_id=msg["project_id"], sender_id=msg["sender_id"], sender_name=sender_name, sender_avatar_url=u.get("avatar_url") if u else None, content=msg["content"], attachment_url=msg.get("attachment_url"), attachment_type=msg.get("attachment_type"), attachment_name=msg.get("attachment_name"), shared_note_id=msg.get("shared_note_id"), shared_post_id=msg.get("shared_post_id"), created_at=msg["created_at"], read_by=read_by, is_system_message=msg.get("is_system_message", False)))
+            
+            # Get shared note if present
+            shared_note = None
+            if msg.get("shared_note_id"):
+                shared_note = notes_map.get(str(msg["shared_note_id"]))
+            
+            # Get shared post if present
+            shared_post = None
+            if msg.get("shared_post_id"):
+                shared_post = posts_map.get(str(msg["shared_post_id"]))
+            
+            messages.append(ProjectMessage(
+                id=msg["id"], 
+                project_id=msg["project_id"], 
+                sender_id=msg["sender_id"], 
+                sender_name=sender_name, 
+                sender_avatar_url=u.get("avatar_url") if u else None, 
+                content=msg["content"], 
+                attachment_url=msg.get("attachment_url"), 
+                attachment_type=msg.get("attachment_type"), 
+                attachment_name=msg.get("attachment_name"), 
+                shared_note_id=msg.get("shared_note_id"), 
+                shared_note=shared_note,
+                shared_post_id=msg.get("shared_post_id"), 
+                shared_post=shared_post,
+                created_at=msg["created_at"], 
+                read_by=read_by, 
+                is_system_message=msg.get("is_system_message", False)
+            ))
         messages.reverse()
         return messages
     except HTTPException:
