@@ -39,7 +39,11 @@ import {
     Clock,
     Wrench,
     ArrowLeft,
-    ArrowUpRight
+    ArrowUpRight,
+    Link2,
+    Check,
+    LayoutGrid,
+    List
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MemberPicker } from '@/components/shared/MemberPicker';
@@ -492,6 +496,108 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
     const [showEditModal, setShowEditModal] = useState(false);
     const [lightboxImage, setLightboxImage] = useState<{ url: string; name: string } | null>(null);
     const [isDownloading, setIsDownloading] = useState(false);
+    const [toolsSubTab, setToolsSubTab] = useState<'stack' | 'connexions'>('stack');
+    const [selectedToolNode, setSelectedToolNode] = useState<any>(null);
+    const [showAddToolModal, setShowAddToolModal] = useState(false);
+
+    // Library state
+    const [libraryApps, setLibraryApps] = useState<any[]>([]);
+    const [libraryLoading, setLibraryLoading] = useState(false);
+    const [librarySearch, setLibrarySearch] = useState('');
+    const [libraryCategory, setLibraryCategory] = useState<string>('all');
+    const [libraryViewMode, setLibraryViewMode] = useState<'grid' | 'list'>('grid');
+
+    // Create custom tool state
+    const [showCreateToolForm, setShowCreateToolForm] = useState(false);
+    const [createToolName, setCreateToolName] = useState('');
+    const [createToolUrl, setCreateToolUrl] = useState('');
+    const [createToolDescription, setCreateToolDescription] = useState('');
+    const [createToolCategory, setCreateToolCategory] = useState('Software Engineering');
+    const [createToolLoading, setCreateToolLoading] = useState(false);
+
+    // Categories for filter
+    const categoryFilters = [
+        { key: 'all', label: 'All' },
+        { key: 'Software Engineering', label: 'Engineering' },
+        { key: 'Cloud & Infrastructure', label: 'Cloud' },
+        { key: 'Data & Analytics', label: 'Data' },
+        { key: 'Product & UX', label: 'Product' },
+        { key: 'Automation & AI', label: 'AI' },
+        { key: 'Sales', label: 'Sales' },
+        { key: 'Marketing', label: 'Marketing' },
+        { key: 'Collaboration', label: 'Collaboration' },
+        { key: 'Project & Operations', label: 'Project' },
+    ];
+
+    // Fetch library apps when modal opens
+    useEffect(() => {
+        if (showAddToolModal && libraryApps.length === 0) {
+            setLibraryLoading(true);
+            apiClient.get('/applications/library')
+                .then((apps: any) => {
+                    setLibraryApps(apps);
+                })
+                .catch((err) => {
+                    console.error('Failed to load applications:', err);
+                    toast.error('Failed to load applications library');
+                })
+                .finally(() => setLibraryLoading(false));
+        }
+    }, [showAddToolModal]);
+
+    // Filter library apps by search AND category, then sort: CERTIFIED first, then by name
+    const filteredLibraryApps = libraryApps
+        .filter(app => {
+            const matchesSearch =
+                app.name.toLowerCase().includes(librarySearch.toLowerCase()) ||
+                app.description?.toLowerCase().includes(librarySearch.toLowerCase());
+            const matchesCategory = libraryCategory === 'all' || app.category === libraryCategory;
+            return matchesSearch && matchesCategory;
+        })
+        .sort((a, b) => {
+            // CERTIFIED apps first
+            if (a.status === 'CERTIFIED' && b.status !== 'CERTIFIED') return -1;
+            if (a.status !== 'CERTIFIED' && b.status === 'CERTIFIED') return 1;
+            // Then alphabetically by name
+            return a.name.localeCompare(b.name);
+        });
+
+    // Helper to get logo URL from Google Favicon API (100% reliable, no rate limits)
+    const getLogoUrl = (website: string) => {
+        if (!website) return null;
+        const domain = website.replace(/^(?:https?:\/\/)?(?:www\.)?/i, "").split('/')[0];
+        return `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
+    };
+
+    // Mock tools data with websites for logos
+    const projectTools = [
+        { id: '1', name: 'Slack', website: 'slack.com', category: 'Communication', status: 'active', addedBy: currentUser, addedAt: '15/12/2025', note: 'Principal canal de comms pour les devs.' },
+        { id: '2', name: 'Cursor', website: 'cursor.com', category: 'Développement', status: 'active', addedBy: currentUser, addedAt: '15/12/2025', note: 'IDE principal.' },
+        { id: '3', name: 'GitHub', website: 'github.com', category: 'Développement', status: 'active', addedBy: currentUser, addedAt: '15/12/2025', note: 'Hébergement code.' },
+        { id: '4', name: 'Vercel', website: 'vercel.com', category: 'Infrastructure', status: 'active', addedBy: currentUser, addedAt: '15/12/2025', note: 'Deploiement.' },
+        { id: '5', name: 'Linear', website: 'linear.app', category: 'Développement', status: 'planned', addedBy: currentUser, addedAt: '15/12/2025', note: 'Migration Q1.' },
+        { id: '6', name: 'HubSpot', website: 'hubspot.com', category: 'Marketing', status: 'active', addedBy: currentUser, addedAt: '15/12/2025', note: 'CRM.' },
+        { id: '7', name: 'Lemlist', website: 'lemlist.com', category: 'Marketing', status: 'active', addedBy: currentUser, addedAt: '15/12/2025', note: 'Outreach.' },
+    ];
+
+    // Graph nodes for Connexions view (x, y are percentages for responsive layout)
+    const graphNodes = [
+        { id: 'n1', toolName: 'Cursor', x: 15, y: 20 },
+        { id: 'n2', toolName: 'GitHub', x: 40, y: 20 },
+        { id: 'n3', toolName: 'Vercel', x: 65, y: 20 },
+        { id: 'n4', toolName: 'HubSpot', x: 15, y: 55 },
+        { id: 'n5', toolName: 'Lemlist', x: 40, y: 55 },
+        { id: 'n6', toolName: 'Linear', x: 15, y: 85 },
+        { id: 'n7', toolName: 'Slack', x: 40, y: 85 },
+    ];
+
+    // Graph edges (connections between tools)
+    const graphEdges = [
+        { id: 'e1', source: 'n1', target: 'n2', label: 'Commit & Push', active: true },
+        { id: 'e2', source: 'n2', target: 'n3', label: 'Auto-Deploy', active: true },
+        { id: 'e3', source: 'n4', target: 'n5', label: 'Sync Leads', active: false },
+        { id: 'e4', source: 'n6', target: 'n7', label: 'Notifications', active: true },
+    ];
 
     // Download function for lightbox images
     const handleDownload = async (url: string, filename: string) => {
@@ -1201,14 +1307,307 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
             )}
 
             {activeTab === 'tools' && (
-                <div className="flex-1 overflow-y-auto p-8 bg-gray-50/50">
-                    <div className="max-w-4xl mx-auto">
-                        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-                            <Wrench size={48} className="mx-auto text-gray-300 mb-4" />
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">Project Tools</h3>
-                            <p className="text-gray-500">Tools and integrations for this project will be available here.</p>
+                <div className="flex-1 overflow-hidden flex flex-col">
+                    {/* Sub-Nav & Action Bar */}
+                    <div className="px-8 py-6 flex justify-between items-center shrink-0 bg-gray-50/80 backdrop-blur-sm z-10 border-b border-gray-100">
+                        <div>
+                            <div className="flex gap-1 bg-gray-200/50 p-1 rounded-lg">
+                                <button
+                                    onClick={() => setToolsSubTab('stack')}
+                                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${toolsSubTab === 'stack' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                >
+                                    Stack
+                                </button>
+                                <button
+                                    onClick={() => { setToolsSubTab('connexions'); setSelectedToolNode(null); }}
+                                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${toolsSubTab === 'connexions' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                >
+                                    <Link2 size={14} /> Connexions
+                                </button>
+                            </div>
                         </div>
+                        <button
+                            onClick={() => setShowAddToolModal(true)}
+                            className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow transition-all"
+                        >
+                            <Plus size={16} />
+                            {toolsSubTab === 'stack' ? 'Ajouter' : 'Connecter'}
+                        </button>
                     </div>
+
+                    {/* VIEW: STACK */}
+                    {toolsSubTab === 'stack' && (
+                        <div className="flex-1 overflow-y-auto px-8 pb-10 pt-6 animate-in slide-in-from-left-4 duration-300">
+                            {/* Active Tools */}
+                            <div>
+                                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                    <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                                    Actifs ({projectTools.filter(t => t.status === 'active').length})
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                    {projectTools.filter(t => t.status === 'active').map(tool => (
+                                        <div key={tool.id} className="flex flex-col bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 group">
+                                            <div className="p-4 flex items-start justify-between border-b border-gray-100 bg-gray-50/30">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-12 h-12 rounded-xl bg-white border border-gray-200 shadow-sm flex items-center justify-center overflow-hidden p-2">
+                                                        <img
+                                                            src={getLogoUrl(tool.website) || ''}
+                                                            alt={tool.name}
+                                                            className="w-full h-full object-contain"
+                                                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="font-bold text-gray-900">{tool.name}</h3>
+                                                        <span className="text-xs text-gray-500 font-medium bg-gray-100 px-2 py-0.5 rounded-full">{tool.category}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="px-4 py-3 flex items-center gap-2">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Ajouté par</span>
+                                                    {tool.addedBy?.avatar_url ? (
+                                                        <img src={tool.addedBy.avatar_url} className="w-6 h-6 rounded-full border-2 border-white" alt="" />
+                                                    ) : (
+                                                        <div className="w-6 h-6 rounded-full bg-gray-200 border-2 border-white"></div>
+                                                    )}
+                                                </div>
+                                                <div className="h-px flex-1 bg-gray-100"></div>
+                                                <span className="text-[10px] text-gray-400">{tool.addedAt}</span>
+                                            </div>
+                                            <div className="px-4 pb-3">
+                                                <p className="text-sm text-gray-600 italic">"{tool.note}"</p>
+                                            </div>
+                                            <div className="h-1 w-full bg-green-500"></div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Planned Tools */}
+                            {projectTools.filter(t => t.status === 'planned').length > 0 && (
+                                <div>
+                                    <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                        <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
+                                        Prévus ({projectTools.filter(t => t.status === 'planned').length})
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        {projectTools.filter(t => t.status === 'planned').map(tool => (
+                                            <div key={tool.id} className="flex flex-col bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 opacity-70 hover:opacity-100">
+                                                <div className="p-4 flex items-start justify-between border-b border-gray-100 bg-gray-50/30">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-12 h-12 rounded-xl bg-white border border-gray-200 shadow-sm flex items-center justify-center overflow-hidden p-2">
+                                                            <img
+                                                                src={getLogoUrl(tool.website) || ''}
+                                                                alt={tool.name}
+                                                                className="w-full h-full object-contain"
+                                                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="font-bold text-gray-900">{tool.name}</h3>
+                                                            <span className="text-xs text-gray-500 font-medium bg-gray-100 px-2 py-0.5 rounded-full">{tool.category}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="px-4 py-3 flex items-center gap-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Ajouté par</span>
+                                                        {tool.addedBy?.avatar_url ? (
+                                                            <img src={tool.addedBy.avatar_url} className="w-6 h-6 rounded-full border-2 border-white" alt="" />
+                                                        ) : (
+                                                            <div className="w-6 h-6 rounded-full bg-gray-200 border-2 border-white"></div>
+                                                        )}
+                                                    </div>
+                                                    <div className="h-px flex-1 bg-gray-100"></div>
+                                                    <span className="text-[10px] text-gray-400">{tool.addedAt}</span>
+                                                </div>
+                                                <div className="h-1 w-full bg-amber-400"></div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* VIEW: CONNEXIONS (Interactive Canvas) */}
+                    {toolsSubTab === 'connexions' && (
+                        <div className="flex-1 relative bg-slate-50 overflow-hidden animate-in fade-in duration-300">
+                            {/* Background Pattern */}
+                            <div
+                                className="absolute inset-0 opacity-10"
+                                style={{ backgroundImage: 'radial-gradient(#94a3b8 1px, transparent 1px)', backgroundSize: '20px 20px' }}
+                            ></div>
+
+                            {/* SVG Layer for Edges */}
+                            <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+                                {graphEdges.map((edge) => {
+                                    const startNode = graphNodes.find(n => n.id === edge.source);
+                                    const endNode = graphNodes.find(n => n.id === edge.target);
+                                    if (!startNode || !endNode) return null;
+
+                                    const x1 = `${startNode.x}%`;
+                                    const y1 = `${startNode.y}%`;
+                                    const x2 = `${endNode.x}%`;
+                                    const y2 = `${endNode.y}%`;
+                                    const midX = (startNode.x + endNode.x) / 2;
+                                    const midY = (startNode.y + endNode.y) / 2;
+
+                                    return (
+                                        <g key={edge.id}>
+                                            <line
+                                                x1={x1} y1={y1}
+                                                x2={x2} y2={y2}
+                                                stroke={edge.active ? "#22c55e" : "#cbd5e1"}
+                                                strokeWidth="2"
+                                                strokeDasharray={edge.active ? "0" : "5,5"}
+                                                className={edge.active ? "animate-pulse" : ""}
+                                            />
+                                            {edge.active && (
+                                                <circle r="4" fill="#22c55e">
+                                                    <animateMotion
+                                                        dur="2s"
+                                                        repeatCount="indefinite"
+                                                        path={`M${startNode.x * 10},${startNode.y * 5} L${endNode.x * 10},${endNode.y * 5}`}
+                                                    />
+                                                </circle>
+                                            )}
+                                            <foreignObject x={`${midX - 5}%`} y={`${midY - 2}%`} width="10%" height="24">
+                                                <div className={`text-[10px] text-center px-2 py-0.5 rounded-full border shadow-sm mx-auto w-fit truncate ${edge.active ? 'bg-green-50 text-green-700 border-green-100' : 'bg-gray-50 text-gray-400 border-gray-100'
+                                                    }`}>
+                                                    {edge.label}
+                                                </div>
+                                            </foreignObject>
+                                        </g>
+                                    );
+                                })}
+                            </svg>
+
+                            {/* Nodes Layer */}
+                            <div className="absolute inset-0 z-10">
+                                {graphNodes.map((node) => {
+                                    const tool = projectTools.find(t => t.name === node.toolName);
+                                    const isSelected = selectedToolNode?.id === node.id;
+
+                                    return (
+                                        <div
+                                            key={node.id}
+                                            onClick={() => setSelectedToolNode({ ...node, toolData: tool })}
+                                            className={`absolute w-20 h-20 -ml-10 -mt-10 rounded-2xl bg-white border-2 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 shadow-sm hover:scale-110 group ${isSelected ? 'border-blue-500 shadow-blue-200 shadow-lg scale-110' : 'border-gray-200 hover:border-blue-300'
+                                                }`}
+                                            style={{ left: `${node.x}%`, top: `${node.y}%` }}
+                                        >
+                                            <div className="w-10 h-10 flex items-center justify-center mb-1">
+                                                {tool?.website && (
+                                                    <img
+                                                        src={getLogoUrl(tool.website) || ''}
+                                                        alt={node.toolName}
+                                                        className="w-full h-full object-contain"
+                                                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                    />
+                                                )}
+                                            </div>
+                                            <span className="text-[10px] font-bold text-gray-700 truncate max-w-[90%] px-1">{node.toolName}</span>
+                                            <div className={`absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center ${isSelected ? 'bg-blue-500' : 'bg-green-500'
+                                                }`}>
+                                                {isSelected && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Side Panel (Contextual Info) */}
+                            <div className={`absolute top-4 right-4 bottom-4 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 transform transition-transform duration-300 ease-in-out z-20 flex flex-col ${selectedToolNode ? 'translate-x-0' : 'translate-x-[110%]'
+                                }`}>
+                                {selectedToolNode && (
+                                    <>
+                                        <div className="p-5 border-b border-gray-100 flex justify-between items-start bg-gray-50/50 rounded-t-xl">
+                                            <div className="flex items-center gap-3">
+                                                {selectedToolNode.toolData?.website && (
+                                                    <img
+                                                        src={getLogoUrl(selectedToolNode.toolData.website) || ''}
+                                                        className="w-10 h-10 object-contain bg-white rounded-lg border border-gray-200 p-1"
+                                                        alt=""
+                                                    />
+                                                )}
+                                                <div>
+                                                    <h3 className="font-bold text-gray-900">{selectedToolNode.toolName}</h3>
+                                                    <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded-full border border-green-100">Connecté</span>
+                                                </div>
+                                            </div>
+                                            <button onClick={() => setSelectedToolNode(null)} className="text-gray-400 hover:text-gray-600">
+                                                <X size={18} />
+                                            </button>
+                                        </div>
+
+                                        <div className="p-5 flex-1 overflow-y-auto">
+                                            <div className="space-y-6">
+                                                <div>
+                                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Flux de données</h4>
+                                                    <div className="space-y-2">
+                                                        {graphEdges.filter(e => e.source === selectedToolNode.id).map((e, i) => (
+                                                            <div key={i} className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                                                                <ArrowUpRight size={14} className="text-gray-400" />
+                                                                <span>Envoie vers <span className="font-semibold text-gray-900">{graphNodes.find(n => n.id === e.target)?.toolName}</span></span>
+                                                            </div>
+                                                        ))}
+                                                        {graphEdges.filter(e => e.target === selectedToolNode.id).map((e, i) => (
+                                                            <div key={i} className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                                                                <ArrowLeft size={14} className="text-gray-400" />
+                                                                <span>Reçoit de <span className="font-semibold text-gray-900">{graphNodes.find(n => n.id === e.source)?.toolName}</span></span>
+                                                            </div>
+                                                        ))}
+                                                        {!graphEdges.some(e => e.source === selectedToolNode.id || e.target === selectedToolNode.id) && (
+                                                            <p className="text-sm text-gray-400 italic">Aucune connexion active.</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Métriques</h4>
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div className="bg-white border border-gray-200 p-3 rounded-lg text-center">
+                                                            <div className="text-xs text-gray-500">Uptime</div>
+                                                            <div className="font-bold text-green-600">99.9%</div>
+                                                        </div>
+                                                        <div className="bg-white border border-gray-200 p-3 rounded-lg text-center">
+                                                            <div className="text-xs text-gray-500">Last Sync</div>
+                                                            <div className="font-bold text-gray-900">2m ago</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Actions</h4>
+                                                    <button className="w-full flex items-center justify-center gap-2 p-2 rounded-lg border border-gray-200 text-sm font-medium hover:bg-gray-50 transition-colors text-gray-700">
+                                                        <Wrench size={14} /> Configurer l'intégration
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
+                            {/* Legend */}
+                            <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg border border-gray-200 px-4 py-3 flex items-center gap-6 text-xs text-gray-500">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-0.5 bg-green-500"></div>
+                                    <span>Active</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-0.5 border-t-2 border-dashed border-gray-300"></div>
+                                    <span>Inactive</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                    <span>Connecté</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -1223,7 +1622,6 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
                     </div>
                 </div>
             )}
-
 
             {showEditModal && (
                 <EditGroupModal
@@ -1247,18 +1645,414 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
             </AnimatePresence>
 
             {/* Add Member Modal */}
-            {showAddMemberModal && (
-                <MemberPicker
-                    isOpen={true}
-                    onClose={() => setShowAddMemberModal(false)}
-                    onSelect={(memberId) => {
-                        handleAddMember(memberId);
-                        setShowAddMemberModal(false);
-                    }}
-                    excludeIds={members.map(m => m.user_id)}
-                    title="Add member to group"
-                />
-            )}
+            {
+                showAddMemberModal && (
+                    <MemberPicker
+                        isOpen={true}
+                        onClose={() => setShowAddMemberModal(false)}
+                        onSelect={(memberId) => {
+                            handleAddMember(memberId);
+                            setShowAddMemberModal(false);
+                        }}
+                        excludeIds={members.map(m => m.user_id)}
+                        title="Add member to group"
+                    />
+                )
+            }
+
+            {/* Add Tool Modal - Bibliothèque d'outils */}
+            <AnimatePresence>
+                {showAddToolModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 md:p-6 lg:p-8"
+                        onClick={() => setShowAddToolModal(false)}
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                            className="bg-white rounded-2xl shadow-2xl w-full max-w-[90vw] md:max-w-3xl lg:max-w-4xl xl:max-w-5xl max-h-[85vh] flex flex-col overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Header - Fixed */}
+                            <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-start shrink-0">
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-900">Tools Library</h2>
+                                    <p className="text-sm text-gray-500">Add to your project stack.</p>
+                                </div>
+                                <button
+                                    onClick={() => { setShowAddToolModal(false); setLibrarySearch(''); setLibraryCategory('all'); }}
+                                    className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                                >
+                                    <X size={20} className="text-gray-500" />
+                                </button>
+                            </div>
+
+                            {/* Search + View Toggle - Fixed */}
+                            <div className="px-6 py-4 border-b border-gray-100 shrink-0">
+                                <div className="flex gap-3 items-center">
+                                    <div className="relative flex-1">
+                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                        <input
+                                            type="text"
+                                            placeholder="Search tools..."
+                                            value={librarySearch}
+                                            onChange={(e) => setLibrarySearch(e.target.value)}
+                                            className="w-full pl-11 pr-4 py-3 bg-white border-2 border-blue-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 text-sm"
+                                            autoFocus
+                                        />
+                                    </div>
+                                    {/* View Mode Toggle */}
+                                    <div className="flex bg-gray-100 rounded-lg p-1">
+                                        <button
+                                            onClick={() => setLibraryViewMode('grid')}
+                                            className={`p-2 rounded-md transition-colors ${libraryViewMode === 'grid' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+                                            title="Grid view"
+                                        >
+                                            <LayoutGrid size={18} />
+                                        </button>
+                                        <button
+                                            onClick={() => setLibraryViewMode('list')}
+                                            className={`p-2 rounded-md transition-colors ${libraryViewMode === 'list' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+                                            title="List view"
+                                        >
+                                            <List size={18} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Category Filter - Fixed */}
+                            <div className="px-6 py-3 border-b border-gray-100 overflow-x-auto shrink-0">
+                                <div className="flex gap-2">
+                                    {categoryFilters.map((cat) => (
+                                        <button
+                                            key={cat.key}
+                                            onClick={() => setLibraryCategory(cat.key)}
+                                            className={`px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${libraryCategory === cat.key
+                                                ? 'bg-gray-900 text-white'
+                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                }`}
+                                        >
+                                            {cat.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Tools List - Scrollable */}
+                            <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
+                                {libraryLoading ? (
+                                    <div className="flex items-center justify-center py-12">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                                    </div>
+                                ) : filteredLibraryApps.length === 0 ? (
+                                    <div className="text-center py-12 text-gray-500">
+                                        {librarySearch ? 'No tools found matching your search.' : 'No tools available.'}
+                                    </div>
+                                ) : libraryViewMode === 'grid' ? (
+                                    /* Grid View */
+                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                                        {filteredLibraryApps.map((app) => (
+                                            <div
+                                                key={app.id}
+                                                className="relative flex items-start gap-3 p-4 bg-white border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all text-left group"
+                                            >
+                                                {/* Delete button for non-certified apps */}
+                                                {app.status !== 'CERTIFIED' && (
+                                                    <button
+                                                        onClick={async (e) => {
+                                                            e.stopPropagation();
+                                                            if (!confirm(`Delete "${app.name}"? This cannot be undone.`)) return;
+                                                            try {
+                                                                await apiClient.delete(`/applications/${app.id}`);
+                                                                setLibraryApps(prev => prev.filter(a => a.id !== app.id));
+                                                                toast.success(`${app.name} deleted`);
+                                                            } catch (err: any) {
+                                                                toast.error(err.message || 'Failed to delete');
+                                                            }
+                                                        }}
+                                                        className="absolute top-2 right-2 p-1.5 rounded-full bg-white border border-gray-200 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all z-10"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                )}
+
+                                                {/* Clickable area to add tool */}
+                                                <button
+                                                    onClick={() => {
+                                                        toast.success(`${app.name} added to project`);
+                                                        setShowAddToolModal(false);
+                                                        setLibrarySearch('');
+                                                        setLibraryCategory('all');
+                                                    }}
+                                                    className="absolute inset-0 z-0"
+                                                />
+
+                                                {/* Logo */}
+                                                <div className="w-10 h-10 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden shrink-0 relative z-0">
+                                                    <img
+                                                        src={app.logo_url || getLogoUrl(app.url)}
+                                                        alt={app.name}
+                                                        className="w-6 h-6 object-contain"
+                                                    />
+                                                </div>
+
+                                                {/* Info */}
+                                                <div className="flex-1 min-w-0 relative z-0">
+                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                        <h3 className="font-semibold text-gray-900 text-sm">{app.name}</h3>
+                                                        {app.status === 'CERTIFIED' && (
+                                                            <span className="w-4 h-4 rounded-full bg-gray-900 flex items-center justify-center" title="Certified">
+                                                                <Check size={10} className="text-white" strokeWidth={3} />
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{app.description}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    /* List View */
+                                    <div className="space-y-1">
+                                        {filteredLibraryApps.map((app) => (
+                                            <div
+                                                key={app.id}
+                                                className="relative w-full flex items-center gap-3 px-3 py-2.5 bg-white hover:bg-gray-50 rounded-lg transition-all text-left group"
+                                            >
+                                                {/* Clickable area to add tool */}
+                                                <button
+                                                    onClick={() => {
+                                                        toast.success(`${app.name} added to project`);
+                                                        setShowAddToolModal(false);
+                                                        setLibrarySearch('');
+                                                        setLibraryCategory('all');
+                                                    }}
+                                                    className="absolute inset-0 z-0"
+                                                />
+
+                                                {/* Logo */}
+                                                <div className="w-8 h-8 rounded-md bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden shrink-0 relative z-0">
+                                                    <img
+                                                        src={app.logo_url || getLogoUrl(app.url)}
+                                                        alt={app.name}
+                                                        className="w-5 h-5 object-contain"
+                                                    />
+                                                </div>
+
+                                                {/* Name + Badge */}
+                                                <div className="flex items-center gap-1.5 min-w-[140px] relative z-0">
+                                                    <h3 className="font-medium text-gray-900 text-sm">{app.name}</h3>
+                                                    {app.status === 'CERTIFIED' && (
+                                                        <span className="w-3.5 h-3.5 rounded-full bg-gray-900 flex items-center justify-center" title="Certified">
+                                                            <Check size={8} className="text-white" strokeWidth={3} />
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {/* Description */}
+                                                <p className="flex-1 text-sm text-gray-500 truncate relative z-0">{app.description}</p>
+
+                                                {/* Delete button for non-certified apps */}
+                                                {app.status !== 'CERTIFIED' && (
+                                                    <button
+                                                        onClick={async (e) => {
+                                                            e.stopPropagation();
+                                                            if (!confirm(`Delete "${app.name}"? This cannot be undone.`)) return;
+                                                            try {
+                                                                await apiClient.delete(`/applications/${app.id}`);
+                                                                setLibraryApps(prev => prev.filter(a => a.id !== app.id));
+                                                                toast.success(`${app.name} deleted`);
+                                                            } catch (err: any) {
+                                                                toast.error(err.message || 'Failed to delete');
+                                                            }
+                                                        }}
+                                                        className="p-1.5 rounded-full bg-white border border-gray-200 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all z-10 relative"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Footer - Create Custom Tool */}
+                            <div className="border-t border-gray-100 bg-gray-50/50 shrink-0">
+                                {!showCreateToolForm ? (
+                                    <div className="px-6 py-4">
+                                        <button
+                                            onClick={() => setShowCreateToolForm(true)}
+                                            className="w-full flex items-center justify-center gap-2 py-3 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                                        >
+                                            <Plus size={16} />
+                                            Create custom tool
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="px-6 py-5"
+                                    >
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h3 className="font-semibold text-gray-900">Create Custom Tool</h3>
+                                            <button
+                                                onClick={() => {
+                                                    setShowCreateToolForm(false);
+                                                    setCreateToolName('');
+                                                    setCreateToolUrl('');
+                                                    setCreateToolDescription('');
+                                                    setCreateToolCategory('Software Engineering');
+                                                }}
+                                                className="text-gray-400 hover:text-gray-600"
+                                            >
+                                                <X size={18} />
+                                            </button>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {/* Name */}
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-700 mb-1.5">Name *</label>
+                                                <input
+                                                    type="text"
+                                                    value={createToolName}
+                                                    onChange={(e) => setCreateToolName(e.target.value)}
+                                                    placeholder="e.g. My Tool"
+                                                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                />
+                                            </div>
+
+                                            {/* URL */}
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-700 mb-1.5">Website URL *</label>
+                                                <input
+                                                    type="text"
+                                                    value={createToolUrl}
+                                                    onChange={(e) => setCreateToolUrl(e.target.value)}
+                                                    placeholder="e.g. mytool.com"
+                                                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                />
+                                            </div>
+
+                                            {/* Category */}
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-700 mb-1.5">Category</label>
+                                                <select
+                                                    value={createToolCategory}
+                                                    onChange={(e) => setCreateToolCategory(e.target.value)}
+                                                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                                                >
+                                                    <option value="Software Engineering">Engineering</option>
+                                                    <option value="Cloud & Infrastructure">Cloud</option>
+                                                    <option value="Data & Analytics">Data</option>
+                                                    <option value="Product & UX">Product</option>
+                                                    <option value="Automation & AI">AI</option>
+                                                    <option value="Sales">Sales</option>
+                                                    <option value="Marketing">Marketing</option>
+                                                    <option value="Collaboration">Collaboration</option>
+                                                    <option value="Project & Operations">Project</option>
+                                                </select>
+                                            </div>
+
+                                            {/* Description */}
+                                            <div className="md:col-span-2">
+                                                <label className="block text-xs font-medium text-gray-700 mb-1.5">Description</label>
+                                                <input
+                                                    type="text"
+                                                    value={createToolDescription}
+                                                    onChange={(e) => setCreateToolDescription(e.target.value)}
+                                                    placeholder="Brief description of the tool..."
+                                                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Preview + Actions */}
+                                        <div className="flex items-center justify-between mt-5 pt-4 border-t border-gray-100">
+                                            {/* Preview */}
+                                            <div className="flex items-center gap-3">
+                                                {createToolUrl && (
+                                                    <div className="w-8 h-8 rounded-md bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden">
+                                                        <img
+                                                            src={getLogoUrl(createToolUrl) || ''}
+                                                            alt="Preview"
+                                                            className="w-5 h-5 object-contain"
+                                                        />
+                                                    </div>
+                                                )}
+                                                <span className="text-sm text-gray-500">
+                                                    {createToolUrl ? 'Logo preview' : 'Enter URL to see logo'}
+                                                </span>
+                                            </div>
+
+                                            {/* Actions */}
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        setShowCreateToolForm(false);
+                                                        setCreateToolName('');
+                                                        setCreateToolUrl('');
+                                                        setCreateToolDescription('');
+                                                        setCreateToolCategory('Software Engineering');
+                                                    }}
+                                                    className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    onClick={async () => {
+                                                        if (!createToolName.trim() || !createToolUrl.trim()) {
+                                                            toast.error('Name and URL are required');
+                                                            return;
+                                                        }
+                                                        setCreateToolLoading(true);
+                                                        try {
+                                                            const newApp = await apiClient.post('/applications/', {
+                                                                name: createToolName.trim(),
+                                                                url: createToolUrl.trim().replace(/^https?:\/\//, '').replace(/^www\./, ''),
+                                                                description: createToolDescription.trim() || null,
+                                                                category: createToolCategory
+                                                            });
+                                                            setLibraryApps(prev => [...prev, newApp]);
+                                                            toast.success(`${createToolName} created successfully!`);
+                                                            setShowCreateToolForm(false);
+                                                            setCreateToolName('');
+                                                            setCreateToolUrl('');
+                                                            setCreateToolDescription('');
+                                                            setCreateToolCategory('Software Engineering');
+                                                        } catch (err: any) {
+                                                            console.error('Failed to create tool:', err);
+                                                            toast.error(err.message || 'Failed to create tool');
+                                                        } finally {
+                                                            setCreateToolLoading(false);
+                                                        }
+                                                    }}
+                                                    disabled={createToolLoading || !createToolName.trim() || !createToolUrl.trim()}
+                                                    className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                                                >
+                                                    {createToolLoading && <Loader2 size={14} className="animate-spin" />}
+                                                    Create Tool
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Lightbox for Images - Same as Chat */}
             <AnimatePresence>
