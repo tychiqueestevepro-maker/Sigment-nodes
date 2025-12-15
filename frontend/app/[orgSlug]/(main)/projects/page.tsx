@@ -35,7 +35,11 @@ import {
     Ban,
     Paperclip,
     Maximize2,
-    Download
+    Download,
+    Clock,
+    Wrench,
+    ArrowLeft,
+    ArrowUpRight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MemberPicker } from '@/components/shared/MemberPicker';
@@ -303,121 +307,126 @@ export default function GroupsPage() {
     // Removed blocking loader to allow UI shell to render immediately
     // if (isLoading) { ... }
 
+    // If a project is selected, show full-page detail view (like Review page)
+    if (selectedGroup) {
+        return (
+            <div className="h-full w-full bg-white flex flex-col animate-in fade-in duration-300">
+                {/* Full page GroupView with back button integrated in header */}
+                <GroupView
+                    group={selectedGroup}
+                    currentUser={user}
+                    apiClient={apiClient}
+                    onRefresh={fetchGroups}
+                    organization={organization}
+                    onBack={() => setSelectedGroupId(null)}
+                />
+            </div>
+        );
+    }
+
+    // Grid view when no project is selected (like Review page)
     return (
-        <div className="h-full flex bg-white">
-            {/* Sidebar - Groups List */}
-            <div className="w-80 border-r border-gray-100 flex flex-col bg-white">
-                {/* Header */}
-                <div className="h-16 px-6 flex items-center justify-between border-b border-gray-100">
-                    <h1 className="text-lg font-bold text-gray-900">Projects</h1>
+        <div className="h-full w-full bg-white p-8 animate-in fade-in duration-500 overflow-y-auto">
+            <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Projects</h1>
+            <p className="text-gray-500 mb-8">Manage and track your collaborative project spaces</p>
 
-                </div>
-
-                {/* Search */}
-                <div className="p-4">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <input
-                            type="text"
-                            placeholder="Search projects..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2 bg-gray-50 border-0 rounded-lg text-sm focus:ring-2 focus:ring-black/5"
-                        />
-                    </div>
-                </div>
-
-                {/* Groups List */}
-                <div className="flex-1 overflow-y-auto px-2">
-                    {isLoading ? (
-                        <div className="space-y-2 pt-2">
-                            {[1, 2, 3, 4, 5].map((i) => (
-                                <div key={i} className="flex items-center gap-3 p-3 rounded-xl animate-pulse">
-                                    <div className="w-10 h-10 bg-gray-100 rounded-lg shrink-0"></div>
-                                    <div className="flex-1 space-y-2">
-                                        <div className="h-4 bg-gray-100 rounded w-24"></div>
-                                        <div className="h-3 bg-gray-50 rounded w-16"></div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : filteredGroups.length === 0 ? (
-                        <div className="text-center py-10">
-                            <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3">
-                                <Users className="w-6 h-6 text-gray-300" />
-                            </div>
-                            <p className="text-sm text-gray-500">No projects yet</p>
-
-                        </div>
-                    ) : (
-                        filteredGroups.map(group => (
-                            <button
-                                key={group.id}
-                                onClick={() => setSelectedGroupId(group.id)}
-                                className={`w-full p-3 rounded-xl mb-1 text-left transition-all ${selectedGroupId === group.id
-                                    ? 'bg-gray-100'
-                                    : 'hover:bg-gray-50'
-                                    }`}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div
-                                        className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-                                        style={{ backgroundColor: group.color + '20' }}
-                                    >
-                                        <Layers className="w-5 h-5" style={{ color: group.color }} />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-1">
-                                            <span className="font-medium text-gray-900 text-sm truncate">
-                                                {group.name}
-                                            </span>
-                                            {group.is_lead && (
-                                                <Crown className="w-3 h-3 text-amber-500 shrink-0" />
-                                            )}
-                                        </div>
-                                        <p className="text-xs text-gray-500 truncate">
-                                            {group.member_count} members · {group.item_count} ideas
-                                        </p>
-                                    </div>
-                                    <div className="flex items-center gap-1.5 shrink-0">
-                                        {group.has_unread && (
-                                            <div className="w-2 h-2 bg-gray-800 rounded-full" />
-                                        )}
-                                        <span className="text-xs text-gray-400">
-                                            {formatDate(group.updated_at)}
-                                        </span>
-                                    </div>
-                                </div>
-                            </button>
-                        ))
-                    )}
-                </div>
-            </div>
-
-            {/* Main Content */}
-            <div className="flex-1 flex flex-col">
-                {selectedGroup ? (
-                    <GroupView
-                        group={selectedGroup}
-                        currentUser={user}
-                        apiClient={apiClient}
-                        onRefresh={fetchGroups}
-                        organization={organization}
+            {/* Search */}
+            <div className="max-w-md mb-8">
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <input
+                        type="text"
+                        placeholder="Search projects..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-black/10 focus:border-black/20"
                     />
-                ) : (
-                    <div className="flex-1 flex items-center justify-center">
-                        <div className="text-center">
-                            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Users className="w-8 h-8 text-gray-300" />
-                            </div>
-                            <h3 className="font-semibold text-gray-900">Your Projects</h3>
-                            <p className="text-sm text-gray-500 mt-1">Select a project to view discussions</p>
-                        </div>
-                    </div>
-                )}
+                </div>
             </div>
 
+            {/* Projects List - Long rows like Review Queue */}
+            {isLoading ? (
+                <div className="space-y-4">
+                    {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="p-6 bg-white rounded-2xl border border-gray-200 animate-pulse">
+                            <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                    <div className="h-4 bg-gray-100 rounded w-20 mb-3"></div>
+                                    <div className="h-6 bg-gray-100 rounded w-48 mb-2"></div>
+                                    <div className="h-4 bg-gray-50 rounded w-64"></div>
+                                </div>
+                                <div className="w-8 h-8 bg-gray-100 rounded"></div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : filteredGroups.length === 0 ? (
+                <div className="text-center py-20">
+                    <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Layers className="w-10 h-10 text-gray-300" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">No Projects Yet</h3>
+                    <p className="text-gray-500">Projects you create or join will appear here</p>
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    {filteredGroups.map(group => (
+                        <button
+                            key={group.id}
+                            onClick={() => setSelectedGroupId(group.id)}
+                            className="group w-full p-6 bg-white rounded-2xl border border-gray-200 text-left hover:border-black hover:shadow-lg transition-all duration-200"
+                        >
+                            <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                    {/* Category badge row */}
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span
+                                            className="px-2.5 py-1 rounded text-xs font-bold uppercase tracking-wider"
+                                            style={{
+                                                backgroundColor: group.color + '20',
+                                                color: group.color
+                                            }}
+                                        >
+                                            Project
+                                        </span>
+                                        {group.is_lead && (
+                                            <span className="flex items-center gap-1 text-amber-600 text-xs font-medium">
+                                                <Crown size={12} /> Lead
+                                            </span>
+                                        )}
+                                    </div>
 
+                                    {/* Title */}
+                                    <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-black">
+                                        {group.name}
+                                    </h3>
+
+                                    {/* Subtitle info */}
+                                    <p className="text-sm text-gray-500 flex items-center gap-2">
+                                        {group.member_count} members · {group.item_count} ideas · Updated {formatDate(group.updated_at)}
+                                        {group.has_unread && (
+                                            <span className="w-2 h-2 bg-black rounded-full inline-block" />
+                                        )}
+                                    </p>
+
+                                    {/* Description if exists */}
+                                    {group.description && (
+                                        <p className="text-sm text-gray-600 mt-2 line-clamp-1">
+                                            {group.description}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Arrow */}
+                                <ArrowUpRight
+                                    size={24}
+                                    className="text-gray-300 group-hover:text-black group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all ml-4 shrink-0"
+                                />
+                            </div>
+                        </button>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
@@ -429,9 +438,10 @@ interface GroupViewProps {
     apiClient: ApiClient;
     onRefresh: () => Promise<any>;
     organization: any;
+    onBack?: () => void;
 }
 
-function GroupView({ group, currentUser, apiClient, onRefresh, organization }: GroupViewProps) {
+function GroupView({ group, currentUser, apiClient, onRefresh, organization, onBack }: GroupViewProps) {
     const [messages, setMessages] = useState<ProjectMessage[]>([]);
     const [isLoadingMessages, setIsLoadingMessages] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -473,8 +483,8 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization }: G
     const [showMenu, setShowMenu] = useState(false);
     const [showMembersModal, setShowMembersModal] = useState(false);
     const [showAddMemberModal, setShowAddMemberModal] = useState(false);
-    const [activeTab, setActiveTab] = useState<'chat' | 'idea'>('chat');
-    const [ideaViewMode, setIdeaViewMode] = useState<'summary' | 'evolution'>('summary');
+    const [activeTab, setActiveTab] = useState<'overview' | 'chat' | 'tools' | 'timeline'>('overview');
+    const [ideaViewMode, setIdeaViewMode] = useState<'summary' | 'evolution'>('summary'); // Keep for now to avoid breaking references
     const [timelineProgress, setTimelineProgress] = useState(100);
     const [isPlaying, setIsPlaying] = useState(false);
     const [selectedReviewNode, setSelectedReviewNode] = useState<any>(null);
@@ -831,112 +841,198 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization }: G
 
     return (
         <>
-            {/* Header with centered Chat/Idea toggle */}
-            <div className="h-16 px-6 bg-white border-b border-gray-200 flex items-center shadow-sm">
-                {/* Left: Group info */}
-                <div className="flex items-center space-x-3 flex-1">
-                    <div
-                        className="w-10 h-10 rounded-lg flex items-center justify-center"
-                        style={{ backgroundColor: group.color + '20' }}
-                    >
-                        <Layers className="w-5 h-5" style={{ color: group.color }} />
-                    </div>
+            {/* Header - Review style with 4 tabs */}
+            <div className="px-8 pt-6 pb-4 bg-white border-b border-gray-200">
+                <div className="flex items-start justify-between">
                     <div>
-                        <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1">
+                        <div className="flex items-center gap-3 mb-1">
+                            <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-600 text-xs font-bold tracking-wider uppercase">
+                                Project
+                            </span>
+                            <span className="flex items-center gap-1 text-green-600 text-xs font-bold bg-green-50 px-2 py-1 rounded-full">
+                                <CheckCircle2 size={12} /> Active
+                            </span>
+                        </div>
+                        <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight flex items-center gap-2">
                             {group.name}
-                            {group.is_lead && <Crown className="w-3 h-3 text-amber-500" />}
-                        </h3>
-                        <p className="text-xs text-gray-500">{group.member_count} members</p>
+                            {group.is_lead && <Crown className="w-5 h-5 text-amber-500" />}
+                        </h1>
+                        <p className="text-sm text-gray-500 mt-1">
+                            {group.member_count} members · Created {group.created_at ? new Date(group.created_at).toLocaleDateString() : 'recently'}
+                        </p>
                     </div>
-                </div>
+                    <div className="flex gap-2 items-center">
+                        {/* Tab toggle - Review style */}
+                        <div className="bg-gray-100 p-1 rounded-lg flex mr-2">
+                            <button
+                                onClick={() => setActiveTab('overview')}
+                                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${activeTab === 'overview' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-900'
+                                    }`}
+                            >
+                                <Eye size={14} /> Overview
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('chat')}
+                                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${activeTab === 'chat' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-900'
+                                    }`}
+                            >
+                                <MessageCircle size={14} /> Chat
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('tools')}
+                                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${activeTab === 'tools' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-900'
+                                    }`}
+                            >
+                                <Wrench size={14} /> Tools
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('timeline')}
+                                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${activeTab === 'timeline' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-900'
+                                    }`}
+                            >
+                                <Clock size={14} /> Timeline
+                            </button>
+                        </div>
 
-                {/* Center: Chat/Idea toggle */}
-                <div className="flex-1 flex justify-center">
-                    <div className="bg-gray-100 p-1 rounded-xl flex">
-                        <button
-                            onClick={() => setActiveTab('chat')}
-                            className={`px-5 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${activeTab === 'chat'
-                                ? 'bg-white text-black shadow-sm'
-                                : 'text-gray-500 hover:text-gray-700'
-                                }`}
-                        >
-                            <MessageCircle size={16} /> Chat
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('idea')}
-                            className={`px-5 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${activeTab === 'idea'
-                                ? 'bg-white text-black shadow-sm'
-                                : 'text-gray-500 hover:text-gray-700'
-                                }`}
-                        >
-                            <Lightbulb size={16} /> Idea
-                        </button>
-                    </div>
-                </div>
-
-                {/* Right: Menu */}
-                <div className="flex-1 flex justify-end">
-                    <div className="relative">
-                        <button
-                            onClick={() => setShowMenu(!showMenu)}
-                            className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-50 rounded-full"
-                        >
-                            <MoreVertical className="w-5 h-5" />
-                        </button>
-                        {showMenu && (
-                            <>
-                                <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
-                                <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-20">
-                                    {isCreator && (
+                        {/* Menu button */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowMenu(!showMenu)}
+                                className="p-2 text-gray-400 hover:text-gray-900 transition-colors border border-gray-200 rounded-lg hover:bg-gray-50"
+                            >
+                                <MoreVertical className="w-5 h-5" />
+                            </button>
+                            {showMenu && (
+                                <>
+                                    <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
+                                    <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-20">
+                                        {isCreator && (
+                                            <button
+                                                onClick={() => {
+                                                    setShowMenu(false);
+                                                    setShowEditModal(true);
+                                                }}
+                                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                                            >
+                                                <Edit3 size={16} /> Rename Project
+                                            </button>
+                                        )}
                                         <button
-                                            onClick={() => {
-                                                setShowMenu(false);
-                                                setShowEditModal(true);
-                                            }}
+                                            onClick={() => { setShowMembersModal(true); setShowMenu(false); }}
                                             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
                                         >
-                                            <Edit3 size={16} /> Rename Group
+                                            <Users size={16} /> View Members
                                         </button>
-                                    )}
-                                    <button
-                                        onClick={() => { setShowMembersModal(true); setShowMenu(false); }}
-                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
-                                    >
-                                        <Eye size={16} /> View Members
-                                    </button>
-                                    {group.is_lead && (
-                                        <button
-                                            onClick={() => { setShowAddMemberModal(true); setShowMenu(false); }}
-                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
-                                        >
-                                            <UserPlus size={16} /> Add Member
-                                        </button>
-                                    )}
-                                    {!isCreator && (
-                                        <button
-                                            onClick={() => { handleLeaveGroup(); setShowMenu(false); }}
-                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50"
-                                        >
-                                            <LogOut size={16} /> Leave Group
-                                        </button>
-                                    )}
-                                    {group.is_lead && (
-                                        <button
-                                            onClick={() => { handleDeleteGroup(); setShowMenu(false); }}
-                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50"
-                                        >
-                                            <Trash2 size={16} /> Delete Group
-                                        </button>
-                                    )}
-                                </div>
-                            </>
+                                        {group.is_lead && (
+                                            <button
+                                                onClick={() => { setShowAddMemberModal(true); setShowMenu(false); }}
+                                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                                            >
+                                                <UserPlus size={16} /> Add Member
+                                            </button>
+                                        )}
+                                        {!isCreator && (
+                                            <button
+                                                onClick={() => { handleLeaveGroup(); setShowMenu(false); }}
+                                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50"
+                                            >
+                                                <LogOut size={16} /> Leave Project
+                                            </button>
+                                        )}
+                                        {group.is_lead && (
+                                            <button
+                                                onClick={() => { handleDeleteGroup(); setShowMenu(false); }}
+                                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50"
+                                            >
+                                                <Trash2 size={16} /> Delete Project
+                                            </button>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Back button - like Review page */}
+                        {onBack && (
+                            <button
+                                onClick={onBack}
+                                className="group flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-full text-gray-700 hover:text-black hover:shadow-md transition-all font-medium"
+                            >
+                                Back
+                                <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+                            </button>
                         )}
                     </div>
                 </div>
             </div>
 
             {/* Content */}
-            {activeTab === 'chat' ? (
+            {activeTab === 'overview' && (
+                <div className="flex-1 overflow-y-auto p-8 bg-gray-50/50">
+                    <div className="max-w-4xl mx-auto space-y-6">
+                        {/* Project Description */}
+                        <div className="bg-white rounded-xl border border-gray-200 p-6">
+                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                <FileText size={14} /> Description
+                            </h3>
+                            <p className="text-gray-700 leading-relaxed">
+                                {group.description || 'No description provided for this project.'}
+                            </p>
+                        </div>
+
+                        {/* Team Members */}
+                        <div className="bg-white rounded-xl border border-gray-200 p-6">
+                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <Users size={14} /> Team Members ({members.length})
+                            </h3>
+                            <div className="grid gap-3">
+                                {members.map(member => (
+                                    <div key={member.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                                        {member.avatar_url ? (
+                                            <img src={member.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                                        ) : (
+                                            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-medium">
+                                                {(member.first_name?.[0] || '') + (member.last_name?.[0] || '')}
+                                            </div>
+                                        )}
+                                        <div>
+                                            <p className="font-medium text-gray-900 flex items-center gap-2">
+                                                {member.first_name} {member.last_name}
+                                                {group.created_by === member.user_id && <Crown className="w-4 h-4 text-amber-500" />}
+                                            </p>
+                                            <p className="text-sm text-gray-500">{member.job_title || 'Team Member'}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Linked Items */}
+                        <div className="bg-white rounded-xl border border-gray-200 p-6">
+                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <Lightbulb size={14} /> Linked Ideas ({items.length})
+                            </h3>
+                            {items.length === 0 ? (
+                                <p className="text-gray-500 text-sm">No ideas linked to this project yet.</p>
+                            ) : (
+                                <div className="space-y-3">
+                                    {items.slice(0, 5).map(item => (
+                                        <div key={item.id} className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                                            <p className="font-medium text-gray-900">{item.title || 'Untitled'}</p>
+                                            <p className="text-sm text-gray-500 mt-1">{item.status || 'Active'}</p>
+                                        </div>
+                                    ))}
+                                    {items.length > 5 && (
+                                        <p className="text-sm text-gray-500 text-center">+ {items.length - 5} more ideas</p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'chat' && (
                 <>
                     {/* Messages Area */}
                     <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
@@ -1102,338 +1198,32 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization }: G
                     {/* Message Input */}
                     <MessageInput onSend={handleSendMessage} />
                 </>
-            ) : (
-                /* Idea Tab */
-                <div className="flex-1 flex overflow-hidden bg-gray-50/50">
-                    {items.length > 1 && !isLoadingItems && (
-                        <div className="w-72 border-r border-gray-200 bg-white flex flex-col shrink-0">
-                            <div className="p-4 border-b border-gray-100 bg-gray-50/30">
-                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                                    <Layers size={12} /> Linked Ideas ({items.length})
-                                </h3>
-                            </div>
-                            <div className="flex-1 overflow-y-auto p-3 space-y-2">
-                                {items.map(item => {
-                                    const isSelected = currentItem?.id === item.id;
-                                    return (
-                                        <button
-                                            key={item.id}
-                                            onClick={() => setSelectedItemId(item.id)}
-                                            className={`w-full text-left p-3 rounded-xl border transition-all relative group ${isSelected
-                                                ? 'bg-white border-gray-300 shadow-sm ring-1 ring-gray-200'
-                                                : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200'
-                                                }`}
-                                        >
-                                            {isSelected && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-black rounded-r-full" />}
-                                            <div className="flex items-center gap-2 mb-1 pl-2">
-                                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${getColorForCategory(item.category)}`}>
-                                                    {item.category?.toUpperCase() || (item.item_type === 'cluster' ? 'CLUSTER' : 'UNCATEGORIZED')}
-                                                </span>
-                                                <span className="text-[10px] text-gray-400 truncate flex-1">{formatDate(item.created_date || item.joined_at || new Date().toISOString())}</span>
-                                            </div>
-                                            <p className={`text-sm font-semibold pl-2 line-clamp-2 ${isSelected ? 'text-gray-900' : 'text-gray-600'}`}>
-                                                {item.title || 'Untitled Idea'}
-                                            </p>
-                                        </button>
-                                    );
-                                })}
-                            </div>
+            )}
+
+            {activeTab === 'tools' && (
+                <div className="flex-1 overflow-y-auto p-8 bg-gray-50/50">
+                    <div className="max-w-4xl mx-auto">
+                        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                            <Wrench size={48} className="mx-auto text-gray-300 mb-4" />
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">Project Tools</h3>
+                            <p className="text-gray-500">Tools and integrations for this project will be available here.</p>
                         </div>
-                    )}
-                    <div className="flex-1 overflow-y-auto p-6 relative">
-                        {isLoadingItems ? (
-                            <div className="flex justify-center pt-10">
-                                <Loader2 className="w-8 h-8 animate-spin text-gray-300" />
-                            </div>
-                        ) : !currentItem ? (
-                            <div className="flex flex-col items-center justify-center h-full text-center">
-                                <div className="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center mb-4">
-                                    <Lightbulb className="w-8 h-8 text-gray-300" />
-                                </div>
-                                <p className="text-gray-500 text-sm">No idea linked yet</p>
-                                <p className="text-gray-400 text-xs mt-1">Share an idea from Review to this group</p>
-                            </div>
-                        ) : (
-                            <div className="max-w-4xl mx-auto space-y-6">
-                                {/* Header with View Toggle */}
-                                <div className="flex items-start justify-between">
-                                    <div>
-                                        <div className="flex items-center gap-2 mb-2">
-                                            {currentItem.category && (
-                                                <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-600 text-xs font-bold tracking-wider uppercase">
-                                                    {currentItem.category}
-                                                </span>
-                                            )}
-                                            <span className={`text-xs font-bold px-2 py-1 rounded-full ${currentItem.status ? getStatusStyle(currentItem.status) : (
-                                                currentItem.item_type === 'cluster' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
-                                            )
-                                                }`}>
-                                                {currentItem.status ? getStatusLabel(currentItem.status, currentItem.item_type) : (
-                                                    currentItem.note_count && currentItem.note_count > 1 ? `${currentItem.note_count} Contributors` : 'Note'
-                                                )}
-                                            </span>
-                                        </div>
-                                        <h2 className="text-2xl font-bold text-gray-900">
-                                            {currentItem.title || 'Untitled Idea'}
-                                        </h2>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="bg-gray-100 p-1 rounded-lg flex">
-                                            <button
-                                                onClick={() => setIdeaViewMode('summary')}
-                                                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${ideaViewMode === 'summary'
-                                                    ? 'bg-white text-black shadow-sm'
-                                                    : 'text-gray-500 hover:text-gray-700'
-                                                    }`}
-                                            >
-                                                <FileText size={14} /> Summary
-                                            </button>
-                                            <button
-                                                onClick={() => setIdeaViewMode('evolution')}
-                                                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${ideaViewMode === 'evolution'
-                                                    ? 'bg-white text-black shadow-sm'
-                                                    : 'text-gray-500 hover:text-gray-700'
-                                                    }`}
-                                            >
-                                                <GitCommit size={14} /> Evolution
-                                            </button>
-                                        </div>
-                                        {isCreator && (
-                                            <button
-                                                onClick={handleRemoveItem}
-                                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                                title="Remove idea from group"
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {ideaViewMode === 'summary' ? (
-                                    /* Summary View */
-                                    <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-                                        <div className="flex items-center gap-2 mb-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                            <FileText size={14} /> Summary
-                                        </div>
-                                        <p className="text-gray-800 leading-relaxed text-base">
-                                            {currentItem.summary || 'No summary available.'}
-                                        </p>
-                                        {currentItem.note_count && currentItem.note_count > 1 && (
-                                            <div className="mt-6 pt-4 border-t border-gray-100">
-                                                <div className="flex items-center gap-2 text-sm text-purple-600 font-medium">
-                                                    <Users size={16} />
-                                                    {currentItem.note_count} notes merged in this cluster
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : (
-                                    /* Evolution View - Same as Review */
-                                    <div className="space-y-6">
-                                        <div className="bg-gray-50 rounded-3xl p-8 border border-gray-200 h-[500px] relative overflow-hidden shadow-inner">
-                                            {/* Background pattern */}
-                                            <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#94A3B8 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
-
-                                            {/* SVG Arrows */}
-                                            <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
-                                                <defs>
-                                                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="20" refY="3.5" orient="auto">
-                                                        <polygon points="0 0, 10 3.5, 0 7" fill="#94A3B8" />
-                                                    </marker>
-                                                </defs>
-                                                {(currentItem.collaborators || []).slice(0, 4).map((_: Collaborator, i: number) => {
-                                                    const positions = [
-                                                        { x: 18, y: 25 },
-                                                        { x: 82, y: 25 },
-                                                        { x: 18, y: 75 },
-                                                        { x: 82, y: 75 }
-                                                    ];
-                                                    const pos = positions[i];
-                                                    const visibleProgress = (timelineProgress / 100) * (currentItem.collaborators?.length || 1);
-                                                    if (i >= visibleProgress) return null;
-                                                    return (
-                                                        <path
-                                                            key={i}
-                                                            d={`M${pos.x},${pos.y} Q50,${pos.y > 50 ? '60' : '40'} 50,50`}
-                                                            fill="none"
-                                                            stroke="#CBD5E1"
-                                                            strokeWidth="2"
-                                                            vectorEffect="non-scaling-stroke"
-                                                            strokeDasharray="5,5"
-                                                            markerEnd="url(#arrowhead)"
-                                                            className="animate-in fade-in duration-700"
-                                                        />
-                                                    );
-                                                })}
-                                            </svg>
-
-                                            {/* Central Node - Global Concept */}
-                                            <div
-                                                className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 flex flex-col items-center transition-all duration-500"
-                                                style={{ scale: timelineProgress > 10 ? '1' : '0.5', opacity: timelineProgress > 5 ? 1 : 0 }}
-                                            >
-                                                <div className="w-20 h-20 bg-black text-white rounded-full flex items-center justify-center shadow-2xl ring-8 ring-white">
-                                                    <Orbit size={32} className="animate-pulse" />
-                                                </div>
-                                                <div className="mt-3 bg-white px-3 py-1.5 rounded-lg shadow-sm text-center border border-gray-200">
-                                                    <h3 className="font-bold text-sm text-gray-900">Global Concept</h3>
-                                                </div>
-                                            </div>
-
-                                            {/* Contributor Nodes */}
-                                            {(currentItem.collaborators || []).slice(0, 4).map((collab: Collaborator, i: number) => {
-                                                const positions = [
-                                                    { x: 18, y: 25 },
-                                                    { x: 82, y: 25 },
-                                                    { x: 18, y: 75 },
-                                                    { x: 82, y: 75 }
-                                                ];
-                                                const colors = ['bg-blue-100 text-blue-600', 'bg-green-100 text-green-600', 'bg-purple-100 text-purple-600', 'bg-orange-100 text-orange-600'];
-                                                const pos = positions[i];
-                                                const color = colors[i % colors.length];
-                                                const visibleProgress = (timelineProgress / 100) * (currentItem.collaborators?.length || 1);
-                                                if (i >= visibleProgress) return null;
-
-                                                return (
-                                                    <div
-                                                        key={i}
-                                                        onClick={() => setSelectedReviewNode(collab)}
-                                                        className="absolute z-10 flex flex-col items-center group cursor-pointer hover:scale-105 transition-all duration-300"
-                                                        style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)' }}
-                                                    >
-                                                        <div className="bg-white p-3 rounded-xl shadow-md border border-gray-100 w-48 mb-2 relative animate-in slide-in-from-bottom-2 duration-500">
-                                                            <div className="flex items-center justify-between mb-1">
-                                                                <span className="text-[10px] font-bold text-gray-400 uppercase">
-                                                                    {collab.date ? formatDate(collab.date) : 'Unknown'}
-                                                                </span>
-                                                                <div className={`w-2 h-2 rounded-full ${color.split(' ')[0]}`} />
-                                                            </div>
-                                                            <p className="text-xs font-medium text-gray-800 italic line-clamp-3">"{collab.quote}"</p>
-                                                        </div>
-                                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shadow-sm border-2 border-white overflow-hidden ${collab.avatar_url ? 'bg-white' : color}`}>
-                                                            {collab.avatar_url ? (
-                                                                <img src={collab.avatar_url} alt="" className="w-full h-full object-cover" />
-                                                            ) : (
-                                                                collab.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) || '?'
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-
-
-
-                                        {/* Timeline Controls - Same as Review */}
-                                        <div className="bg-white border border-gray-200 rounded-2xl p-4 flex items-center gap-6 shadow-sm">
-                                            <button
-                                                onClick={() => setIsPlaying(!isPlaying)}
-                                                className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center hover:bg-gray-800 transition-colors shrink-0"
-                                            >
-                                                {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-1" />}
-                                            </button>
-                                            <div className="flex-1">
-                                                <div className="flex justify-between text-xs font-bold text-gray-400 uppercase mb-2">
-                                                    <span>Project Kickoff</span>
-                                                    <span>Consolidation</span>
-                                                </div>
-                                                <div
-                                                    className="h-2 w-full bg-gray-100 rounded-full overflow-hidden cursor-pointer"
-                                                    onClick={(e) => {
-                                                        const rect = e.currentTarget.getBoundingClientRect();
-                                                        const x = e.clientX - rect.left;
-                                                        setTimelineProgress((x / rect.width) * 100);
-                                                    }}
-                                                >
-                                                    <div className="h-full bg-black rounded-full transition-all duration-100 ease-linear relative" style={{ width: `${timelineProgress}%` }}>
-                                                        <div className="absolute right-0 top-1/2 transform translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-black rounded-full shadow-sm" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => { setTimelineProgress(0); setIsPlaying(true); }}
-                                                className="p-2 text-gray-400 hover:text-black transition-colors"
-                                            >
-                                                <RefreshCw size={18} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* DETAIL PANEL (EVOLUTION) - Slide-over Sidebar */}
-                                <div className={`fixed top-0 right-0 bottom-0 w-[400px] bg-white border-l border-gray-200 shadow-2xl z-50 transition-transform duration-500 ease-[cubic-bezier(0.25,0.8,0.25,1)] flex flex-col ${selectedReviewNode ? 'translate-x-0' : 'translate-x-full'}`}>
-                                    {selectedReviewNode && (
-                                        <>
-                                            <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white/80 backdrop-blur-sm sticky top-0 z-10">
-                                                <h3 className="font-bold text-lg text-gray-900">Contribution Details</h3>
-                                                <button onClick={() => setSelectedReviewNode(null)} className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors">
-                                                    <X size={20} />
-                                                </button>
-                                            </div>
-                                            <div className="p-6 flex-1 overflow-y-auto space-y-8">
-                                                {/* User Profile */}
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg overflow-hidden shadow-sm border border-gray-100 bg-white">
-                                                        {selectedReviewNode.avatar_url ? (
-                                                            <img src={selectedReviewNode.avatar_url} alt={selectedReviewNode.name} className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-500">
-                                                                {selectedReviewNode.name?.charAt(0)}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="text-lg font-bold text-gray-900 leading-tight">{selectedReviewNode.name}</h4>
-                                                        <p className="text-sm text-gray-500 font-medium">Contributor</p>
-                                                    </div>
-                                                </div>
-
-                                                {/* Idea Content */}
-                                                <div>
-                                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 block">
-                                                        Original Contribution
-                                                    </label>
-                                                    <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100 text-gray-800 text-base leading-relaxed font-medium relative group hover:bg-gray-100 transition-colors">
-                                                        <Quote size={16} className="text-gray-300 absolute top-4 right-4 opacity-50" />
-                                                        {selectedReviewNode.quote}
-                                                    </div>
-                                                </div>
-
-                                                {/* Metadata Grid */}
-                                                <div className="grid grid-cols-1 gap-3">
-                                                    <div className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-white shadow-sm">
-                                                        <div className="p-2 bg-blue-50 text-blue-600 rounded-lg shrink-0">
-                                                            <Calendar size={18} />
-                                                        </div>
-                                                        <div>
-                                                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Submitted</div>
-                                                            <div className="text-sm font-semibold text-gray-900">
-                                                                {selectedReviewNode.date ? formatDate(selectedReviewNode.date) : 'Unknown date'}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-white shadow-sm">
-                                                        <div className="p-2 bg-green-50 text-green-600 rounded-lg shrink-0">
-                                                            <CheckCircle2 size={18} />
-                                                        </div>
-                                                        <div>
-                                                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Status</div>
-                                                            <div className="text-sm font-semibold text-gray-900">Merged to Cluster</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-                        )}
                     </div>
                 </div>
             )}
+
+            {activeTab === 'timeline' && (
+                <div className="flex-1 overflow-y-auto p-8 bg-gray-50/50">
+                    <div className="max-w-4xl mx-auto">
+                        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                            <Clock size={48} className="mx-auto text-gray-300 mb-4" />
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">Project Timeline</h3>
+                            <p className="text-gray-500">Project milestones and activity timeline will be displayed here.</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
 
             {showEditModal && (
                 <EditGroupModal
