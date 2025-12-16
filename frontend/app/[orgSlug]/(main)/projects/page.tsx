@@ -575,16 +575,55 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
         return `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
     };
 
-    // Mock tools data with websites for logos
-    const projectTools = [
-        { id: '1', name: 'Slack', website: 'slack.com', category: 'Communication', status: 'active', addedBy: currentUser, addedAt: '15/12/2025', note: 'Main communication channel for devs.' },
-        { id: '2', name: 'Cursor', website: 'cursor.com', category: 'Development', status: 'active', addedBy: currentUser, addedAt: '15/12/2025', note: 'Main IDE.' },
-        { id: '3', name: 'GitHub', website: 'github.com', category: 'Development', status: 'active', addedBy: currentUser, addedAt: '15/12/2025', note: 'Code hosting.' },
-        { id: '4', name: 'Vercel', website: 'vercel.com', category: 'Infrastructure', status: 'active', addedBy: currentUser, addedAt: '15/12/2025', note: 'Deployment.' },
-        { id: '5', name: 'Linear', website: 'linear.app', category: 'Development', status: 'planned', addedBy: currentUser, addedAt: '15/12/2025', note: 'Migration Q1.' },
-        { id: '6', name: 'HubSpot', website: 'hubspot.com', category: 'Marketing', status: 'active', addedBy: currentUser, addedAt: '15/12/2025', note: 'CRM.' },
-        { id: '7', name: 'Lemlist', website: 'lemlist.com', category: 'Marketing', status: 'active', addedBy: currentUser, addedAt: '15/12/2025', note: 'Outreach.' },
-    ];
+    // Project Tools State - replaced mock data with real API data
+    const [projectTools, setProjectTools] = useState<any[]>([]);
+    const [projectToolsLoading, setProjectToolsLoading] = useState(false);
+
+    // Fetch project tools from API
+    const fetchProjectTools = useCallback(async () => {
+        if (!group?.id) return;
+        setProjectToolsLoading(true);
+        try {
+            const tools = await apiClient.get<any[]>(`/applications/projects/${group.id}/tools`);
+            // Transform the response to match our UI format
+            const formattedTools = tools.map((tool: any) => ({
+                id: tool.id,
+                application_id: tool.application_id,
+                name: tool.application?.name || 'Unknown',
+                website: tool.application?.url || '',
+                category: tool.application?.category || 'Other',
+                status: tool.status,
+                addedBy: tool.added_by,
+                addedAt: new Date(tool.added_at).toLocaleDateString('en-GB'),
+                note: tool.note || '',
+                logo_url: tool.application?.logo_url
+            }));
+            setProjectTools(formattedTools);
+        } catch (err) {
+            console.error('Failed to load project tools:', err);
+            // Keep empty array on error
+            setProjectTools([]);
+        } finally {
+            setProjectToolsLoading(false);
+        }
+    }, [group?.id, apiClient]);
+
+    // Load tools when component mounts or group changes
+    useEffect(() => {
+        fetchProjectTools();
+    }, [fetchProjectTools]);
+
+    // Delete a tool from the project
+    const handleDeleteProjectTool = async (toolId: string, toolName: string) => {
+        if (!confirm(`Remove "${toolName}" from this project?`)) return;
+        try {
+            await apiClient.delete(`/applications/projects/${group.id}/tools/${toolId}`);
+            setProjectTools(prev => prev.filter(t => t.id !== toolId));
+            toast.success(`${toolName} removed from project`);
+        } catch (err: any) {
+            toast.error(err.message || 'Failed to remove tool');
+        }
+    };
 
     // Graph nodes for Connexions view (x, y are percentages for responsive layout)
     const graphNodes = [
@@ -1344,67 +1383,55 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
                     {/* VIEW: STACK */}
                     {toolsSubTab === 'stack' && (
                         <div className="flex-1 overflow-y-auto px-8 pb-10 pt-6 animate-in slide-in-from-left-4 duration-300">
-                            {/* Active Tools */}
-                            <div>
-                                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-                                    <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                    Active ({projectTools.filter(t => t.status === 'active').length})
-                                </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                    {projectTools.filter(t => t.status === 'active').map(tool => (
-                                        <div key={tool.id} className="flex flex-col bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 group">
-                                            <div className="p-4 flex items-start justify-between border-b border-gray-100 bg-gray-50/30">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-12 h-12 rounded-xl bg-white border border-gray-200 shadow-sm flex items-center justify-center overflow-hidden p-2">
-                                                        <img
-                                                            src={getLogoUrl(tool.website) || ''}
-                                                            alt={tool.name}
-                                                            className="w-full h-full object-contain"
-                                                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <h3 className="font-bold text-gray-900">{tool.name}</h3>
-                                                        <span className="text-xs text-gray-500 font-medium bg-gray-100 px-2 py-0.5 rounded-full">{tool.category}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="px-4 py-3 flex items-center gap-2">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Added by</span>
-                                                    {tool.addedBy?.avatar_url ? (
-                                                        <img src={tool.addedBy.avatar_url} className="w-6 h-6 rounded-full border-2 border-white" alt="" />
-                                                    ) : (
-                                                        <div className="w-6 h-6 rounded-full bg-gray-200 border-2 border-white"></div>
-                                                    )}
-                                                </div>
-                                                <div className="h-px flex-1 bg-gray-100"></div>
-                                                <span className="text-[10px] text-gray-400">{tool.addedAt}</span>
-                                            </div>
-                                            <div className="px-4 pb-3">
-                                                <p className="text-sm text-gray-600 italic">"{tool.note}"</p>
-                                            </div>
-                                            <div className="h-1 w-full bg-green-500"></div>
-                                        </div>
-                                    ))}
+                            {/* Loading State */}
+                            {projectToolsLoading && (
+                                <div className="flex items-center justify-center py-20">
+                                    <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
                                 </div>
-                            </div>
+                            )}
 
-                            {/* Planned Tools */}
-                            {projectTools.filter(t => t.status === 'planned').length > 0 && (
-                                <div className="mt-8">
+                            {/* Empty State */}
+                            {!projectToolsLoading && projectTools.length === 0 && (
+                                <div className="flex flex-col items-center justify-center py-20 text-center">
+                                    <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
+                                        <Layers size={32} className="text-gray-400" />
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No tools yet</h3>
+                                    <p className="text-gray-500 mb-4 max-w-sm">Start building your project stack by adding the tools your team uses.</p>
+                                    <button
+                                        onClick={() => setShowAddToolModal(true)}
+                                        className="px-4 py-2 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-colors flex items-center gap-2"
+                                    >
+                                        <Plus size={16} />
+                                        Add your first tool
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Active Tools */}
+                            {!projectToolsLoading && projectTools.filter(t => t.status === 'active').length > 0 && (
+                                <div>
                                     <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-                                        <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
-                                        Planned ({projectTools.filter(t => t.status === 'planned').length})
+                                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                                        Active ({projectTools.filter(t => t.status === 'active').length})
                                     </h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                        {projectTools.filter(t => t.status === 'planned').map(tool => (
-                                            <div key={tool.id} className="flex flex-col bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 opacity-70 hover:opacity-100">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                        {projectTools.filter(t => t.status === 'active').map(tool => (
+                                            <div key={tool.id} className="relative flex flex-col bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 group">
+                                                {/* Delete Button */}
+                                                <button
+                                                    onClick={() => handleDeleteProjectTool(tool.id, tool.name)}
+                                                    className="absolute top-2 right-2 p-1.5 rounded-full bg-white border border-gray-200 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all z-10"
+                                                    title="Remove from project"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+
                                                 <div className="p-4 flex items-start justify-between border-b border-gray-100 bg-gray-50/30">
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-12 h-12 rounded-xl bg-white border border-gray-200 shadow-sm flex items-center justify-center overflow-hidden p-2">
                                                             <img
-                                                                src={getLogoUrl(tool.website) || ''}
+                                                                src={tool.logo_url || getLogoUrl(tool.website) || ''}
                                                                 alt={tool.name}
                                                                 className="w-full h-full object-contain"
                                                                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
@@ -1428,6 +1455,70 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
                                                     <div className="h-px flex-1 bg-gray-100"></div>
                                                     <span className="text-[10px] text-gray-400">{tool.addedAt}</span>
                                                 </div>
+                                                {tool.note && (
+                                                    <div className="px-4 pb-3">
+                                                        <p className="text-sm text-gray-600 italic">"{tool.note}"</p>
+                                                    </div>
+                                                )}
+                                                <div className="h-1 w-full bg-green-500"></div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Planned Tools */}
+                            {projectTools.filter(t => t.status === 'planned').length > 0 && (
+                                <div className="mt-8">
+                                    <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                        <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
+                                        Planned ({projectTools.filter(t => t.status === 'planned').length})
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        {projectTools.filter(t => t.status === 'planned').map(tool => (
+                                            <div key={tool.id} className="relative flex flex-col bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 opacity-70 hover:opacity-100 group">
+                                                {/* Delete Button */}
+                                                <button
+                                                    onClick={() => handleDeleteProjectTool(tool.id, tool.name)}
+                                                    className="absolute top-2 right-2 p-1.5 rounded-full bg-white border border-gray-200 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all z-10"
+                                                    title="Remove from project"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+
+                                                <div className="p-4 flex items-start justify-between border-b border-gray-100 bg-gray-50/30">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-12 h-12 rounded-xl bg-white border border-gray-200 shadow-sm flex items-center justify-center overflow-hidden p-2">
+                                                            <img
+                                                                src={tool.logo_url || getLogoUrl(tool.website) || ''}
+                                                                alt={tool.name}
+                                                                className="w-full h-full object-contain"
+                                                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="font-bold text-gray-900">{tool.name}</h3>
+                                                            <span className="text-xs text-gray-500 font-medium bg-gray-100 px-2 py-0.5 rounded-full">{tool.category}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="px-4 py-3 flex items-center gap-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Added by</span>
+                                                        {tool.addedBy?.avatar_url ? (
+                                                            <img src={tool.addedBy.avatar_url} className="w-6 h-6 rounded-full border-2 border-white" alt="" />
+                                                        ) : (
+                                                            <div className="w-6 h-6 rounded-full bg-gray-200 border-2 border-white"></div>
+                                                        )}
+                                                    </div>
+                                                    <div className="h-px flex-1 bg-gray-100"></div>
+                                                    <span className="text-[10px] text-gray-400">{tool.addedAt}</span>
+                                                </div>
+                                                {tool.note && (
+                                                    <div className="px-4 pb-3">
+                                                        <p className="text-sm text-gray-600 italic">"{tool.note}"</p>
+                                                    </div>
+                                                )}
                                                 <div className="h-1 w-full bg-amber-400"></div>
                                             </div>
                                         ))}
@@ -2161,7 +2252,8 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
                                             setShowAddToolModal(false);
                                             setLibrarySearch('');
                                             setLibraryCategory('all');
-                                            // TODO: Refresh project tools list
+                                            // Refresh project tools list
+                                            fetchProjectTools();
                                         } catch (err: any) {
                                             console.error('Failed to add tool:', err);
                                             toast.error(err.message || 'Failed to add tool');
