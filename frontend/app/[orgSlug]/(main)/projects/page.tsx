@@ -515,6 +515,12 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
     const [createToolCategory, setCreateToolCategory] = useState('Software Engineering');
     const [createToolLoading, setCreateToolLoading] = useState(false);
 
+    // Add tool to project modal state
+    const [selectedAppToAdd, setSelectedAppToAdd] = useState<any>(null);
+    const [addToolStatus, setAddToolStatus] = useState<'active' | 'planned'>('active');
+    const [addToolNote, setAddToolNote] = useState('');
+    const [addToolLoading, setAddToolLoading] = useState(false);
+
     // Categories for filter
     const categoryFilters = [
         { key: 'all', label: 'All' },
@@ -571,11 +577,11 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
 
     // Mock tools data with websites for logos
     const projectTools = [
-        { id: '1', name: 'Slack', website: 'slack.com', category: 'Communication', status: 'active', addedBy: currentUser, addedAt: '15/12/2025', note: 'Principal canal de comms pour les devs.' },
-        { id: '2', name: 'Cursor', website: 'cursor.com', category: 'Développement', status: 'active', addedBy: currentUser, addedAt: '15/12/2025', note: 'IDE principal.' },
-        { id: '3', name: 'GitHub', website: 'github.com', category: 'Développement', status: 'active', addedBy: currentUser, addedAt: '15/12/2025', note: 'Hébergement code.' },
-        { id: '4', name: 'Vercel', website: 'vercel.com', category: 'Infrastructure', status: 'active', addedBy: currentUser, addedAt: '15/12/2025', note: 'Deploiement.' },
-        { id: '5', name: 'Linear', website: 'linear.app', category: 'Développement', status: 'planned', addedBy: currentUser, addedAt: '15/12/2025', note: 'Migration Q1.' },
+        { id: '1', name: 'Slack', website: 'slack.com', category: 'Communication', status: 'active', addedBy: currentUser, addedAt: '15/12/2025', note: 'Main communication channel for devs.' },
+        { id: '2', name: 'Cursor', website: 'cursor.com', category: 'Development', status: 'active', addedBy: currentUser, addedAt: '15/12/2025', note: 'Main IDE.' },
+        { id: '3', name: 'GitHub', website: 'github.com', category: 'Development', status: 'active', addedBy: currentUser, addedAt: '15/12/2025', note: 'Code hosting.' },
+        { id: '4', name: 'Vercel', website: 'vercel.com', category: 'Infrastructure', status: 'active', addedBy: currentUser, addedAt: '15/12/2025', note: 'Deployment.' },
+        { id: '5', name: 'Linear', website: 'linear.app', category: 'Development', status: 'planned', addedBy: currentUser, addedAt: '15/12/2025', note: 'Migration Q1.' },
         { id: '6', name: 'HubSpot', website: 'hubspot.com', category: 'Marketing', status: 'active', addedBy: currentUser, addedAt: '15/12/2025', note: 'CRM.' },
         { id: '7', name: 'Lemlist', website: 'lemlist.com', category: 'Marketing', status: 'active', addedBy: currentUser, addedAt: '15/12/2025', note: 'Outreach.' },
     ];
@@ -1322,7 +1328,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
                                     onClick={() => { setToolsSubTab('connexions'); setSelectedToolNode(null); }}
                                     className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${toolsSubTab === 'connexions' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                                 >
-                                    <Link2 size={14} /> Connexions
+                                    <Link2 size={14} /> Connections
                                 </button>
                             </div>
                         </div>
@@ -1331,7 +1337,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
                             className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow transition-all"
                         >
                             <Plus size={16} />
-                            {toolsSubTab === 'stack' ? 'Ajouter' : 'Connecter'}
+                            {toolsSubTab === 'stack' ? 'Add' : 'Connect'}
                         </button>
                     </div>
 
@@ -1342,7 +1348,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
                             <div>
                                 <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
                                     <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                    Actifs ({projectTools.filter(t => t.status === 'active').length})
+                                    Active ({projectTools.filter(t => t.status === 'active').length})
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                     {projectTools.filter(t => t.status === 'active').map(tool => (
@@ -1365,7 +1371,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
                                             </div>
                                             <div className="px-4 py-3 flex items-center gap-2">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Ajouté par</span>
+                                                    <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Added by</span>
                                                     {tool.addedBy?.avatar_url ? (
                                                         <img src={tool.addedBy.avatar_url} className="w-6 h-6 rounded-full border-2 border-white" alt="" />
                                                     ) : (
@@ -1386,10 +1392,10 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
 
                             {/* Planned Tools */}
                             {projectTools.filter(t => t.status === 'planned').length > 0 && (
-                                <div>
+                                <div className="mt-8">
                                     <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
                                         <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
-                                        Prévus ({projectTools.filter(t => t.status === 'planned').length})
+                                        Planned ({projectTools.filter(t => t.status === 'planned').length})
                                     </h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                         {projectTools.filter(t => t.status === 'planned').map(tool => (
@@ -1412,7 +1418,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
                                                 </div>
                                                 <div className="px-4 py-3 flex items-center gap-2">
                                                     <div className="flex items-center gap-2">
-                                                        <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Ajouté par</span>
+                                                        <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Added by</span>
                                                         {tool.addedBy?.avatar_url ? (
                                                             <img src={tool.addedBy.avatar_url} className="w-6 h-6 rounded-full border-2 border-white" alt="" />
                                                         ) : (
@@ -1786,10 +1792,9 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
                                                 {/* Clickable area to add tool */}
                                                 <button
                                                     onClick={() => {
-                                                        toast.success(`${app.name} added to project`);
-                                                        setShowAddToolModal(false);
-                                                        setLibrarySearch('');
-                                                        setLibraryCategory('all');
+                                                        setSelectedAppToAdd(app);
+                                                        setAddToolStatus('active');
+                                                        setAddToolNote('');
                                                     }}
                                                     className="absolute inset-0 z-0"
                                                 />
@@ -1829,10 +1834,9 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
                                                 {/* Clickable area to add tool */}
                                                 <button
                                                     onClick={() => {
-                                                        toast.success(`${app.name} added to project`);
-                                                        setShowAddToolModal(false);
-                                                        setLibrarySearch('');
-                                                        setLibraryCategory('all');
+                                                        setSelectedAppToAdd(app);
+                                                        setAddToolStatus('active');
+                                                        setAddToolNote('');
                                                     }}
                                                     className="absolute inset-0 z-0"
                                                 />
@@ -2048,6 +2052,129 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
                                         </div>
                                     </motion.div>
                                 )}
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Add Tool to Project Confirmation Modal */}
+            <AnimatePresence>
+                {selectedAppToAdd && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+                        onClick={() => setSelectedAppToAdd(null)}
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Header */}
+                            <div className="px-6 py-5 border-b border-gray-100 flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden">
+                                    <img
+                                        src={selectedAppToAdd.logo_url || getLogoUrl(selectedAppToAdd.url)}
+                                        alt={selectedAppToAdd.name}
+                                        className="w-7 h-7 object-contain"
+                                    />
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="font-semibold text-gray-900 text-lg">Add {selectedAppToAdd.name}</h3>
+                                    <p className="text-sm text-gray-500">to your project stack</p>
+                                </div>
+                                <button
+                                    onClick={() => setSelectedAppToAdd(null)}
+                                    className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                                >
+                                    <X size={20} className="text-gray-500" />
+                                </button>
+                            </div>
+
+                            {/* Content */}
+                            <div className="px-6 py-5 space-y-5">
+                                {/* Status Selection */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-3">Status</label>
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => setAddToolStatus('active')}
+                                            className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${addToolStatus === 'active'
+                                                ? 'border-green-500 bg-green-50 text-green-700'
+                                                : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                                                }`}
+                                        >
+                                            <span className="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                                            <span className="font-medium">Active</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setAddToolStatus('planned')}
+                                            className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${addToolStatus === 'planned'
+                                                ? 'border-amber-500 bg-amber-50 text-amber-700'
+                                                : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                                                }`}
+                                        >
+                                            <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                                            <span className="font-medium">Planned</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Note */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Note (optional)</label>
+                                    <input
+                                        type="text"
+                                        value={addToolNote}
+                                        onChange={(e) => setAddToolNote(e.target.value)}
+                                        placeholder="e.g. Main IDE, CRM for enterprise clients..."
+                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="px-6 py-4 bg-gray-50 flex gap-3">
+                                <button
+                                    onClick={() => setSelectedAppToAdd(null)}
+                                    className="flex-1 py-2.5 text-gray-600 font-medium rounded-xl hover:bg-gray-100 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        if (!group) return;
+                                        setAddToolLoading(true);
+                                        try {
+                                            await apiClient.post(`/applications/projects/${group.id}/tools`, {
+                                                application_id: selectedAppToAdd.id,
+                                                status: addToolStatus,
+                                                note: addToolNote.trim() || null
+                                            });
+                                            toast.success(`${selectedAppToAdd.name} added to project!`);
+                                            setSelectedAppToAdd(null);
+                                            setShowAddToolModal(false);
+                                            setLibrarySearch('');
+                                            setLibraryCategory('all');
+                                            // TODO: Refresh project tools list
+                                        } catch (err: any) {
+                                            console.error('Failed to add tool:', err);
+                                            toast.error(err.message || 'Failed to add tool');
+                                        } finally {
+                                            setAddToolLoading(false);
+                                        }
+                                    }}
+                                    disabled={addToolLoading}
+                                    className="flex-1 py-2.5 bg-gray-900 text-white font-medium rounded-xl hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                                >
+                                    {addToolLoading && <Loader2 size={16} className="animate-spin" />}
+                                    Add to Project
+                                </button>
                             </div>
                         </motion.div>
                     </motion.div>
