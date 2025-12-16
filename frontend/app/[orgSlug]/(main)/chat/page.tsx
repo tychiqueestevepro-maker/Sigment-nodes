@@ -569,7 +569,7 @@ function ChatWindow({ conversation, currentUser, apiClient, onRefresh, onMarkAsR
             }
 
             try {
-                const data = await apiClient.get<Message[]>(`/chat/${conversation.id}/messages`);
+                const data = await apiClient.get(`/chat/${conversation.id}/messages`) as Message[];
 
                 // CRITICAL: Only update state if this effect is still active
                 if (!isCancelled) {

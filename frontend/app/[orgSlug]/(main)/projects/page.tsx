@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useUser } from '@/contexts/UserContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -43,7 +43,11 @@ import {
     Link2,
     Check,
     LayoutGrid,
-    List
+    List,
+    ZoomIn,
+    ZoomOut,
+    Maximize,
+    Move
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MemberPicker } from '@/components/shared/MemberPicker';
@@ -625,24 +629,304 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
         }
     };
 
-    // Graph nodes for Connexions view (x, y are percentages for responsive layout)
-    const graphNodes = [
-        { id: 'n1', toolName: 'Cursor', x: 15, y: 20 },
-        { id: 'n2', toolName: 'GitHub', x: 40, y: 20 },
-        { id: 'n3', toolName: 'Vercel', x: 65, y: 20 },
-        { id: 'n4', toolName: 'HubSpot', x: 15, y: 55 },
-        { id: 'n5', toolName: 'Lemlist', x: 40, y: 55 },
-        { id: 'n6', toolName: 'Linear', x: 15, y: 85 },
-        { id: 'n7', toolName: 'Slack', x: 40, y: 85 },
-    ];
+    // ================== CONNECTION SUGGESTIONS SYSTEM ==================
+    // Category mapping for apps
+    const categoryMap: Record<string, string> = {
+        // Engineering
+        'cursor.com': 'Engineering', 'github.com': 'Engineering', 'gitlab.com': 'Engineering',
+        'bitbucket.org': 'Engineering', 'vscode.dev': 'Engineering', 'jetbrains.com': 'Engineering',
+        'sentry.io': 'Engineering', 'datadog.com': 'Engineering',
+        // Cloud & Infrastructure
+        'vercel.com': 'Cloud', 'netlify.com': 'Cloud', 'aws.amazon.com': 'Cloud',
+        'cloud.google.com': 'Cloud', 'azure.microsoft.com': 'Cloud', 'heroku.com': 'Cloud',
+        'digitalocean.com': 'Cloud', 'railway.app': 'Cloud', 'render.com': 'Cloud',
+        // Product & UX
+        'figma.com': 'Product', 'miro.com': 'Product', 'sketch.com': 'Product',
+        'invisionapp.com': 'Product', 'framer.com': 'Product',
+        // Sales
+        'hubspot.com': 'Sales', 'salesforce.com': 'Sales', 'pipedrive.com': 'Sales',
+        'lemlist.com': 'Sales', 'close.com': 'Sales', 'apollo.io': 'Sales',
+        // Marketing
+        'mailchimp.com': 'Marketing', 'sendgrid.com': 'Marketing', 'klaviyo.com': 'Marketing',
+        'google.com/ads': 'Marketing', 'facebook.com/business': 'Marketing',
+        // Collaboration
+        'slack.com': 'Collab', 'teams.microsoft.com': 'Collab', 'discord.com': 'Collab',
+        'zoom.us': 'Collab', 'notion.so': 'Collab',
+        // AI & Automation
+        'openai.com': 'AI', 'anthropic.com': 'AI', 'zapier.com': 'AI',
+        'make.com': 'AI', 'n8n.io': 'AI',
+        // Project Management
+        'linear.app': 'Project', 'asana.com': 'Project', 'jira.atlassian.com': 'Project',
+        'monday.com': 'Project', 'clickup.com': 'Project', 'trello.com': 'Project',
+        // Data & Analytics
+        'snowflake.com': 'Data', 'bigquery.com': 'Data', 'airtable.com': 'Data',
+        'mixpanel.com': 'Data', 'amplitude.com': 'Data', 'looker.com': 'Data',
+        'stripe.com': 'Data',
+    };
 
-    // Graph edges (connections between tools)
-    const graphEdges = [
-        { id: 'e1', source: 'n1', target: 'n2', label: 'Commit & Push', active: true },
-        { id: 'e2', source: 'n2', target: 'n3', label: 'Auto-Deploy', active: true },
-        { id: 'e3', source: 'n4', target: 'n5', label: 'Sync Leads', active: false },
-        { id: 'e4', source: 'n6', target: 'n7', label: 'Notifications', active: true },
-    ];
+    const connectionSuggestions: Record<string, Record<string, string[]>> = {
+        Engineering: {
+            Engineering: ["Commit & Push", "Create Pull Request", "Sync Branch"],
+            Cloud: ["Trigger Auto-Deploy", "Sync Env Variables", "Rollback Version"],
+            Project: ["Update Issue Status", "Link Commit to Ticket", "Log Work Time"],
+            Collab: ["Request Code Review", "Notify Deployment", "Send Error Alert"],
+            AI: ["Generate Unit Tests", "Explain Code", "Refactor Function"],
+        },
+        Cloud: {
+            Collab: ["Alert on Failure", "Notify Success", "Daily Cost Report"],
+            Data: ["Stream Logs", "Export Metrics", "Archive Backups"],
+            Engineering: ["Trigger Rebuild", "Update Config", "Clone Environment"],
+        },
+        Product: {
+            Engineering: ["Copy CSS/Tailwind", "Export Assets", "Sync Design Tokens"],
+            Project: ["Create Tasks from Design", "Embed Prototype", "Request Review"],
+            Collab: ["Notify Team Updates", "Share Feedback", "Brainstorm Session"],
+        },
+        Sales: {
+            Sales: ["Sync Leads", "Enroll in Sequence", "Merge Duplicates"],
+            Marketing: ["Add to Campaign", "Update Lead Score", "Create Audience"],
+            Data: ["Log Revenue", "Update LTV", "Sync Subscription"],
+            Collab: ["Notify Won Deal", "Alert High Value Lead", "Weekly Report"],
+            Project: ["Handover to Onboarding", "Create Client Project", "Attach Contract"],
+        },
+        Marketing: {
+            Sales: ["Create New Lead", "Qualify Prospect", "Update Source Info"],
+            Data: ["Aggregate Traffic", "Analyze Funnel", "Export ROI Data"],
+            Collab: ["Send Campaign Stats", "Alert Budget Hit", "Share Creative"],
+        },
+        AI: {
+            Engineering: ["Write Documentation", "Debug Error", "Scaffold Component"],
+            Collab: ["Summarize Thread", "Draft Response", "Translate Content"],
+            Data: ["Clean Data", "Analyze Sentiment", "Categorize Feedback"],
+            Sales: ["Personalize Email", "Research Prospect", "Score Lead"],
+        },
+        Project: {
+            Collab: ["Notify Status Change", "Daily Standup Digest", "Ping Assignee"],
+            Engineering: ["Create Branch", "Generate Release Notes", "Block Deploy"],
+            Product: ["Request Design Update", "Link to Specs", "Mark as Ready"],
+        },
+        Data: {
+            Collab: ["Send Dashboard PDF", "Alert Anomaly", "Morning Metrics"],
+            Sales: ["Enrich Contact Info", "Sync Usage Data", "Flag Churn Risk"],
+            AI: ["Train Model", "Find Patterns", "Predict Trend"],
+        },
+        Collab: {
+            Project: ["Create Task", "Update Status", "Log Discussion"],
+            Engineering: ["Report Bug", "Request Feature", "Track Issue"],
+            Sales: ["Log Call Notes", "Schedule Follow-up", "Share Update"],
+        },
+    };
+
+    const getAppCategory = (website: string): string => {
+        const domain = website?.replace(/^(?:https?:\/\/)?(?:www\.)?/i, "").split('/')[0] || '';
+        return categoryMap[domain] || 'Other';
+    };
+
+    const getSmartSuggestions = (sourceApp: any, targetApp: any): string[] => {
+        const sourceCat = getAppCategory(sourceApp?.website || '');
+        const targetCat = getAppCategory(targetApp?.website || '');
+        if (sourceCat === 'Other' || targetCat === 'Other') return ["Connect", "Sync", "Send Data"];
+        const suggestions = connectionSuggestions[sourceCat]?.[targetCat];
+        return suggestions || ["Trigger Event", "Sync Data", "Update Record"];
+    };
+
+    // Connection state
+    const [connections, setConnections] = useState<any[]>([]);
+    const [connectionsLoading, setConnectionsLoading] = useState(false);
+    const [showConnectionModal, setShowConnectionModal] = useState(false);
+    const [connectionSource, setConnectionSource] = useState<any>(null);
+    const [connectionTarget, setConnectionTarget] = useState<any>(null);
+    const [connectionLabel, setConnectionLabel] = useState('');
+    const [customLabel, setCustomLabel] = useState('');
+
+    // Canvas transform (zoom & pan)
+    const [canvasTransform, setCanvasTransform] = useState({ x: 0, y: 0, scale: 1 });
+    const [isCanvasDragging, setIsCanvasDragging] = useState(false);
+    const [canvasDragStart, setCanvasDragStart] = useState({ x: 0, y: 0 });
+
+    // Node positions (for dragging nodes)
+    const [nodePositions, setNodePositions] = useState<Record<string, { x: number; y: number }>>({});
+    const [draggingNode, setDraggingNode] = useState<string | null>(null);
+    const [nodeDragStart, setNodeDragStart] = useState({ x: 0, y: 0, nodeX: 0, nodeY: 0 });
+    const canvasRef = useRef<HTMLDivElement>(null);
+
+    // Zoom controls
+    const zoomIn = () => setCanvasTransform(prev => ({ ...prev, scale: Math.min(prev.scale + 0.2, 3) }));
+    const zoomOut = () => setCanvasTransform(prev => ({ ...prev, scale: Math.max(prev.scale - 0.2, 0.3) }));
+    const resetZoom = () => setCanvasTransform({ x: 0, y: 0, scale: 1 });
+
+    // Canvas wheel handler (zoom)
+    const handleCanvasWheel = (e: React.WheelEvent) => {
+        const scaleAdjustment = -e.deltaY * 0.001;
+        const newScale = Math.min(Math.max(0.3, canvasTransform.scale + scaleAdjustment), 3);
+        setCanvasTransform(prev => ({ ...prev, scale: newScale }));
+    };
+
+    // Canvas drag handlers (pan)
+    const handleCanvasMouseDown = (e: React.MouseEvent) => {
+        if (draggingNode) return; // Don't pan while dragging a node
+        setIsCanvasDragging(true);
+        setCanvasDragStart({ x: e.clientX - canvasTransform.x, y: e.clientY - canvasTransform.y });
+    };
+
+    const handleCanvasMouseMove = (e: React.MouseEvent) => {
+        // Fixed canvas dimensions
+        const CANVAS_WIDTH = 2000;
+        const CANVAS_HEIGHT = 1500;
+
+        if (draggingNode && canvasRef.current) {
+            // Handle node dragging
+            const rect = canvasRef.current.getBoundingClientRect();
+            // Calculate position accounting for zoom and pan
+            const rawX = (e.clientX - rect.left - canvasTransform.x) / canvasTransform.scale;
+            const rawY = (e.clientY - rect.top - canvasTransform.y) / canvasTransform.scale;
+            // Convert to percentage of fixed canvas
+            const xPercent = (rawX / CANVAS_WIDTH) * 100;
+            const yPercent = (rawY / CANVAS_HEIGHT) * 100;
+            setNodePositions(prev => ({
+                ...prev,
+                [draggingNode]: { x: Math.max(2, Math.min(95, xPercent)), y: Math.max(2, Math.min(95, yPercent)) }
+            }));
+        } else if (isCanvasDragging) {
+            e.preventDefault();
+            setCanvasTransform(prev => ({
+                ...prev,
+                x: e.clientX - canvasDragStart.x,
+                y: e.clientY - canvasDragStart.y
+            }));
+        }
+    };
+
+    const handleCanvasMouseUp = () => {
+        setIsCanvasDragging(false);
+        setDraggingNode(null);
+    };
+
+    // Node drag handlers
+    const handleNodeDragStart = (e: React.MouseEvent, nodeId: string, currentX: number, currentY: number) => {
+        e.stopPropagation();
+        setDraggingNode(nodeId);
+    };
+
+    // Get node position (from state or default)
+    const getNodePosition = (nodeId: string, defaultX: number, defaultY: number) => {
+        return nodePositions[nodeId] || { x: defaultX, y: defaultY };
+    };
+
+    // Generate graph nodes from project tools (dynamic positions)
+    const graphNodes = useMemo(() => {
+        const activeTools = projectTools.filter(t => t.status === 'active');
+        const cols = 3;
+        return activeTools.map((tool, index) => {
+            const defaultX = 15 + (index % cols) * 25;
+            const defaultY = 20 + Math.floor(index / cols) * 30;
+            const position = getNodePosition(`node-${tool.id}`, defaultX, defaultY);
+            return {
+                id: `node-${tool.id}`,
+                toolId: tool.id,
+                applicationId: tool.application_id,
+                toolName: tool.name,
+                website: tool.website,
+                category: tool.category,
+                x: position.x,
+                y: position.y,
+            };
+        });
+    }, [projectTools, nodePositions]);
+
+    // Fetch connections from API
+    const fetchConnections = useCallback(async () => {
+        if (!group?.id) return;
+        setConnectionsLoading(true);
+        try {
+            const data = await apiClient.get<any[]>(`/applications/projects/${group.id}/connections`);
+            setConnections(data || []);
+        } catch (err) {
+            console.error('Failed to load connections:', err);
+            setConnections([]);
+        } finally {
+            setConnectionsLoading(false);
+        }
+    }, [group?.id, apiClient]);
+
+    useEffect(() => {
+        if (toolsSubTab === 'connexions') {
+            fetchConnections();
+        }
+    }, [toolsSubTab, fetchConnections]);
+
+    // Convert connections to graph edges
+    const graphEdges = useMemo(() => {
+        return connections.map(conn => {
+            const sourceNode = graphNodes.find(n => n.applicationId === conn.source_tool_id);
+            const targetNode = graphNodes.find(n => n.applicationId === conn.target_tool_id);
+            return {
+                id: conn.id,
+                source: sourceNode?.id || '',
+                target: targetNode?.id || '',
+                label: conn.label || 'Connected',
+                active: conn.is_active !== false,
+            };
+        }).filter(e => e.source && e.target);
+    }, [connections, graphNodes]);
+
+    // Handle creating new connection
+    const handleCreateConnection = async () => {
+        if (!connectionSource || !connectionTarget) return;
+
+        // Validate: Cannot connect an app to itself
+        if (connectionSource.id === connectionTarget.id) {
+            toast.error('Cannot connect an app to itself');
+            return;
+        }
+
+        // Validate: Check for duplicate connection (same source -> target)
+        const sourceAppId = connectionSource.application_id || connectionSource.id;
+        const targetAppId = connectionTarget.application_id || connectionTarget.id;
+        const isDuplicate = connections.some(conn =>
+            conn.source_application_id === sourceAppId &&
+            conn.target_application_id === targetAppId
+        );
+        if (isDuplicate) {
+            toast.error(`Connection from ${connectionSource.name} to ${connectionTarget.name} already exists`);
+            return;
+        }
+
+        const label = customLabel.trim() || connectionLabel;
+        if (!label) {
+            toast.error('Please select or enter a connection label');
+            return;
+        }
+
+        try {
+            await apiClient.post(`/applications/projects/${group.id}/connections`, {
+                source_application_id: sourceAppId,
+                target_application_id: targetAppId,
+                label: label,
+            });
+            toast.success('Connection created!');
+            setShowConnectionModal(false);
+            setConnectionSource(null);
+            setConnectionTarget(null);
+            setConnectionLabel('');
+            setCustomLabel('');
+            fetchConnections();
+        } catch (err: any) {
+            toast.error(err.message || 'Failed to create connection');
+        }
+    };
+
+    // Handle delete connection
+    const handleDeleteConnection = async (connectionId: string) => {
+        if (!confirm('Delete this connection?')) return;
+        try {
+            await apiClient.delete(`/applications/projects/${group.id}/connections/${connectionId}`);
+            setConnections(prev => prev.filter(c => c.id !== connectionId));
+            toast.success('Connection deleted');
+        } catch (err: any) {
+            toast.error(err.message || 'Failed to delete connection');
+        }
+    };
 
     // Download function for lightbox images
     const handleDownload = async (url: string, filename: string) => {
@@ -1372,7 +1656,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
                             </div>
                         </div>
                         <button
-                            onClick={() => setShowAddToolModal(true)}
+                            onClick={() => toolsSubTab === 'connexions' ? setShowConnectionModal(true) : setShowAddToolModal(true)}
                             className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow transition-all"
                         >
                             <Plus size={16} />
@@ -1533,90 +1817,146 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
                         <div className="flex-1 relative bg-slate-50 overflow-hidden animate-in fade-in duration-300">
                             {/* Background Pattern */}
                             <div
-                                className="absolute inset-0 opacity-10"
+                                className="absolute inset-0 opacity-10 pointer-events-none"
                                 style={{ backgroundImage: 'radial-gradient(#94a3b8 1px, transparent 1px)', backgroundSize: '20px 20px' }}
                             ></div>
 
-                            {/* SVG Layer for Edges */}
-                            <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
-                                {graphEdges.map((edge) => {
-                                    const startNode = graphNodes.find(n => n.id === edge.source);
-                                    const endNode = graphNodes.find(n => n.id === edge.target);
-                                    if (!startNode || !endNode) return null;
+                            {/* Canvas viewport - clips the content */}
+                            <div
+                                ref={canvasRef}
+                                className={`absolute inset-0 overflow-hidden ${isCanvasDragging ? 'cursor-grabbing' : 'cursor-grab'} touch-none`}
+                                onMouseDown={handleCanvasMouseDown}
+                                onMouseMove={handleCanvasMouseMove}
+                                onMouseUp={handleCanvasMouseUp}
+                                onMouseLeave={handleCanvasMouseUp}
+                                onWheel={handleCanvasWheel}
+                            >
+                                {/* Inner canvas - fixed size, can be panned and zoomed */}
+                                <div
+                                    className="relative transition-transform duration-75 ease-out"
+                                    style={{
+                                        width: '2000px',
+                                        height: '1500px',
+                                        transform: `translate(${canvasTransform.x}px, ${canvasTransform.y}px) scale(${canvasTransform.scale})`,
+                                        transformOrigin: '0 0'
+                                    }}
+                                >
+                                    {/* SVG Layer for Edges */}
+                                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+                                        {graphEdges.map((edge) => {
+                                            const startNode = graphNodes.find(n => n.id === edge.source);
+                                            const endNode = graphNodes.find(n => n.id === edge.target);
+                                            if (!startNode || !endNode) return null;
 
-                                    const x1 = `${startNode.x}%`;
-                                    const y1 = `${startNode.y}%`;
-                                    const x2 = `${endNode.x}%`;
-                                    const y2 = `${endNode.y}%`;
-                                    const midX = (startNode.x + endNode.x) / 2;
-                                    const midY = (startNode.y + endNode.y) / 2;
+                                            const x1 = `${startNode.x}%`;
+                                            const y1 = `${startNode.y}%`;
+                                            const x2 = `${endNode.x}%`;
+                                            const y2 = `${endNode.y}%`;
+                                            const midX = (startNode.x + endNode.x) / 2;
+                                            const midY = (startNode.y + endNode.y) / 2;
 
-                                    return (
-                                        <g key={edge.id}>
-                                            <line
-                                                x1={x1} y1={y1}
-                                                x2={x2} y2={y2}
-                                                stroke={edge.active ? "#22c55e" : "#cbd5e1"}
-                                                strokeWidth="2"
-                                                strokeDasharray={edge.active ? "0" : "5,5"}
-                                                className={edge.active ? "animate-pulse" : ""}
-                                            />
-                                            {edge.active && (
-                                                <circle r="4" fill="#22c55e">
-                                                    <animateMotion
-                                                        dur="2s"
-                                                        repeatCount="indefinite"
-                                                        path={`M${startNode.x * 10},${startNode.y * 5} L${endNode.x * 10},${endNode.y * 5}`}
+                                            return (
+                                                <g key={edge.id}>
+                                                    <line
+                                                        x1={x1} y1={y1}
+                                                        x2={x2} y2={y2}
+                                                        stroke={edge.active ? "#22c55e" : "#cbd5e1"}
+                                                        strokeWidth="2"
+                                                        strokeDasharray={edge.active ? "0" : "5,5"}
+                                                        className={edge.active ? "animate-pulse" : ""}
                                                     />
-                                                </circle>
-                                            )}
-                                            <foreignObject x={`${midX - 5}%`} y={`${midY - 2}%`} width="10%" height="24">
-                                                <div className={`text-[10px] text-center px-2 py-0.5 rounded-full border shadow-sm mx-auto w-fit truncate ${edge.active ? 'bg-green-50 text-green-700 border-green-100' : 'bg-gray-50 text-gray-400 border-gray-100'
-                                                    }`}>
-                                                    {edge.label}
+                                                    {edge.active && (
+                                                        <circle r="4" fill="#22c55e">
+                                                            <animateMotion
+                                                                dur="2s"
+                                                                repeatCount="indefinite"
+                                                                path={`M${startNode.x * 10},${startNode.y * 5} L${endNode.x * 10},${endNode.y * 5}`}
+                                                            />
+                                                        </circle>
+                                                    )}
+                                                    <foreignObject x={`${midX - 5}%`} y={`${midY - 2}%`} width="10%" height="24">
+                                                        <div className={`text-[10px] text-center px-2 py-0.5 rounded-full border shadow-sm mx-auto w-fit truncate ${edge.active ? 'bg-green-50 text-green-700 border-green-100' : 'bg-gray-50 text-gray-400 border-gray-100'
+                                                            }`}>
+                                                            {edge.label}
+                                                        </div>
+                                                    </foreignObject>
+                                                </g>
+                                            );
+                                        })}
+                                    </svg>
+
+                                    {/* Nodes Layer */}
+                                    <div className="absolute inset-0 z-10">
+                                        {graphNodes.map((node) => {
+                                            const tool = projectTools.find(t => t.name === node.toolName);
+                                            const isSelected = selectedToolNode?.id === node.id;
+
+                                            return (
+                                                <div
+                                                    key={node.id}
+                                                    className={`absolute w-20 h-20 -ml-10 -mt-10 rounded-2xl bg-white border-2 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 shadow-sm hover:scale-110 group ${isSelected ? 'border-blue-500 shadow-blue-200 shadow-lg scale-110' : 'border-gray-200 hover:border-blue-300'
+                                                        }`}
+                                                    style={{ left: `${node.x}%`, top: `${node.y}%` }}
+                                                >
+                                                    {/* Main clickable area - opens side panel */}
+                                                    <div
+                                                        onClick={() => setSelectedToolNode({ ...node, toolData: tool })}
+                                                        className="flex flex-col items-center justify-center w-full h-full"
+                                                    >
+                                                        <div className="w-10 h-10 flex items-center justify-center mb-1">
+                                                            {tool?.website && (
+                                                                <img
+                                                                    src={tool.logo_url || getLogoUrl(tool.website) || ''}
+                                                                    alt={node.toolName}
+                                                                    className="w-full h-full object-contain"
+                                                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                                />
+                                                            )}
+                                                        </div>
+                                                        <span className="text-[10px] font-bold text-gray-700 truncate max-w-[90%] px-1">{node.toolName}</span>
+                                                    </div>
+
+                                                    {/* Connected indicator (top-right) */}
+                                                    <div className={`absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center ${isSelected ? 'bg-blue-500' : 'bg-green-500'
+                                                        }`}>
+                                                        {isSelected && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
+                                                    </div>
+
+                                                    {/* Add connection button (bottom-right) - shows on hover */}
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            // Pre-select this tool as source and open modal
+                                                            setConnectionSource(tool);
+                                                            setConnectionTarget(null);
+                                                            setConnectionLabel('');
+                                                            setCustomLabel('');
+                                                            setShowConnectionModal(true);
+                                                        }}
+                                                        className="absolute -bottom-2 -right-2 w-6 h-6 rounded-full bg-black text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-110 shadow-lg z-20"
+                                                        title={`Add connection from ${node.toolName}`}
+                                                    >
+                                                        <Plus size={14} />
+                                                    </button>
+
+                                                    {/* Drag handle (bottom-left) - shows on hover */}
+                                                    <button
+                                                        onMouseDown={(e) => handleNodeDragStart(e, node.id, node.x, node.y)}
+                                                        className="absolute -bottom-2 -left-2 w-6 h-6 rounded-full bg-gray-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-110 hover:bg-gray-700 shadow-lg z-20 cursor-move"
+                                                        title={`Drag to move ${node.toolName}`}
+                                                    >
+                                                        <Move size={12} />
+                                                    </button>
                                                 </div>
-                                            </foreignObject>
-                                        </g>
-                                    );
-                                })}
-                            </svg>
+                                            );
+                                        })}
+                                    </div> {/* Close Nodes Layer */}
 
-                            {/* Nodes Layer */}
-                            <div className="absolute inset-0 z-10">
-                                {graphNodes.map((node) => {
-                                    const tool = projectTools.find(t => t.name === node.toolName);
-                                    const isSelected = selectedToolNode?.id === node.id;
+                                </div> {/* Close canvas transform wrapper */}
+                            </div> {/* Close canvas container */}
 
-                                    return (
-                                        <div
-                                            key={node.id}
-                                            onClick={() => setSelectedToolNode({ ...node, toolData: tool })}
-                                            className={`absolute w-20 h-20 -ml-10 -mt-10 rounded-2xl bg-white border-2 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 shadow-sm hover:scale-110 group ${isSelected ? 'border-blue-500 shadow-blue-200 shadow-lg scale-110' : 'border-gray-200 hover:border-blue-300'
-                                                }`}
-                                            style={{ left: `${node.x}%`, top: `${node.y}%` }}
-                                        >
-                                            <div className="w-10 h-10 flex items-center justify-center mb-1">
-                                                {tool?.website && (
-                                                    <img
-                                                        src={getLogoUrl(tool.website) || ''}
-                                                        alt={node.toolName}
-                                                        className="w-full h-full object-contain"
-                                                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                                    />
-                                                )}
-                                            </div>
-                                            <span className="text-[10px] font-bold text-gray-700 truncate max-w-[90%] px-1">{node.toolName}</span>
-                                            <div className={`absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center ${isSelected ? 'bg-blue-500' : 'bg-green-500'
-                                                }`}>
-                                                {isSelected && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-
-                            {/* Side Panel (Contextual Info) */}
-                            <div className={`absolute top-4 right-4 bottom-4 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 transform transition-transform duration-300 ease-in-out z-20 flex flex-col ${selectedToolNode ? 'translate-x-0' : 'translate-x-[110%]'
+                            {/* Side Panel (Contextual Info) - FIXED, outside of zoom */}
+                            <div className={`absolute top-4 right-4 bottom-4 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 transform transition-transform duration-300 ease-in-out z-50 flex flex-col ${selectedToolNode ? 'translate-x-0' : 'translate-x-[110%]'
                                 }`}>
                                 {selectedToolNode && (
                                     <>
@@ -1624,14 +1964,14 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
                                             <div className="flex items-center gap-3">
                                                 {selectedToolNode.toolData?.website && (
                                                     <img
-                                                        src={getLogoUrl(selectedToolNode.toolData.website) || ''}
+                                                        src={selectedToolNode.toolData.logo_url || getLogoUrl(selectedToolNode.toolData.website) || ''}
                                                         className="w-10 h-10 object-contain bg-white rounded-lg border border-gray-200 p-1"
                                                         alt=""
                                                     />
                                                 )}
                                                 <div>
                                                     <h3 className="font-bold text-gray-900">{selectedToolNode.toolName}</h3>
-                                                    <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded-full border border-green-100">Connecté</span>
+                                                    <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded-full border border-green-100">Connected</span>
                                                 </div>
                                             </div>
                                             <button onClick={() => setSelectedToolNode(null)} className="text-gray-400 hover:text-gray-600">
@@ -1642,28 +1982,46 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
                                         <div className="p-5 flex-1 overflow-y-auto">
                                             <div className="space-y-6">
                                                 <div>
-                                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Flux de données</h4>
+                                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Data Flow</h4>
                                                     <div className="space-y-2">
-                                                        {graphEdges.filter(e => e.source === selectedToolNode.id).map((e, i) => (
-                                                            <div key={i} className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 p-2 rounded-lg border border-gray-100">
-                                                                <ArrowUpRight size={14} className="text-gray-400" />
-                                                                <span>Envoie vers <span className="font-semibold text-gray-900">{graphNodes.find(n => n.id === e.target)?.toolName}</span></span>
+                                                        {graphEdges.filter(e => e.source === selectedToolNode.id).map((e) => (
+                                                            <div key={e.id} className="flex items-center justify-between text-sm text-gray-600 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                                                                <div className="flex items-center gap-2">
+                                                                    <ArrowUpRight size={14} className="text-gray-400" />
+                                                                    <span>Sends to <span className="font-semibold text-gray-900">{graphNodes.find(n => n.id === e.target)?.toolName}</span></span>
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => handleDeleteConnection(e.id)}
+                                                                    className="p-1.5 rounded-full text-gray-400 hover:bg-red-100 hover:text-red-600 transition-all"
+                                                                    title="Delete connection"
+                                                                >
+                                                                    <Trash2 size={14} />
+                                                                </button>
                                                             </div>
                                                         ))}
-                                                        {graphEdges.filter(e => e.target === selectedToolNode.id).map((e, i) => (
-                                                            <div key={i} className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 p-2 rounded-lg border border-gray-100">
-                                                                <ArrowLeft size={14} className="text-gray-400" />
-                                                                <span>Reçoit de <span className="font-semibold text-gray-900">{graphNodes.find(n => n.id === e.source)?.toolName}</span></span>
+                                                        {graphEdges.filter(e => e.target === selectedToolNode.id).map((e) => (
+                                                            <div key={e.id} className="flex items-center justify-between text-sm text-gray-600 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                                                                <div className="flex items-center gap-2">
+                                                                    <ArrowLeft size={14} className="text-gray-400" />
+                                                                    <span>Receives from <span className="font-semibold text-gray-900">{graphNodes.find(n => n.id === e.source)?.toolName}</span></span>
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => handleDeleteConnection(e.id)}
+                                                                    className="p-1.5 rounded-full text-gray-400 hover:bg-red-100 hover:text-red-600 transition-all"
+                                                                    title="Delete connection"
+                                                                >
+                                                                    <Trash2 size={14} />
+                                                                </button>
                                                             </div>
                                                         ))}
                                                         {!graphEdges.some(e => e.source === selectedToolNode.id || e.target === selectedToolNode.id) && (
-                                                            <p className="text-sm text-gray-400 italic">Aucune connexion active.</p>
+                                                            <p className="text-sm text-gray-400 italic">No active connections.</p>
                                                         )}
                                                     </div>
                                                 </div>
 
                                                 <div>
-                                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Métriques</h4>
+                                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Metrics</h4>
                                                     <div className="grid grid-cols-2 gap-3">
                                                         <div className="bg-white border border-gray-200 p-3 rounded-lg text-center">
                                                             <div className="text-xs text-gray-500">Uptime</div>
@@ -1679,7 +2037,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
                                                 <div>
                                                     <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Actions</h4>
                                                     <button className="w-full flex items-center justify-center gap-2 p-2 rounded-lg border border-gray-200 text-sm font-medium hover:bg-gray-50 transition-colors text-gray-700">
-                                                        <Wrench size={14} /> Configurer l'intégration
+                                                        <Wrench size={14} /> Configure Integration
                                                     </button>
                                                 </div>
                                             </div>
@@ -1688,8 +2046,22 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
                                 )}
                             </div>
 
+                            {/* Zoom Controls - positioned bottom left, above legend */}
+                            <div className="absolute bottom-20 left-4 z-50 flex flex-col gap-2 bg-white rounded-xl shadow-xl border border-gray-100 p-2">
+                                <button onClick={zoomIn} className="p-2 hover:bg-gray-50 rounded-lg text-gray-600" title="Zoom In">
+                                    <ZoomIn size={20} />
+                                </button>
+                                <button onClick={zoomOut} className="p-2 hover:bg-gray-50 rounded-lg text-gray-600" title="Zoom Out">
+                                    <ZoomOut size={20} />
+                                </button>
+                                <div className="h-px bg-gray-200 my-1"></div>
+                                <button onClick={resetZoom} className="p-2 hover:bg-gray-50 rounded-lg text-gray-600" title="Reset View">
+                                    <Maximize size={20} />
+                                </button>
+                            </div>
+
                             {/* Legend */}
-                            <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg border border-gray-200 px-4 py-3 flex items-center gap-6 text-xs text-gray-500">
+                            <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg border border-gray-200 px-4 py-3 flex items-center gap-6 text-xs text-gray-500 z-50">
                                 <div className="flex items-center gap-2">
                                     <div className="w-6 h-0.5 bg-green-500"></div>
                                     <span>Active</span>
@@ -1700,7 +2072,7 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                                    <span>Connecté</span>
+                                    <span>Connected</span>
                                 </div>
                             </div>
                         </div>
@@ -2266,6 +2638,171 @@ function GroupView({ group, currentUser, apiClient, onRefresh, organization, onB
                                 >
                                     {addToolLoading && <Loader2 size={16} className="animate-spin" />}
                                     Add to Project
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Create Connection Modal */}
+            <AnimatePresence>
+                {showConnectionModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+                        onClick={() => { setShowConnectionModal(false); setConnectionSource(null); setConnectionTarget(null); setConnectionLabel(''); setCustomLabel(''); }}
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Header */}
+                            <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+                                <div>
+                                    <h3 className="font-semibold text-gray-900 text-lg">Create Connection</h3>
+                                    <p className="text-sm text-gray-500">Link two tools in your stack</p>
+                                </div>
+                                <button
+                                    onClick={() => { setShowConnectionModal(false); setConnectionSource(null); setConnectionTarget(null); }}
+                                    className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                                >
+                                    <X size={20} className="text-gray-500" />
+                                </button>
+                            </div>
+
+                            {/* Content */}
+                            <div className="px-6 py-5 space-y-5">
+                                {/* Source Tool */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">From (Source)</label>
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {projectTools.filter(t => t.status === 'active').map(tool => (
+                                            <button
+                                                key={tool.id}
+                                                onClick={() => { setConnectionSource(tool); setConnectionLabel(''); }}
+                                                disabled={connectionTarget?.id === tool.id}
+                                                className={`p-3 rounded-xl border-2 flex flex-col items-center gap-1 transition-all ${connectionSource?.id === tool.id
+                                                    ? 'border-blue-500 bg-blue-50'
+                                                    : connectionTarget?.id === tool.id
+                                                        ? 'border-gray-100 bg-gray-50 opacity-40 cursor-not-allowed'
+                                                        : 'border-gray-200 hover:border-gray-300'
+                                                    }`}
+                                            >
+                                                <img
+                                                    src={tool.logo_url || getLogoUrl(tool.website) || ''}
+                                                    alt={tool.name}
+                                                    className="w-8 h-8 object-contain"
+                                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                />
+                                                <span className="text-[10px] font-medium text-gray-600 truncate w-full text-center">{tool.name}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Arrow */}
+                                <div className="flex items-center justify-center py-2">
+                                    <div className="flex-1 h-px bg-gray-200"></div>
+                                    <div className="px-4 py-1.5 bg-gray-100 rounded-full text-gray-500 text-xs font-medium flex items-center gap-2">
+                                        <ArrowUpRight size={14} />
+                                        sends to
+                                    </div>
+                                    <div className="flex-1 h-px bg-gray-200"></div>
+                                </div>
+
+                                {/* Target Tool */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">To (Target)</label>
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {projectTools.filter(t => t.status === 'active').map(tool => {
+                                            const toolAppId = tool.application_id || tool.id;
+                                            const sourceAppId = connectionSource?.application_id || connectionSource?.id;
+                                            // Check if this target is already connected from the selected source
+                                            const isAlreadyConnected = connectionSource && connections.some(conn =>
+                                                conn.source_application_id === sourceAppId &&
+                                                conn.target_application_id === toolAppId
+                                            );
+                                            const isSameAsSource = connectionSource?.id === tool.id;
+                                            const isDisabled = isSameAsSource || isAlreadyConnected;
+
+                                            return (
+                                                <button
+                                                    key={tool.id}
+                                                    onClick={() => { setConnectionTarget(tool); setConnectionLabel(''); }}
+                                                    disabled={isDisabled}
+                                                    className={`p-3 rounded-xl border-2 flex flex-col items-center gap-1 transition-all relative ${connectionTarget?.id === tool.id
+                                                        ? 'border-green-500 bg-green-50'
+                                                        : isDisabled
+                                                            ? 'border-gray-100 bg-gray-50 opacity-40 cursor-not-allowed'
+                                                            : 'border-gray-200 hover:border-gray-300'
+                                                        }`}
+                                                >
+                                                    {isAlreadyConnected && (
+                                                        <span className="absolute -top-1 -right-1 text-[8px] bg-gray-500 text-white px-1.5 py-0.5 rounded-full">Connected</span>
+                                                    )}
+                                                    <img
+                                                        src={tool.logo_url || getLogoUrl(tool.website) || ''}
+                                                        alt={tool.name}
+                                                        className="w-8 h-8 object-contain"
+                                                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                    />
+                                                    <span className="text-[10px] font-medium text-gray-600 truncate w-full text-center">{tool.name}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Connection Label (Suggestions) */}
+                                {connectionSource && connectionTarget && (
+                                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-200">
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Connection Type</label>
+                                        <div className="flex flex-wrap gap-2 mb-3">
+                                            {getSmartSuggestions(connectionSource, connectionTarget).map((suggestion, i) => (
+                                                <button
+                                                    key={i}
+                                                    onClick={() => { setConnectionLabel(suggestion); setCustomLabel(''); }}
+                                                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${connectionLabel === suggestion
+                                                        ? 'bg-gray-900 text-white'
+                                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                        }`}
+                                                >
+                                                    {suggestion}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={customLabel}
+                                            onChange={(e) => { setCustomLabel(e.target.value); setConnectionLabel(''); }}
+                                            placeholder="Or enter a custom label..."
+                                            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Footer */}
+                            <div className="px-6 py-4 bg-gray-50 flex gap-3">
+                                <button
+                                    onClick={() => { setShowConnectionModal(false); setConnectionSource(null); setConnectionTarget(null); setConnectionLabel(''); setCustomLabel(''); }}
+                                    className="flex-1 py-2.5 text-gray-600 font-medium rounded-xl hover:bg-gray-100 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleCreateConnection}
+                                    disabled={!connectionSource || !connectionTarget || (!connectionLabel && !customLabel.trim())}
+                                    className="flex-1 py-2.5 bg-gray-900 text-white font-medium rounded-xl hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <Link2 size={16} />
+                                    Create Connection
                                 </button>
                             </div>
                         </motion.div>

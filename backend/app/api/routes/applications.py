@@ -314,6 +314,10 @@ async def add_tool_to_project(
     # Get application details
     app_result = supabase.table("applications").select("*").eq("id", tool["application_id"]).single().execute()
     
+    # Get user details for added_by
+    user_result = supabase.table("users").select("id, first_name, last_name, avatar_url").eq("id", str(current_user.id)).single().execute()
+    user_data = user_result.data if user_result.data else {"id": str(current_user.id), "first_name": None, "last_name": None, "avatar_url": None}
+    
     return {
         "id": tool["id"],
         "project_id": tool["project_id"],
@@ -322,10 +326,10 @@ async def add_tool_to_project(
         "note": tool.get("note"),
         "added_at": tool["added_at"],
         "added_by": {
-            "id": str(current_user.id),
-            "first_name": current_user.first_name,
-            "last_name": current_user.last_name,
-            "avatar_url": getattr(current_user, 'avatar_url', None)
+            "id": user_data.get("id"),
+            "first_name": user_data.get("first_name"),
+            "last_name": user_data.get("last_name"),
+            "avatar_url": user_data.get("avatar_url")
         },
         "application": {
             **app_result.data,
