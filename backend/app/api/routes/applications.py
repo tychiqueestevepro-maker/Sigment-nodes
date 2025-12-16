@@ -485,6 +485,50 @@ async def create_tool_connection(
     }
 
 
+
+
+class UpdateConnectionRequest(BaseModel):
+    is_active: Optional[bool] = None
+    label: Optional[str] = None
+
+
+@router.patch("/projects/{project_id}/connections/{connection_id}")
+async def update_tool_connection(
+    project_id: str,
+    connection_id: str,
+    request: UpdateConnectionRequest,
+    current_user = Depends(get_current_user)
+):
+    """Update a tool connection's status or label"""
+    supabase = get_supabase()
+    
+    # Verify user has access to project
+    project = supabase.table("projects").select("id, organization_id").eq("id", project_id).single().execute()
+    
+    if not project.data:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    if project.data["organization_id"] != str(current_user.organization_id):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    update_data = {}
+    if request.is_active is not None:
+        update_data["is_active"] = request.is_active
+    if request.label is not None:
+        update_data["label"] = request.label
+    
+    if update_data:
+        result = supabase.table("tool_connections").update(update_data).eq("id", connection_id).eq("project_id", project_id).execute()
+        
+        if not result.data:
+            raise HTTPException(status_code=404, detail="Connection not found")
+        
+        return {"success": True, "connection": result.data[0]}
+    
+    return {"success": True}
+
+
+
 @router.delete("/projects/{project_id}/connections/{connection_id}")
 async def delete_tool_connection(
     project_id: str,
