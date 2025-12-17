@@ -10,7 +10,10 @@ import toast from 'react-hot-toast';
 
 // --- Helper Functions ---
 function formatDate(dateStr: string): string {
+    if (!dateStr) return '';
     const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '';
+
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));

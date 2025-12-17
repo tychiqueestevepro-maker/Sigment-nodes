@@ -118,6 +118,7 @@ export interface Connection {
     target_application_id: string;
     label: string;
     is_active: boolean;
+    chain_id?: string;  // Identifies which visual chain this connection belongs to
 }
 
 // --- Context Interface ---
@@ -174,7 +175,7 @@ interface ProjectContextType {
     setProjectTools: React.Dispatch<React.SetStateAction<ProjectTool[]>>;
 
     // Connection actions
-    createConnection: (sourceAppId: string, targetAppId: string, label: string) => Promise<void>;
+    createConnection: (sourceAppId: string, targetAppId: string, label: string, chainId?: string) => Promise<void>;
     updateConnection: (connectionId: string, updates: { is_active?: boolean; label?: string }) => Promise<void>;
     deleteConnection: (connectionId: string) => Promise<void>;
     setConnections: React.Dispatch<React.SetStateAction<Connection[]>>;
@@ -529,14 +530,21 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
         }
     }, [projectId, apiClient]);
 
-    const createConnection = useCallback(async (sourceAppId: string, targetAppId: string, label: string) => {
+    const createConnection = useCallback(async (sourceAppId: string, targetAppId: string, label: string, chainId?: string) => {
         if (!projectId) return;
         try {
-            await apiClient.post(`/applications/projects/${projectId}/connections`, {
+            const payload: any = {
                 source_application_id: sourceAppId,
                 target_application_id: targetAppId,
                 label: label,
-            });
+            };
+
+            // If chainId is provided, extend an existing chain; otherwise, create a new one
+            if (chainId) {
+                payload.chain_id = chainId;
+            }
+
+            await apiClient.post(`/applications/projects/${projectId}/connections`, payload);
             toast.success('Connection created!');
             refreshConnections();
         } catch (error: any) {

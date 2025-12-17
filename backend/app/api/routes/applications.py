@@ -61,6 +61,7 @@ class ToolConnectionCreate(BaseModel):
     target_application_id: str
     label: Optional[str] = None
     is_active: bool = True
+    chain_id: Optional[str] = None  # If None, a new chain is created
 
 
 class ToolConnection(BaseModel):
@@ -69,6 +70,7 @@ class ToolConnection(BaseModel):
     target_tool_id: str
     label: Optional[str]
     is_active: bool
+    chain_id: Optional[str] = None
     source_application: Optional[Application] = None
     target_application: Optional[Application] = None
 
@@ -427,6 +429,7 @@ async def get_tool_connections(
             "target_tool_id": conn["target_tool_id"],
             "label": conn.get("label"),
             "is_active": conn.get("is_active", True),
+            "chain_id": conn.get("chain_id"),
             "source_application": {
                 **source,
                 "logo_url": source.get("logo_url") or get_logo_url(source.get("url"))
@@ -467,6 +470,10 @@ async def create_tool_connection(
         "created_by_user_id": str(current_user.id)
     }
     
+    # Add chain_id - use provided one or let database generate a new one
+    if conn_data.chain_id:
+        new_conn["chain_id"] = conn_data.chain_id
+    
     result = supabase.table("tool_connections").insert(new_conn).execute()
     
     if not result.data:
@@ -480,6 +487,7 @@ async def create_tool_connection(
         "target_tool_id": conn["target_tool_id"],
         "label": conn.get("label"),
         "is_active": conn.get("is_active", True),
+        "chain_id": conn.get("chain_id"),
         "source_application": None,
         "target_application": None
     }
@@ -548,5 +556,152 @@ async def delete_tool_connection(
         raise HTTPException(status_code=403, detail="Access denied")
     
     supabase.table("tool_connections").delete().eq("id", connection_id).eq("project_id", project_id).execute()
+    
+    return {"success": True}
+
+
+# ==================== CHAIN COMMENTS ROUTES ====================
+
+class ChainCommentCreate(BaseModel):
+    chain_id: str
+    application_id: str
+    content: str
+
+
+class ChainComment(BaseModel):
+    id: str
+    chain_id: str
+    application_id: str
+    project_id: str
+    content: str
+    user_id: str
+    created_at: datetime
+    user_name: Optional[str] = None
+    user_avatar: Optional[str] = None
+
+
+@router.get("/projects/{project_id}/chain-comments/{chain_id}/{application_id}")
+async def get_chain_comments(
+    project_id: str,
+    chain_id: str,
+    application_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Get all comments for a specific app in a chain"""
+    supabase = get_supabase()
+    
+    # Get comments without join (auth.users can't be joined directly)
+    result = supabase.table("tool_chain_comments").select(
+        "*"
+    ).eq("project_id", project_id).eq("chain_id", chain_id).eq("application_id", application_id).order("created_at", desc=True).execute()
+    
+    if not result.data:
+        return []
+    
+    # Get unique user IDs
+    user_ids = list(set(c["user_id"] for c in result.data))
+    
+    # Fetch user info
+    users_result = supabase.table("users").select("id, first_name, last_name, avatar_url").in_("id", user_ids).execute()
+    users_map = {}
+    for u in (users_result.data or []):
+        users_map[u["id"]] = u
+    
+    comments = []
+    for c in result.data:
+        user = users_map.get(c["user_id"], {})
+        first = user.get("first_name") or ""
+        last = user.get("last_name") or ""
+        user_name = f"{first} {last}".strip() or "Unknown"
+        comments.append({
+            "id": c["id"],
+            "chain_id": c["chain_id"],
+            "application_id": c["application_id"],
+            "project_id": c["project_id"],
+            "content": c["content"],
+            "user_id": c["user_id"],
+            "created_at": c["created_at"],
+            "user_name": user_name,
+            "user_avatar": user.get("avatar_url")
+        })
+    
+    return comments
+
+
+@router.post("/projects/{project_id}/chain-comments")
+async def create_chain_comment(
+    project_id: str,
+    comment_data: ChainCommentCreate,
+    current_user = Depends(get_current_user)
+):
+    """Create a comment on a specific app in a chain"""
+    supabase = get_supabase()
+    
+    # Verify user has access to project
+    project = supabase.table("projects").select("id, organization_id").eq("id", project_id).single().execute()
+    
+    if not project.data:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    if project.data["organization_id"] != str(current_user.organization_id):
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    new_comment = {
+        "project_id": project_id,
+        "chain_id": comment_data.chain_id,
+        "application_id": comment_data.application_id,
+        "content": comment_data.content,
+        "user_id": str(current_user.id)
+    }
+    
+    result = supabase.table("tool_chain_comments").insert(new_comment).execute()
+    
+    if not result.data:
+        raise HTTPException(status_code=500, detail="Failed to create comment")
+    
+    comment = result.data[0]
+    
+    # Get user info for the response
+    user_info = supabase.table("users").select("first_name, last_name, avatar_url").eq("id", str(current_user.id)).single().execute()
+    user_name = "You"
+    user_avatar = None
+    if user_info.data:
+        first = user_info.data.get("first_name") or ""
+        last = user_info.data.get("last_name") or ""
+        user_name = f"{first} {last}".strip() or current_user.email.split("@")[0]
+        user_avatar = user_info.data.get("avatar_url")
+    
+    return {
+        "id": comment["id"],
+        "chain_id": comment["chain_id"],
+        "application_id": comment["application_id"],
+        "project_id": comment["project_id"],
+        "content": comment["content"],
+        "user_id": comment["user_id"],
+        "created_at": comment["created_at"],
+        "user_name": user_name,
+        "user_avatar": user_avatar
+    }
+
+
+@router.delete("/projects/{project_id}/chain-comments/{comment_id}")
+async def delete_chain_comment(
+    project_id: str,
+    comment_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Delete a comment (only owner can delete)"""
+    supabase = get_supabase()
+    
+    # Get the comment to verify ownership
+    comment = supabase.table("tool_chain_comments").select("*").eq("id", comment_id).single().execute()
+    
+    if not comment.data:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    
+    if comment.data["user_id"] != str(current_user.id):
+        raise HTTPException(status_code=403, detail="You can only delete your own comments")
+    
+    supabase.table("tool_chain_comments").delete().eq("id", comment_id).execute()
     
     return {"success": True}

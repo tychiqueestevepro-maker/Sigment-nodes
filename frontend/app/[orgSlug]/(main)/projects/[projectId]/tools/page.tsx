@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Link2, Plus, Layers, Loader2, Trash2, ZoomIn, ZoomOut, Maximize, ArrowUpRight, ArrowLeft, Wrench, X, Power, Edit3
+    Link2, Plus, Layers, Loader2, Trash2, ZoomIn, ZoomOut, Maximize, Maximize2, Minimize2, ArrowUpRight, ArrowLeft, Wrench, X, Power, Edit3
 } from 'lucide-react';
 import { useProject, ProjectTool } from '../ProjectContext'; // Adjust path based on structure
 import { useApiClient } from '@/hooks/useApiClient';
@@ -90,12 +90,19 @@ export default function ProjectToolsPage() {
     const [connectionTarget, setConnectionTarget] = useState<ProjectTool | null>(null);
     const [connectionLabel, setConnectionLabel] = useState('');
     const [customLabel, setCustomLabel] = useState('');
+    const [extendChainId, setExtendChainId] = useState<string | null>(null); // Chain ID to extend when using + button
 
     // Selection State
-    const [selectedToolNode, setSelectedToolNode] = useState<{ id: string; toolName: string; x: number; y: number; toolData?: ProjectTool } | null>(null);
+    const [selectedToolNode, setSelectedToolNode] = useState<{ id: string; toolName: string; x: number; y: number; chainId?: string; applicationId?: string; toolData?: ProjectTool } | null>(null);
 
     // Canvas Visibility State (which tools are shown on the canvas)
     const [toolsOnCanvas, setToolsOnCanvas] = useState<Set<string>>(new Set());
+
+    // Comments State
+    const [chainComments, setChainComments] = useState<Array<{ id: string; content: string; user_name: string; user_avatar?: string; created_at: string }>>([]);
+    const [newComment, setNewComment] = useState('');
+    const [isPostingComment, setIsPostingComment] = useState(false);
+    const [expandedSidebar, setExpandedSidebar] = useState(false);
 
     // Initialize canvas with tools that have connections
     useEffect(() => {
@@ -130,47 +137,214 @@ export default function ProjectToolsPage() {
         }
     }, [showAddToolModal, libraryApps.length, apiClient]);
 
-    // Initial Node Positions
+    // Calculate positions based on chain_id from connections
     useEffect(() => {
-        if (projectTools.length > 0 && Object.keys(nodePositions).length === 0) {
-            const initialPositions: Record<string, { x: number; y: number }> = {};
-            const activeTools = projectTools.filter(t => t.status === 'active');
+        if (toolsOnCanvas.size === 0 || connections.length === 0) return;
 
-            // Simple grid layout
-            activeTools.forEach((tool, index) => {
-                const col = index % 4;
-                const row = Math.floor(index / 4);
-                initialPositions[tool.id] = {
-                    x: 20 + (col * 20),
-                    y: 20 + (row * 20)
+        // Build a map of tool ID to application ID
+        const toolToApp: Record<string, string> = {};
+        projectTools.forEach(t => {
+            toolToApp[t.id] = t.application_id;
+        });
+
+        // Build reverse map: application ID to tool ID
+        const appToTool: Record<string, string> = {};
+        projectTools.forEach(t => {
+            if (toolsOnCanvas.has(t.id)) {
+                appToTool[t.application_id] = t.id;
+            }
+        });
+
+        // Group connections by chain_id
+        const chainMap = new Map<string, typeof connections>();
+        connections.forEach(conn => {
+            const chainId = conn.chain_id || conn.id; // Fallback to connection id if no chain_id
+            if (!chainMap.has(chainId)) {
+                chainMap.set(chainId, []);
+            }
+            chainMap.get(chainId)!.push(conn);
+        });
+
+        // For each chain, order the tools by connection flow
+        const chains: string[][] = [];
+
+        chainMap.forEach((chainConnections) => {
+            // Get all app IDs in this chain
+            const appIds = new Set<string>();
+            chainConnections.forEach(c => {
+                appIds.add(c.source_tool_id);
+                appIds.add(c.target_tool_id);
+            });
+
+            // Find starting tools (sources that are not targets in this chain)
+            const targetsInChain = new Set(chainConnections.map(c => c.target_tool_id));
+            const startApps = Array.from(appIds).filter(id => !targetsInChain.has(id));
+
+            // Order tools from start to end
+            const orderedTools: string[] = [];
+            const visited = new Set<string>();
+            const queue = startApps.length > 0 ? [...startApps] : [Array.from(appIds)[0]];
+
+            while (queue.length > 0) {
+                const appId = queue.shift()!;
+                if (visited.has(appId)) continue;
+                visited.add(appId);
+
+                const toolId = appToTool[appId];
+                if (toolId && toolsOnCanvas.has(toolId)) {
+                    orderedTools.push(toolId);
+                }
+
+                // Find next tools in the chain
+                chainConnections.forEach(c => {
+                    if (c.source_tool_id === appId && !visited.has(c.target_tool_id)) {
+                        queue.push(c.target_tool_id);
+                    }
+                });
+            }
+
+            if (orderedTools.length > 0) {
+                chains.push(orderedTools);
+            }
+        });
+
+        // Position each chain on its own row
+        const newPositions: Record<string, { x: number; y: number }> = {};
+        chains.forEach((chain, rowIndex) => {
+            const startX = 10;
+            const spacingX = 80 / Math.max(chain.length, 1); // Spread across width
+
+            chain.forEach((toolId, colIndex) => {
+                newPositions[toolId] = {
+                    x: startX + (colIndex * Math.min(spacingX, 25)),
+                    y: 25 + (rowIndex * 30) // Each chain on a new row
                 };
             });
-            setNodePositions(initialPositions);
+        });
+
+        setNodePositions(newPositions);
+    }, [toolsOnCanvas, connections, projectTools]); // Re-run when tools or connections change
+
+    // --- Computed Graph Data (with visual duplication per chain) ---
+    const { graphNodes, graphEdges, chainNodePositions } = useMemo(() => {
+        if (connections.length === 0) {
+            return { graphNodes: [], graphEdges: [], chainNodePositions: {} };
         }
-    }, [projectTools]); // Removed nodePositions from deps to prevent infinite loop
 
-    // --- Computed Graph Data ---
-    const graphNodes = useMemo(() => {
-        return projectTools
-            .filter(t => t.status === 'active' && toolsOnCanvas.has(t.id)) // Only show tools on canvas
-            .map(t => ({
-                id: t.id,
-                applicationId: t.application_id, // Add this for matching connections
-                toolName: t.name,
-                x: nodePositions[t.id]?.x || 50,
-                y: nodePositions[t.id]?.y || 50
-            }));
-    }, [projectTools, nodePositions, toolsOnCanvas]);
+        // Build maps
+        const appToTool: Record<string, ProjectTool> = {};
+        projectTools.forEach(t => {
+            appToTool[t.application_id] = t;
+        });
 
-    const graphEdges = useMemo(() => {
-        return connections.map(c => ({
-            id: c.id,
-            source: c.source_tool_id,
-            target: c.target_tool_id,
-            label: c.label,
-            active: c.is_active
-        }));
-    }, [connections]);
+        // Group connections by chain_id
+        const chainMap = new Map<string, typeof connections>();
+        connections.forEach(conn => {
+            const chainId = conn.chain_id || conn.id;
+            if (!chainMap.has(chainId)) {
+                chainMap.set(chainId, []);
+            }
+            chainMap.get(chainId)!.push(conn);
+        });
+
+        const nodes: Array<{
+            id: string;
+            applicationId: string;
+            toolName: string;
+            chainId: string;
+            x: number;
+            y: number;
+            toolData?: ProjectTool;
+        }> = [];
+
+        const edges: Array<{
+            id: string;
+            source: string;
+            target: string;
+            label: string;
+            active: boolean;
+            chainId: string;
+        }> = [];
+
+        const positions: Record<string, { x: number; y: number }> = {};
+        let rowIndex = 0;
+
+        chainMap.forEach((chainConnections, chainId) => {
+            // Get all app IDs in this chain
+            const appIds = new Set<string>();
+            chainConnections.forEach(c => {
+                appIds.add(c.source_tool_id);
+                appIds.add(c.target_tool_id);
+            });
+
+            // Find starting tools (sources that are not targets in this chain)
+            const targetsInChain = new Set(chainConnections.map(c => c.target_tool_id));
+            const startApps = Array.from(appIds).filter(id => !targetsInChain.has(id));
+
+            // Order tools from start to end
+            const orderedApps: string[] = [];
+            const visited = new Set<string>();
+            const queue = startApps.length > 0 ? [...startApps] : [Array.from(appIds)[0]];
+
+            while (queue.length > 0) {
+                const appId = queue.shift()!;
+                if (visited.has(appId)) continue;
+                visited.add(appId);
+                orderedApps.push(appId);
+
+                chainConnections.forEach(c => {
+                    if (c.source_tool_id === appId && !visited.has(c.target_tool_id)) {
+                        queue.push(c.target_tool_id);
+                    }
+                });
+            }
+
+            // Create nodes for this chain
+            const startX = 10;
+            const spacingX = 80 / Math.max(orderedApps.length, 1);
+
+            orderedApps.forEach((appId, colIndex) => {
+                const tool = appToTool[appId];
+                if (!tool) return;
+
+                const nodeId = `${tool.id}_${chainId}`; // Unique ID per chain
+                const x = startX + (colIndex * Math.min(spacingX, 25));
+                const y = 25 + (rowIndex * 30);
+
+                nodes.push({
+                    id: nodeId,
+                    applicationId: appId,
+                    toolName: tool.name,
+                    chainId: chainId,
+                    x,
+                    y,
+                    toolData: tool
+                });
+
+                positions[nodeId] = { x, y };
+            });
+
+            // Create edges for this chain (with chain-specific source/target IDs)
+            chainConnections.forEach(conn => {
+                const sourceTool = appToTool[conn.source_tool_id];
+                const targetTool = appToTool[conn.target_tool_id];
+                if (!sourceTool || !targetTool) return;
+
+                edges.push({
+                    id: conn.id,
+                    source: `${sourceTool.id}_${chainId}`,
+                    target: `${targetTool.id}_${chainId}`,
+                    label: conn.label,
+                    active: conn.is_active,
+                    chainId: chainId
+                });
+            });
+
+            rowIndex++;
+        });
+
+        return { graphNodes: nodes, graphEdges: edges, chainNodePositions: positions };
+    }, [connections, projectTools]);
 
     // --- Canvas Handlers ---
     const handleCanvasMouseDown = (e: React.MouseEvent) => {
@@ -216,6 +390,62 @@ export default function ProjectToolsPage() {
     const zoomOut = () => setCanvasTransform(prev => ({ ...prev, scale: Math.max(prev.scale - 0.2, 0.5) }));
     const resetZoom = () => setCanvasTransform({ x: 0, y: 0, scale: 1 });
 
+    // Fit all connections to view
+    const fitToView = useCallback(() => {
+        if (graphNodes.length === 0) return;
+
+        // Get actual viewport dimensions
+        const container = canvasRef.current?.parentElement;
+        const viewportWidth = container?.clientWidth || 1000;
+        const viewportHeight = container?.clientHeight || 600;
+
+        // Find the bounds of all nodes (in percentage 0-100)
+        const xValues = graphNodes.map(n => n.x);
+        const yValues = graphNodes.map(n => n.y);
+        const minX = Math.min(...xValues);
+        const maxX = Math.max(...xValues);
+        const minY = Math.min(...yValues);
+        const maxY = Math.max(...yValues);
+
+        // Canvas dimensions
+        const canvasWidth = 2000;
+        const canvasHeight = 1500;
+
+        // Convert percentages to pixels
+        const leftPx = (minX / 100) * canvasWidth;
+        const rightPx = (maxX / 100) * canvasWidth;
+        const topPx = (minY / 100) * canvasHeight;
+        const bottomPx = (maxY / 100) * canvasHeight;
+
+        // Content bounds with padding (80px for node size)
+        const contentWidth = rightPx - leftPx + 200;
+        const contentHeight = bottomPx - topPx + 200;
+
+        // Calculate scale to fit
+        const scaleX = viewportWidth / contentWidth;
+        const scaleY = viewportHeight / contentHeight;
+        const scale = Math.min(Math.max(0.4, Math.min(scaleX, scaleY)), 1.2);
+
+        // Calculate center of content
+        const contentCenterX = leftPx + (rightPx - leftPx) / 2;
+        const contentCenterY = topPx + (bottomPx - topPx) / 2;
+
+        // Calculate offset to center the content in viewport
+        const offsetX = (viewportWidth / 2) - (contentCenterX * scale);
+        const offsetY = (viewportHeight / 2) - (contentCenterY * scale);
+
+        setCanvasTransform({ x: offsetX, y: offsetY, scale });
+    }, [graphNodes]);
+
+    // Auto-fit on initial load when we have nodes
+    useEffect(() => {
+        if (graphNodes.length > 0 && canvasTransform.scale === 1 && canvasTransform.x === 0 && canvasTransform.y === 0) {
+            // Small delay to ensure canvas is rendered
+            const timer = setTimeout(fitToView, 100);
+            return () => clearTimeout(timer);
+        }
+    }, [graphNodes.length, fitToView]);
+
     const handleNodeDragStart = (e: React.MouseEvent, nodeId: string, initialX: number, initialY: number) => {
         e.stopPropagation();
         const startX = e.clientX;
@@ -260,20 +490,18 @@ export default function ProjectToolsPage() {
             return;
         }
 
-        // Check if source already has an outgoing connection
         const sourceAppId = connectionSource.application_id || connectionSource.id;
         const targetAppId = connectionTarget.application_id || connectionTarget.id;
 
-        const sourceOutgoing = connections.filter(c => c.source_tool_id === sourceAppId);
-        if (sourceOutgoing.length >= 1) {
-            toast.error(`${connectionSource.name} already has an outgoing connection. Each tool can only send to one other tool.`);
-            return;
-        }
-
-        // Check if target already has an incoming connection
-        const targetIncoming = connections.filter(c => c.target_tool_id === targetAppId);
-        if (targetIncoming.length >= 1) {
-            toast.error(`${connectionTarget.name} already has an incoming connection. Each tool can only receive from one other tool.`);
+        // Check for duplicate connection ONLY in the same chain
+        // Different chains can have the same source → target
+        const duplicateConnection = connections.find(
+            c => c.source_tool_id === sourceAppId &&
+                c.target_tool_id === targetAppId &&
+                (extendChainId ? c.chain_id === extendChainId : false) // Only check same chain if extending
+        );
+        if (duplicateConnection) {
+            toast.error('This connection already exists in this chain');
             return;
         }
 
@@ -289,7 +517,8 @@ export default function ProjectToolsPage() {
             await createConnection(
                 sourceAppId,
                 targetAppId,
-                labelToUse
+                labelToUse,
+                extendChainId || undefined // Pass chain_id if extending, undefined for new chain
             );
 
             setShowConnectionModal(false);
@@ -297,6 +526,7 @@ export default function ProjectToolsPage() {
             setConnectionTarget(null);
             setConnectionLabel('');
             setCustomLabel('');
+            setExtendChainId(null); // Reset chain id
         } catch (error) {
             // Toast handled in context
         }
@@ -341,6 +571,76 @@ export default function ProjectToolsPage() {
         });
     };
 
+    // Load comments when a node is selected
+    useEffect(() => {
+        const loadComments = async () => {
+            if (selectedToolNode?.chainId && selectedToolNode?.applicationId && projectId) {
+                try {
+                    const comments = await apiClient.get<Array<{ id: string; content: string; user_name: string; user_avatar?: string; created_at: string }>>(
+                        `/applications/projects/${projectId}/chain-comments/${selectedToolNode.chainId}/${selectedToolNode.applicationId}`
+                    );
+                    console.log('Loaded comments:', comments);
+                    setChainComments(Array.isArray(comments) ? comments : []);
+                } catch (error) {
+                    console.error('Failed to load comments:', error);
+                    setChainComments([]);
+                }
+            } else {
+                setChainComments([]);
+            }
+        };
+        loadComments();
+    }, [selectedToolNode?.chainId, selectedToolNode?.applicationId, projectId, apiClient]);
+
+    // Post a new comment
+    const handlePostComment = async () => {
+        if (!newComment.trim() || !selectedToolNode?.chainId || !selectedToolNode?.applicationId || !projectId) {
+            console.log('Missing data:', {
+                comment: newComment.trim(),
+                chainId: selectedToolNode?.chainId,
+                applicationId: selectedToolNode?.applicationId,
+                projectId
+            });
+            toast.error('Missing required data');
+            return;
+        }
+
+        console.log('Posting comment:', {
+            chain_id: selectedToolNode.chainId,
+            application_id: selectedToolNode.applicationId,
+            content: newComment.trim()
+        });
+
+        setIsPostingComment(true);
+        try {
+            const newCommentData = await apiClient.post<{ id: string; content: string; user_name: string; user_avatar?: string; created_at: string }>(`/applications/projects/${projectId}/chain-comments`, {
+                chain_id: selectedToolNode.chainId,
+                application_id: selectedToolNode.applicationId,
+                content: newComment.trim()
+            });
+            console.log('Posted comment:', newCommentData);
+            setChainComments(prev => [newCommentData, ...prev]);
+            setNewComment('');
+            toast.success('Comment posted!');
+        } catch (error: any) {
+            console.error('Comment error:', error?.response?.data || error);
+            toast.error('Failed to post comment');
+        } finally {
+            setIsPostingComment(false);
+        }
+    };
+
+    // Delete a comment
+    const handleDeleteComment = async (commentId: string) => {
+        try {
+            await apiClient.delete(`/applications/projects/${projectId}/chain-comments/${commentId}`);
+            setChainComments(prev => prev.filter(c => c.id !== commentId));
+            toast.success('Comment deleted');
+        } catch (error) {
+            toast.error('Failed to delete comment');
+        }
+    };
+
     return (
         <div className="flex-1 overflow-hidden flex flex-col">
             {/* Sub-Nav & Action Bar */}
@@ -362,7 +662,19 @@ export default function ProjectToolsPage() {
                     </div>
                 </div>
                 <button
-                    onClick={() => toolsSubTab === 'connexions' ? setShowConnectionModal(true) : setShowAddToolModal(true)}
+                    onClick={() => {
+                        if (toolsSubTab === 'connexions') {
+                            // Reset chain_id to create a new chain (not extend existing)
+                            setConnectionSource(null);
+                            setConnectionTarget(null);
+                            setConnectionLabel('');
+                            setCustomLabel('');
+                            setExtendChainId(null); // New chain
+                            setShowConnectionModal(true);
+                        } else {
+                            setShowAddToolModal(true);
+                        }
+                    }}
                     className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow transition-all"
                 >
                     <Plus size={16} />
@@ -548,8 +860,9 @@ export default function ProjectToolsPage() {
                             {/* SVG Layer for Edges */}
                             <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
                                 {graphEdges.map((edge) => {
-                                    const startNode = graphNodes.find(n => n.applicationId === edge.source);
-                                    const endNode = graphNodes.find(n => n.applicationId === edge.target);
+                                    // Match by unique node ID (toolId_chainId)
+                                    const startNode = graphNodes.find(n => n.id === edge.source);
+                                    const endNode = graphNodes.find(n => n.id === edge.target);
                                     if (!startNode || !endNode) return null;
 
                                     const x1 = `${startNode.x}%`;
@@ -583,7 +896,7 @@ export default function ProjectToolsPage() {
                             {/* Nodes Layer */}
                             <div className="absolute inset-0 z-10">
                                 {graphNodes.map((node) => {
-                                    const tool = projectTools.find(t => t.name === node.toolName);
+                                    const tool = node.toolData;
                                     const isSelected = selectedToolNode?.id === node.id;
 
                                     return (
@@ -613,7 +926,7 @@ export default function ProjectToolsPage() {
 
 
 
-                                            {/* Add connection button */}
+                                            {/* Add connection button (extends THIS chain) */}
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
@@ -621,10 +934,11 @@ export default function ProjectToolsPage() {
                                                     setConnectionTarget(null);
                                                     setConnectionLabel('');
                                                     setCustomLabel('');
+                                                    setExtendChainId(node.chainId); // Extend THIS specific chain
                                                     setShowConnectionModal(true);
                                                 }}
                                                 className="absolute -bottom-2 -right-2 w-6 h-6 rounded-full bg-black text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-110 shadow-lg z-20"
-                                                title={`Add connection from ${node.toolName}`}
+                                                title={`Extend chain from ${node.toolName}`}
                                             >
                                                 <Plus size={14} />
                                             </button>
@@ -680,7 +994,7 @@ export default function ProjectToolsPage() {
                     </div>
 
                     {/* Side Panel */}
-                    <div className={`absolute top-4 right-4 bottom-4 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 transform transition-transform duration-300 ease-in-out z-50 flex flex-col ${selectedToolNode ? 'translate-x-0' : 'translate-x-[110%]'
+                    <div className={`absolute top-4 right-4 bottom-4 ${expandedSidebar ? 'w-[500px]' : 'w-80'} bg-white rounded-xl shadow-2xl border border-gray-100 transform transition-all duration-300 ease-in-out z-50 flex flex-col ${selectedToolNode ? 'translate-x-0' : 'translate-x-[110%]'
                         }`}>
                         {selectedToolNode && (
                             <>
@@ -698,9 +1012,18 @@ export default function ProjectToolsPage() {
                                             <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded-full border border-green-100">Connected</span>
                                         </div>
                                     </div>
-                                    <button onClick={() => setSelectedToolNode(null)} className="text-gray-400 hover:text-gray-600">
-                                        <X size={18} />
-                                    </button>
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            onClick={() => setExpandedSidebar(!expandedSidebar)}
+                                            className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded"
+                                            title={expandedSidebar ? "Collapse panel" : "Expand panel"}
+                                        >
+                                            {expandedSidebar ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                                        </button>
+                                        <button onClick={() => { setSelectedToolNode(null); setExpandedSidebar(false); }} className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded">
+                                            <X size={18} />
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="p-5 flex-1 overflow-y-auto">
@@ -708,9 +1031,9 @@ export default function ProjectToolsPage() {
                                         <div>
                                             <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Data Flow</h4>
                                             <div className="space-y-2">
-                                                {/* Outgoing connections */}
-                                                {graphEdges.filter(e => e.source === selectedToolNode.toolData?.application_id).map((e) => {
-                                                    const targetNode = graphNodes.find(n => n.applicationId === e.target);
+                                                {/* Outgoing connections (only from THIS chain) */}
+                                                {graphEdges.filter(e => e.source === selectedToolNode.id).map((e) => {
+                                                    const targetNode = graphNodes.find(n => n.id === e.target);
                                                     return (
                                                         <div key={e.id} className="flex items-center justify-between text-sm bg-gray-50 p-3 rounded-lg border border-gray-100">
                                                             <div className="flex-1">
@@ -732,9 +1055,9 @@ export default function ProjectToolsPage() {
                                                         </div>
                                                     );
                                                 })}
-                                                {/* Incoming connections */}
-                                                {graphEdges.filter(e => e.target === selectedToolNode.toolData?.application_id).map((e) => {
-                                                    const sourceNode = graphNodes.find(n => n.applicationId === e.source);
+                                                {/* Incoming connections (only from THIS chain) */}
+                                                {graphEdges.filter(e => e.target === selectedToolNode.id).map((e) => {
+                                                    const sourceNode = graphNodes.find(n => n.id === e.source);
                                                     return (
                                                         <div key={e.id} className="flex items-center justify-between text-sm bg-gray-50 p-3 rounded-lg border border-gray-100">
                                                             <div className="flex-1">
@@ -757,8 +1080,8 @@ export default function ProjectToolsPage() {
                                                     );
                                                 })}
                                                 {graphEdges.filter(e =>
-                                                    e.source === selectedToolNode.toolData?.application_id ||
-                                                    e.target === selectedToolNode.toolData?.application_id
+                                                    e.source === selectedToolNode.id ||
+                                                    e.target === selectedToolNode.id
                                                 ).length === 0 && (
                                                         <p className="text-sm text-gray-400 italic">No active connections.</p>
                                                     )}
@@ -774,73 +1097,56 @@ export default function ProjectToolsPage() {
                                                     placeholder="Add a comment about this tool..."
                                                     className="w-full p-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                                                     rows={3}
+                                                    value={newComment}
+                                                    onChange={(e) => setNewComment(e.target.value)}
+                                                    disabled={isPostingComment}
                                                 />
-                                                <button className="mt-2 w-full bg-black text-white text-sm font-medium py-2 rounded-lg hover:bg-gray-800 transition-colors">
-                                                    Post Comment
+                                                <button
+                                                    onClick={handlePostComment}
+                                                    disabled={isPostingComment || !newComment.trim()}
+                                                    className="mt-2 w-full bg-black text-white text-sm font-medium py-2 rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    {isPostingComment ? 'Posting...' : 'Post Comment'}
                                                 </button>
                                             </div>
 
                                             {/* Comments List */}
                                             <div className="space-y-3 max-h-64 overflow-y-auto">
-                                                {/* Example comment - replace with actual data */}
-                                                <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                                                    <div className="flex items-start gap-2 mb-2">
-                                                        <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">
-                                                            TE
-                                                        </div>
-                                                        <div className="flex-1">
-                                                            <div className="flex items-center justify-between">
-                                                                <span className="text-sm font-medium text-gray-900">Tychique Esteve</span>
-                                                                <span className="text-xs text-gray-400">2h ago</span>
+                                                {chainComments.length === 0 ? (
+                                                    <p className="text-sm text-gray-400 italic text-center py-4">No comments yet. Be the first to comment!</p>
+                                                ) : (
+                                                    chainComments.filter(c => c && c.id).map(comment => (
+                                                        <div key={comment.id} className="bg-gray-50 p-3 rounded-lg border border-gray-100 group">
+                                                            <div className="flex items-start gap-2">
+                                                                <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold overflow-hidden">
+                                                                    {comment.user_avatar ? (
+                                                                        <img src={comment.user_avatar} alt="" className="w-full h-full object-cover" />
+                                                                    ) : (
+                                                                        (comment.user_name || 'U').slice(0, 2).toUpperCase()
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex-1">
+                                                                    <div className="flex items-center justify-between">
+                                                                        <span className="text-sm font-medium text-gray-900">{comment.user_name || 'Anonymous'}</span>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="text-xs text-gray-400">
+                                                                                {comment.created_at ? new Date(comment.created_at).toLocaleDateString() : ''}
+                                                                            </span>
+                                                                            <button
+                                                                                onClick={() => handleDeleteComment(comment.id)}
+                                                                                className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-all"
+                                                                                title="Delete comment"
+                                                                            >
+                                                                                <Trash2 size={12} />
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                    <p className="text-sm text-gray-600 mt-1">{comment.content}</p>
+                                                                </div>
                                                             </div>
-                                                            <p className="text-sm text-gray-600 mt-1">
-                                                                This integration is working great! We're seeing good data flow.
-                                                            </p>
                                                         </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* No comments state */}
-                                                {/* <p className="text-sm text-gray-400 italic text-center py-4">No comments yet. Be the first to comment!</p> */}
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Actions</h4>
-                                            <div className="space-y-2">
-                                                {/* Toggle Active/Inactive for connections */}
-                                                {graphEdges.filter(e =>
-                                                    e.source === selectedToolNode.toolData?.application_id ||
-                                                    e.target === selectedToolNode.toolData?.application_id
-                                                ).map(conn => (
-                                                    <button
-                                                        key={`toggle-${conn.id}`}
-                                                        onClick={async () => {
-                                                            try {
-                                                                await updateConnection(conn.id, { is_active: !conn.active });
-                                                            } catch (error) {
-                                                                // Error handled in context
-                                                            }
-                                                        }}
-                                                        className={`w-full flex items-center justify-between gap-2 p-3 rounded-lg border text-sm font-medium transition-colors ${conn.active
-                                                            ? 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100'
-                                                            : 'border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100'
-                                                            }`}
-                                                    >
-                                                        <div className="flex items-center gap-2">
-                                                            <Power size={14} />
-                                                            <span>{conn.active ? 'Active' : 'Inactive'}</span>
-                                                        </div>
-                                                        <span className="text-xs opacity-70">{conn.label}</span>
-                                                    </button>
-                                                ))}
-
-                                                {graphEdges.filter(e =>
-                                                    e.source === selectedToolNode.toolData?.application_id ||
-                                                    e.target === selectedToolNode.toolData?.application_id
-                                                ).length === 0 && (
-                                                        <p className="text-sm text-gray-400 italic text-center py-2">No connections to manage</p>
-                                                    )}
+                                                    ))
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -858,6 +1164,9 @@ export default function ProjectToolsPage() {
                             <ZoomOut size={20} />
                         </button>
                         <div className="h-px bg-gray-200 my-1"></div>
+                        <button onClick={fitToView} className="p-2 hover:bg-gray-50 rounded-lg text-gray-600" title="Fit All to View">
+                            <Layers size={20} />
+                        </button>
                         <button onClick={resetZoom} className="p-2 hover:bg-gray-50 rounded-lg text-gray-600" title="Reset View">
                             <Maximize size={20} />
                         </button>
