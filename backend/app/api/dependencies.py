@@ -4,8 +4,10 @@ Provides RBAC (Role-Based Access Control) utilities
 """
 from typing import Optional
 from uuid import UUID
-from fastapi import Header, HTTPException, status
+from fastapi import Header, HTTPException, status, Request
 from loguru import logger
+from pydantic import BaseModel
+from functools import lru_cache
 
 from app.services.supabase_client import supabase, get_supabase
 
@@ -13,9 +15,6 @@ def get_supabase_client():
     """Dependency to get Supabase client"""
     return get_supabase()
 
-
-from pydantic import BaseModel
-from fastapi import Header, HTTPException, status, Request
 
 class CurrentUser(BaseModel):
     """Model for the current authenticated user"""
@@ -41,8 +40,6 @@ class CurrentUser(BaseModel):
         return self.role.upper() == "MEMBER"
 
 
-from functools import lru_cache
-
 @lru_cache(maxsize=1000)  # LRU Cache for sync functions
 def get_cached_user(token: str):
     """
@@ -50,6 +47,25 @@ def get_cached_user(token: str):
     Reduces API calls for frequent requests from the same user
     """
     return supabase.auth.get_user(token)
+
+
+@lru_cache(maxsize=1000)
+def get_cached_membership(user_id: str, org_id: str):
+    """
+    Cached membership check to reduce Supabase load and prevent resource issues.
+    """
+    return supabase.table("memberships").select(
+        "role, job_title"
+    ).eq("user_id", user_id).eq("organization_id", org_id).execute()
+
+
+@lru_cache(maxsize=100)
+def get_cached_org(slug: str):
+    """
+    Cached organization resolution to mitigate [Errno 35] issues.
+    """
+    return supabase.table("organizations").select("id, status").eq("slug", slug).single().execute()
+
 
 def get_current_user(
     request: Request,
@@ -110,40 +126,37 @@ def get_current_user(
         )
     
     # 2. Determine Organization Context
-    # Priority: 1. Path Param (orgSlug/org_slug) -> 2. Header (X-Organization-Id)
     org_id = None
     
     # Check Path Params
     path_org_slug = request.path_params.get("orgSlug") or request.path_params.get("org_slug")
     
     if path_org_slug:
-        # Resolve slug to ID
         try:
-            org_res = supabase.table("organizations").select("id, status").eq("slug", path_org_slug).single().execute()
+            org_res = get_cached_org(path_org_slug)
             if org_res.data:
                 org_id = UUID(org_res.data["id"])
                 if org_res.data.get("status") == "suspended":
                     raise HTTPException(status_code=403, detail="Organization suspended")
         except Exception as e:
-            # If it's a "Row not found" error (Supabase/PostgREST specific), we can ignore it and try header
-            # Otherwise, it's a DB error that should be raised
             if "JSON object requested, multiple (or no) rows returned" in str(e) or "Results contain 0 rows" in str(e):
                 pass
             else:
                 logger.error(f"DB Error resolving org slug: {e}")
+                get_cached_org.cache_clear()
                 raise HTTPException(status_code=500, detail="Database error resolving organization")
             
     # Fallback to Header if no path param
     if not org_id:
         x_org_id = request.headers.get("X-Organization-Id")
         if x_org_id:
-            # Try to parse as UUID first
             try:
+                # Try to parse as UUID first
                 org_id = UUID(x_org_id)
             except ValueError:
                 # Not a UUID, try to resolve as slug
                 try:
-                    org_res = supabase.table("organizations").select("id, status").eq("slug", x_org_id).single().execute()
+                    org_res = get_cached_org(x_org_id)
                     if org_res.data:
                         org_id = UUID(org_res.data["id"])
                         if org_res.data.get("status") == "suspended":
@@ -159,11 +172,9 @@ def get_current_user(
             detail="Organization context required (Path param or X-Organization-Id header)"
         )
 
-    # 3. Verify Membership
+    # 3. Verify Membership (Using cache)
     try:
-        membership_response = supabase.table("memberships").select(
-            "role, job_title"
-        ).eq("user_id", str(user_id)).eq("organization_id", str(org_id)).execute()
+        membership_response = get_cached_membership(str(user_id), str(org_id))
         
         if not membership_response.data:
             raise HTTPException(
@@ -179,6 +190,8 @@ def get_current_user(
         raise
     except Exception as e:
         logger.error(f"Membership check failed: {e}")
+        # Clear cache on error to allow retry
+        get_cached_membership.cache_clear()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to verify organization membership"
@@ -201,7 +214,6 @@ def require_board_or_owner(
     Dependency to require BOARD or OWNER role
     Properly chains with get_current_user for authentication
     """
-    # First authenticate the user
     current_user = get_current_user(request, authorization)
     
     if not current_user.is_board_or_owner():
@@ -221,7 +233,6 @@ def require_owner(
     Dependency to require OWNER role
     Properly chains with get_current_user for authentication
     """
-    # First authenticate the user
     current_user = get_current_user(request, authorization)
     
     if not current_user.is_owner():

@@ -24,6 +24,7 @@ interface ToolsLibraryProps {
     libraryApps: LibraryApp[];
     setLibraryApps: React.Dispatch<React.SetStateAction<LibraryApp[]>>;
     libraryLoading: boolean;
+    projectTools: ProjectTool[];
 }
 
 // --- Helper ---
@@ -36,7 +37,7 @@ const getLogoUrl = (url: string) => {
     }
 };
 
-export function ToolsLibrary({ onClose, libraryApps, setLibraryApps, libraryLoading }: ToolsLibraryProps) {
+export function ToolsLibrary({ onClose, libraryApps, setLibraryApps, libraryLoading, projectTools }: ToolsLibraryProps) {
     const { project, addToolToProject } = useProject();
     const apiClient = useApiClient();
 
@@ -47,9 +48,10 @@ export function ToolsLibrary({ onClose, libraryApps, setLibraryApps, libraryLoad
 
     // Add Tool State
     const [selectedAppToAdd, setSelectedAppToAdd] = useState<LibraryApp | null>(null);
-    const [addToolStatus, setAddToolStatus] = useState<string>('active');
+    const [addToolStatus, setAddToolStatus] = useState<'active' | 'planned' | 'deprecated'>('active');
     const [addToolNote, setAddToolNote] = useState('');
     const [addToolLoading, setAddToolLoading] = useState(false);
+    const [deletingAppId, setDeletingAppId] = useState<string | null>(null); // To prevent spam clicks on delete
 
     // Create Custom Tool State
     const [showCreateToolForm, setShowCreateToolForm] = useState(false);
@@ -71,6 +73,17 @@ export function ToolsLibrary({ onClose, libraryApps, setLibraryApps, libraryLoad
         { key: 'Cloud & Infrastructure', label: 'Cloud' },
         { key: 'Collaboration', label: 'Collab' },
     ];
+
+    // Calculate which apps are already in the project
+    const existingAppIds = useMemo(() => {
+        const ids = new Set<string>();
+        projectTools.forEach(tool => {
+            if (tool.application_id) {
+                ids.add(tool.application_id);
+            }
+        });
+        return ids;
+    }, [projectTools]);
 
     const filteredLibraryApps = useMemo(() => {
         return libraryApps.filter(app => {
@@ -177,130 +190,172 @@ export function ToolsLibrary({ onClose, libraryApps, setLibraryApps, libraryLoad
                         ) : libraryViewMode === 'grid' ? (
                             /* Grid View */
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                                {filteredLibraryApps.map((app) => (
-                                    <div
-                                        key={app.id}
-                                        className="relative flex items-start gap-3 p-4 bg-white border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all text-left group"
-                                    >
-                                        {/* Delete button for non-certified apps */}
-                                        {app.status !== 'CERTIFIED' && (
-                                            <button
-                                                onClick={async (e) => {
-                                                    e.stopPropagation();
-                                                    if (!confirm(`Delete "${app.name}"? This cannot be undone.`)) return;
-                                                    try {
-                                                        await apiClient.delete(`/applications/${app.id}`);
-                                                        setLibraryApps(prev => prev.filter(a => a.id !== app.id));
-                                                        toast.success(`${app.name} deleted`);
-                                                    } catch (err: any) {
-                                                        toast.error(err.message || 'Failed to delete');
-                                                    }
-                                                }}
-                                                className="absolute top-2 right-2 p-1.5 rounded-full bg-white border border-gray-200 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all z-10"
-                                                title="Delete"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                        )}
+                                {filteredLibraryApps.map((app) => {
+                                    const isAlreadyAdded = existingAppIds.has(app.id);
 
-                                        {/* Clickable area to add tool */}
-                                        <button
-                                            onClick={() => {
-                                                setSelectedAppToAdd(app);
-                                                setAddToolStatus('active');
-                                                setAddToolNote('');
-                                            }}
-                                            className="absolute inset-0 z-0"
-                                        />
+                                    return (
+                                        <div
+                                            key={app.id}
+                                            className={`relative flex items-start gap-3 p-4 bg-white border rounded-xl transition-all text-left group ${isAlreadyAdded
+                                                ? 'border-gray-100 opacity-50 cursor-not-allowed'
+                                                : 'border-gray-200 hover:border-blue-300 hover:shadow-md cursor-pointer'
+                                                }`}
+                                        >
+                                            {/* Delete button for non-certified apps */}
+                                            {app.status !== 'CERTIFIED' && !isAlreadyAdded && (
+                                                <button
+                                                    onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        if (deletingAppId) return; // Prevent spam
+                                                        if (!confirm(`Delete "${app.name}"? This cannot be undone.`)) return;
 
-                                        {/* Logo */}
-                                        <div className="w-10 h-10 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden shrink-0 relative z-0">
-                                            <img
-                                                src={app.logo_url || getLogoUrl(app.url) || ''}
-                                                alt={app.name}
-                                                className="w-6 h-6 object-contain"
-                                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                            />
-                                        </div>
+                                                        setDeletingAppId(app.id);
+                                                        try {
+                                                            await apiClient.delete(`/applications/${app.id}`);
+                                                            setLibraryApps(prev => prev.filter(a => a.id !== app.id));
+                                                            toast.success(`${app.name} deleted`);
+                                                        } catch (err: any) {
+                                                            toast.error(err.message || 'Failed to delete');
+                                                        } finally {
+                                                            setDeletingAppId(null);
+                                                        }
+                                                    }}
+                                                    disabled={deletingAppId === app.id}
+                                                    className="absolute top-2 right-2 p-1.5 rounded-full bg-white border border-gray-200 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all z-10 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    title="Delete"
+                                                >
+                                                    {deletingAppId === app.id ? (
+                                                        <Loader2 size={14} className="animate-spin text-gray-400" />
+                                                    ) : (
+                                                        <Trash2 size={14} />
+                                                    )}
+                                                </button>
+                                            )}
 
-                                        {/* Info */}
-                                        <div className="flex-1 min-w-0 relative z-0">
-                                            <div className="flex items-center gap-1.5 flex-wrap">
-                                                <h3 className="font-semibold text-gray-900 text-sm">{app.name}</h3>
-                                                {app.status === 'CERTIFIED' && (
-                                                    <span className="w-4 h-4 rounded-full bg-gray-900 flex items-center justify-center" title="Certified">
-                                                        <Check size={10} className="text-white" strokeWidth={3} />
-                                                    </span>
-                                                )}
+                                            {/* Already added badge */}
+                                            {isAlreadyAdded && (
+                                                <div className="absolute top-2 right-2 px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-medium rounded-full border border-gray-200 z-10">
+                                                    Added
+                                                </div>
+                                            )}
+
+                                            {/* Clickable area to add tool - disabled if already added */}
+                                            {!isAlreadyAdded && (
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedAppToAdd(app);
+                                                        setAddToolStatus('active');
+                                                        setAddToolNote('');
+                                                    }}
+                                                    className="absolute inset-0 z-0"
+                                                />
+                                            )}
+
+                                            {/* Logo */}
+                                            <div className="w-10 h-10 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden shrink-0 relative z-0">
+                                                <img
+                                                    src={app.logo_url || getLogoUrl(app.url) || ''}
+                                                    alt={app.name}
+                                                    className="w-6 h-6 object-contain"
+                                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                />
                                             </div>
-                                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{app.description}</p>
+
+                                            {/* Info */}
+                                            <div className="flex-1 min-w-0 relative z-0">
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                    <h3 className="font-semibold text-gray-900 text-sm">{app.name}</h3>
+                                                    {app.status === 'CERTIFIED' && (
+                                                        <span className="w-4 h-4 rounded-full bg-gray-900 flex items-center justify-center" title="Certified">
+                                                            <Check size={10} className="text-white" strokeWidth={3} />
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{app.description}</p>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         ) : (
                             /* List View */
                             <div className="space-y-1">
-                                {filteredLibraryApps.map((app) => (
-                                    <div
-                                        key={app.id}
-                                        className="relative w-full flex items-center gap-3 px-3 py-2.5 bg-white hover:bg-gray-50 rounded-lg transition-all text-left group"
-                                    >
-                                        {/* Clickable area to add tool */}
-                                        <button
-                                            onClick={() => {
-                                                setSelectedAppToAdd(app);
-                                                setAddToolStatus('active');
-                                                setAddToolNote('');
-                                            }}
-                                            className="absolute inset-0 z-0"
-                                        />
+                                {filteredLibraryApps.map((app) => {
+                                    const isAlreadyAdded = existingAppIds.has(app.id);
 
-                                        {/* Logo */}
-                                        <div className="w-8 h-8 rounded-md bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden shrink-0 relative z-0">
-                                            <img
-                                                src={app.logo_url || getLogoUrl(app.url) || ''}
-                                                alt={app.name}
-                                                className="w-5 h-5 object-contain"
-                                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                            />
-                                        </div>
+                                    return (
+                                        <div
+                                            key={app.id}
+                                            className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left group ${isAlreadyAdded
+                                                ? 'bg-gray-50 opacity-50 cursor-not-allowed'
+                                                : 'bg-white hover:bg-gray-50 cursor-pointer'
+                                                }`}
+                                        >
+                                            {/* Clickable area to add tool - disabled if already added */}
+                                            {!isAlreadyAdded && (
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedAppToAdd(app);
+                                                        setAddToolStatus('active');
+                                                        setAddToolNote('');
+                                                    }}
+                                                    className="absolute inset-0 z-0"
+                                                />
+                                            )}
 
-                                        {/* Name + Badge */}
-                                        <div className="flex items-center gap-1.5 min-w-[140px] relative z-0">
-                                            <h3 className="font-medium text-gray-900 text-sm">{app.name}</h3>
-                                            {app.status === 'CERTIFIED' && (
-                                                <span className="w-3.5 h-3.5 rounded-full bg-gray-900 flex items-center justify-center" title="Certified">
-                                                    <Check size={8} className="text-white" strokeWidth={3} />
-                                                </span>
+                                            {/* Logo */}
+                                            <div className="w-8 h-8 rounded-md bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden shrink-0 relative z-0">
+                                                <img
+                                                    src={app.logo_url || getLogoUrl(app.url) || ''}
+                                                    alt={app.name}
+                                                    className="w-5 h-5 object-contain"
+                                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                />
+                                            </div>
+
+                                            {/* Name + Badge */}
+                                            <div className="flex items-center gap-1.5 min-w-[140px] relative z-0">
+                                                <h3 className="font-medium text-gray-900 text-sm">{app.name}</h3>
+                                                {app.status === 'CERTIFIED' && (
+                                                    <span className="w-3.5 h-3.5 rounded-full bg-gray-900 flex items-center justify-center" title="Certified">
+                                                        <Check size={8} className="text-white" strokeWidth={3} />
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Description */}
+                                            <p className="flex-1 text-sm text-gray-500 truncate relative z-0">{app.description}</p>
+
+                                            {/* Already added badge */}
+                                            {isAlreadyAdded && (
+                                                <div className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-medium rounded-full border border-gray-200 z-10">
+                                                    Added
+                                                </div>
+                                            )}
+
+                                            {/* Delete button for non-certified apps */}
+                                            {app.status !== 'CERTIFIED' && (
+                                                <button
+                                                    onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        if (!confirm(`Delete "${app.name}"? This cannot be undone.`)) return;
+                                                        try {
+                                                            await apiClient.delete(`/applications/${app.id}`);
+                                                            setLibraryApps(prev => prev.filter(a => a.id !== app.id));
+                                                            toast.success(`${app.name} deleted`);
+                                                        } catch (err: any) {
+                                                            toast.error(err.message || 'Failed to delete');
+                                                        }
+                                                    }}
+                                                    className="p-1.5 rounded-full bg-white border border-gray-200 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all z-10 relative"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
                                             )}
                                         </div>
-
-                                        {/* Description */}
-                                        <p className="flex-1 text-sm text-gray-500 truncate relative z-0">{app.description}</p>
-
-                                        {/* Delete button for non-certified apps */}
-                                        {app.status !== 'CERTIFIED' && (
-                                            <button
-                                                onClick={async (e) => {
-                                                    e.stopPropagation();
-                                                    if (!confirm(`Delete "${app.name}"? This cannot be undone.`)) return;
-                                                    try {
-                                                        await apiClient.delete(`/applications/${app.id}`);
-                                                        setLibraryApps(prev => prev.filter(a => a.id !== app.id));
-                                                        toast.success(`${app.name} deleted`);
-                                                    } catch (err: any) {
-                                                        toast.error(err.message || 'Failed to delete');
-                                                    }
-                                                }}
-                                                className="p-1.5 rounded-full bg-white border border-gray-200 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all z-10 relative"
-                                                title="Delete"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                        )}
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </div>

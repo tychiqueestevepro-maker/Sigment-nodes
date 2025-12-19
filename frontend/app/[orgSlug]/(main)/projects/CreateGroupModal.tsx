@@ -1,36 +1,87 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ArrowRight, ArrowLeft, Check, Users, Code, Globe, Rocket, Shield } from 'lucide-react';
-import { MemberPicker } from '@/components/shared/MemberPicker';
+import { X, Check, Rocket, Users, Search, Crown, ArrowLeft, ChevronRight } from 'lucide-react';
+import { useUser } from '@/contexts/UserContext';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useApiClient } from '@/hooks/useApiClient';
 
 interface CreateGroupModalProps {
     onClose: () => void;
-    onCreate: (name: string, description: string, color: string, memberIds: string[]) => void;
+    onCreate: (name: string, description: string, color: string, memberIds: string[], leadId?: string) => void;
 }
 
 export default function CreateGroupModal({ onClose, onCreate }: CreateGroupModalProps) {
-    const [step, setStep] = useState<'info' | 'members'>('info');
+    const { user } = useUser();
+    const { organization } = useOrganization();
+    const apiClient = useApiClient();
+
+    const [step, setStep] = useState(1);
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [color, setColor] = useState('#22c55e'); // Default green
-    const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Member selection state
+    const [orgMembers, setOrgMembers] = useState<any[]>([]);
+    const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set());
+    const [projectLeadId, setProjectLeadId] = useState<string>('');
+    const [memberSearchQuery, setMemberSearchQuery] = useState('');
+    const [isLoadingMembers, setIsLoadingMembers] = useState(false);
 
     const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#0ea5e9', '#6b7280'];
 
-    const handleNext = () => {
-        if (!name.trim()) return;
-        setStep('members');
+    // Fetch members on mount
+    useEffect(() => {
+        if (organization?.slug) {
+            fetchMembers();
+        }
+    }, [organization?.slug]);
+
+    // Ensure current user is always selected and default lead
+    useEffect(() => {
+        if (user?.id) {
+            setSelectedMembers(prev => {
+                const newSet = new Set(prev);
+                newSet.add(user.id);
+                return newSet;
+            });
+            if (!projectLeadId) {
+                setProjectLeadId(user.id);
+            }
+        }
+    }, [user?.id]);
+
+    const fetchMembers = async () => {
+        setIsLoadingMembers(true);
+        try {
+            const members = await apiClient.get<any[]>(`/organizations/${organization!.slug}/members`);
+            setOrgMembers(members);
+        } catch (error) {
+            console.error('Error fetching org members:', error);
+        } finally {
+            setIsLoadingMembers(false);
+        }
     };
 
     const handleCreate = async () => {
+        if (!name.trim() || isSubmitting) return;
         setIsSubmitting(true);
-        await onCreate(name, description, color, selectedMembers);
+        await onCreate(name, description, color, Array.from(selectedMembers), projectLeadId || undefined);
         setIsSubmitting(false);
-        onClose();
+        // Don't call onClose() here - let the parent handle it after navigation
     };
+
+    const filteredMembers = orgMembers.filter(member => {
+        const query = memberSearchQuery.toLowerCase();
+        const memberName = member.name?.toLowerCase() || '';
+        const jobTitle = member.job_title?.toLowerCase() || '';
+        const email = member.email?.toLowerCase() || '';
+        return memberName.includes(query) || jobTitle.includes(query) || email.includes(query);
+    });
+
+    const leadName = orgMembers.find(m => m.id === projectLeadId)?.name;
 
     return (
         <>
@@ -47,71 +98,72 @@ export default function CreateGroupModal({ onClose, onCreate }: CreateGroupModal
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
                 className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none p-4"
             >
-                <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl pointer-events-auto overflow-hidden flex flex-col max-h-[90vh]">
+                <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl pointer-events-auto overflow-hidden flex flex-col max-h-[90vh]">
                     {/* Header */}
-                    <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                    <div className="p-8 pb-4 flex items-start justify-between">
                         <div>
-                            <h3 className="text-xl font-bold text-gray-900">Create New Project</h3>
-                            <p className="text-sm text-gray-500">
-                                {step === 'info' ? 'Step 1: Project Details' : 'Step 2: Add Team Members'}
+                            <h3 className="text-2xl font-bold text-gray-900">
+                                {step === 1 ? 'Create New Project' : 'Select Team Members'}
+                            </h3>
+                            <p className="text-gray-500 mt-1">
+                                {step === 1 ? 'Set up your project workspace' : 'Choose who will work on this project'}
                             </p>
                         </div>
-                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                            <X size={20} className="text-gray-500" />
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400">
+                            <X size={24} />
                         </button>
                     </div>
 
-                    {/* Content */}
-                    <div className="flex-1 overflow-y-auto p-6">
+                    <div className="flex-1 overflow-y-auto px-8">
                         <AnimatePresence mode="wait">
-                            {step === 'info' ? (
+                            {step === 1 ? (
                                 <motion.div
-                                    key="info"
+                                    key="step1"
                                     initial={{ opacity: 0, x: -20 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: 20 }}
-                                    className="space-y-6"
+                                    className="py-6 space-y-8"
                                 >
                                     {/* Name Input */}
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-900 mb-2">Project Name</label>
+                                        <label className="block text-sm font-bold text-gray-700 mb-3">Project Name</label>
                                         <input
                                             type="text"
                                             value={name}
                                             onChange={(e) => setName(e.target.value)}
                                             placeholder="e.g. Website Redesign, Q4 Marketing Campaign"
-                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all text-lg font-medium"
+                                            className="w-full px-5 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all text-xl font-semibold placeholder:text-gray-300"
                                             autoFocus
-                                            onKeyDown={(e) => e.key === 'Enter' && handleNext()}
+                                            onKeyDown={(e) => e.key === 'Enter' && name.trim() && setStep(2)}
                                         />
                                     </div>
 
                                     {/* Description Input */}
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-900 mb-2">Description (Optional)</label>
+                                        <label className="block text-sm font-bold text-gray-700 mb-3">Description (Optional)</label>
                                         <textarea
                                             value={description}
                                             onChange={(e) => setDescription(e.target.value)}
                                             placeholder="What is this project about?"
-                                            rows={3}
-                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all resize-none"
+                                            rows={4}
+                                            className="w-full px-5 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all resize-none text-gray-700 font-medium placeholder:text-gray-400"
                                         />
                                     </div>
 
                                     {/* Color Selection */}
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-900 mb-3">Project Color</label>
-                                        <div className="flex flex-wrap gap-3">
+                                        <label className="block text-sm font-bold text-gray-700 mb-4">Project Color</label>
+                                        <div className="flex flex-wrap gap-4">
                                             {colors.map(c => (
                                                 <button
                                                     key={c}
                                                     type="button"
                                                     onClick={() => setColor(c)}
-                                                    className={`w-10 h-10 rounded-full transition-all flex items-center justify-center ${color === c ? 'ring-2 ring-offset-2 ring-black scale-110' : 'hover:scale-105 hover:shadow-md'
+                                                    className={`w-11 h-11 rounded-full transition-all flex items-center justify-center ${color === c ? 'ring-[3px] ring-offset-2 ring-black scale-110' : 'hover:scale-110 hover:shadow-lg opacity-80 hover:opacity-100'
                                                         }`}
                                                     style={{ backgroundColor: c }}
                                                 >
-                                                    {color === c && <Check size={16} className="text-white font-bold" strokeWidth={3} />}
+                                                    {color === c && <Check size={20} className="text-white font-bold" strokeWidth={4} />}
                                                 </button>
                                             ))}
                                         </div>
@@ -119,51 +171,136 @@ export default function CreateGroupModal({ onClose, onCreate }: CreateGroupModal
                                 </motion.div>
                             ) : (
                                 <motion.div
-                                    key="members"
+                                    key="step2"
                                     initial={{ opacity: 0, x: 20 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: -20 }}
-                                    className="h-full flex flex-col"
+                                    className="py-6 space-y-6"
                                 >
-                                    <h4 className="font-semibold text-gray-900 mb-4">Who's working on this project?</h4>
+                                    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+                                        <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
+                                            <Users size={16} className="text-gray-400" />
+                                            Team Members
+                                        </h3>
+                                        <p className="text-xs text-gray-500 mb-5">
+                                            Check members and click on <Crown size={14} className="inline" /> for the lead
+                                        </p>
 
-                                    {/* We reuse the Logic from MemberPicker but simplified or just imply integration */}
-                                    {/* Since MemberPicker is a modal itself usually, we might need a simpler inline version or just button to add */}
-                                    {/* For this refactor, I'll assume we can trigger the MemberPicker as a nested modal or adjust UI. 
-                                        Actually, to keep it simple and preserve existing behavior, let's use a placeholder or check if MemberPicker can be embedded.
-                                        The previous code used MemberPicker which handled its own open state. 
-                                        Let's assume for this specific modal step we want to just show a list of added members and a button to add more.
-                                    */}
-
-                                    <div className="flex-1 min-h-[200px] border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center p-6 text-center space-y-4 bg-gray-50 mb-4">
-                                        <div className="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center">
-                                            <Users size={24} className="text-gray-400" />
-                                        </div>
-                                        <div>
-                                            <p className="font-medium text-gray-900">Add Team Members</p>
-                                            <p className="text-sm text-gray-500 mt-1">
-                                                {selectedMembers.length === 0
-                                                    ? 'Skip for now or invite people later'
-                                                    : `${selectedMembers.length} members selected`
-                                                }
-                                            </p>
+                                        {/* Search Bar */}
+                                        <div className="relative mb-6">
+                                            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" />
+                                            <input
+                                                type="text"
+                                                value={memberSearchQuery}
+                                                onChange={(e) => setMemberSearchQuery(e.target.value)}
+                                                placeholder="Search by name, role or email..."
+                                                className="w-full pl-12 pr-5 py-3.5 border border-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-gray-200 text-sm bg-gray-50/30 font-medium placeholder:text-gray-400"
+                                            />
                                         </div>
 
-                                        {/* This button would trigger the actual MemberPicker in a real app, 
-                                            but for now let's just allow proceeding as the original code was complex. 
-                                            The original code didn't actually show MemberPicker INSIDE this modal step, 
-                                            it likely had a separate mechanism. 
-                                            Wait, looking at original file, MemberPicker WAS used.
-                                            Let's simplify: User creates project first, then adds members in the project view.
-                                            Except the user wants "Pixel Perfect". The original code had a 2-step wizard.
-                                        */}
+                                        <div className="space-y-3 max-h-[400px] overflow-y-auto pr-3 custom-scrollbar">
+                                            {isLoadingMembers ? (
+                                                <div className="flex justify-center py-12">
+                                                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900"></div>
+                                                </div>
+                                            ) : filteredMembers.length === 0 ? (
+                                                <div className="text-center py-12 text-gray-400 text-sm font-medium">No members found matching your search</div>
+                                            ) : (
+                                                filteredMembers.map((member) => {
+                                                    const isSelected = selectedMembers.has(member.id);
+                                                    const isLead = projectLeadId === member.id;
+                                                    const isYou = member.id === user?.id;
 
-                                        <button
-                                            className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
-                                            onClick={() => { /* Placeholder for member picking logic if needed, or just let users add later */ }}
-                                        >
-                                            (Member selection available in project settings)
-                                        </button>
+                                                    return (
+                                                        <div
+                                                            key={member.id}
+                                                            className={`flex items-center gap-4 p-4 rounded-2xl transition-all border-2 ${isSelected
+                                                                ? isLead ? 'border-black bg-white shadow-sm' : 'border-gray-100 bg-gray-50/30'
+                                                                : 'border-transparent bg-white hover:bg-gray-50/50'
+                                                                }`}
+                                                        >
+                                                            {/* Checkbox */}
+                                                            <div className="flex items-center justify-center shrink-0">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={isSelected}
+                                                                    disabled={isYou} // Cannot unselect self
+                                                                    onChange={(e) => {
+                                                                        const newSet = new Set(selectedMembers);
+                                                                        if (e.target.checked) {
+                                                                            newSet.add(member.id);
+                                                                        } else {
+                                                                            newSet.delete(member.id);
+                                                                            if (member.id === projectLeadId) {
+                                                                                setProjectLeadId('');
+                                                                            }
+                                                                        }
+                                                                        setSelectedMembers(newSet);
+                                                                    }}
+                                                                    className="w-5 h-5 cursor-pointer accent-black rounded-lg border-gray-300"
+                                                                />
+                                                            </div>
+
+                                                            {/* Crown Icon */}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    if (isLead) {
+                                                                        setProjectLeadId('');
+                                                                    } else {
+                                                                        setProjectLeadId(member.id);
+                                                                        setSelectedMembers(prev => new Set(prev).add(member.id));
+                                                                    }
+                                                                }}
+                                                                className={`p-2 rounded-xl transition-all shrink-0 ${isLead
+                                                                    ? 'bg-black text-white shadow-md'
+                                                                    : 'text-gray-200 hover:text-gray-400 hover:bg-gray-100'
+                                                                    }`}
+                                                                title={isLead ? 'Remove as lead' : 'Assign as lead'}
+                                                            >
+                                                                <Crown size={18} />
+                                                            </button>
+
+                                                            {/* Avatar */}
+                                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-base border-2 overflow-hidden shrink-0 ${isLead
+                                                                ? 'border-black bg-black text-white'
+                                                                : 'border-white bg-gray-100 text-gray-700 shadow-sm'
+                                                                }`}>
+                                                                {member.avatar_url ? (
+                                                                    <img src={member.avatar_url} alt={member.name} className="w-full h-full object-cover" />
+                                                                ) : (
+                                                                    <span>{member.name?.substring(0, 2).toUpperCase()}</span>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Info */}
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="font-bold text-gray-900 flex items-center gap-2 truncate text-base">
+                                                                    {member.name}
+                                                                    {isYou && (
+                                                                        <span className="text-[10px] bg-gray-100 text-gray-500 font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider">You</span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="text-xs text-gray-400 font-medium truncate">{member.job_title || 'Team Member'}</div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Selection Info Bar */}
+                                    <div className="flex items-center justify-between px-2 pt-2">
+                                        <div className="text-sm text-gray-400 font-semibold">
+                                            {selectedMembers.size} {selectedMembers.size > 1 ? 'members' : 'member'} selected
+                                        </div>
+                                        {projectLeadId && (
+                                            <div className="flex items-center gap-2 bg-gray-50 border border-gray-100 px-4 py-2 rounded-2xl shadow-sm">
+                                                <Crown size={16} className="text-black" />
+                                                <span className="text-sm font-bold text-black">{leadName}</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </motion.div>
                             )}
@@ -171,36 +308,37 @@ export default function CreateGroupModal({ onClose, onCreate }: CreateGroupModal
                     </div>
 
                     {/* Footer */}
-                    <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
-                        {step === 'members' ? (
+                    <div className="p-8 pt-6 flex justify-between items-center bg-white">
+                        {step === 2 && (
                             <button
-                                onClick={() => setStep('info')}
-                                className="px-4 py-2.5 text-gray-600 font-medium hover:bg-gray-200 rounded-xl transition-colors flex items-center gap-2"
+                                onClick={() => setStep(1)}
+                                className="px-8 py-4 text-gray-900 font-bold flex items-center gap-3 transition-all hover:bg-gray-50 rounded-2xl border border-gray-100"
                             >
-                                <ArrowLeft size={16} /> Back
-                            </button>
-                        ) : (
-                            <div></div> // Spacer
-                        )}
-
-                        {step === 'info' ? (
-                            <button
-                                onClick={handleNext}
-                                disabled={!name.trim()}
-                                className="px-6 py-2.5 bg-black text-white rounded-xl font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-lg shadow-gray-200"
-                            >
-                                Next Step <ArrowRight size={16} />
-                            </button>
-                        ) : (
-                            <button
-                                onClick={handleCreate}
-                                disabled={isSubmitting}
-                                className="px-6 py-2.5 bg-black text-white rounded-xl font-bold hover:bg-gray-800 disabled:opacity-50 transition-all flex items-center gap-2 shadow-lg shadow-gray-200"
-                            >
-                                {isSubmitting ? 'Creating...' : 'Create Project'}
-                                {!isSubmitting && <Rocket size={16} />}
+                                <ArrowLeft size={20} />
+                                Back
                             </button>
                         )}
+                        <div className="ml-auto flex gap-4">
+                            {step === 1 ? (
+                                <button
+                                    onClick={() => setStep(2)}
+                                    disabled={!name.trim()}
+                                    className="px-10 py-4 bg-black text-white rounded-2xl font-bold hover:bg-gray-800 disabled:opacity-50 transition-all flex items-center gap-3 shadow-[0_10px_30px_rgb(0,0,0,0.1)] hover:-translate-y-1 active:translate-y-0"
+                                >
+                                    Next
+                                    <ChevronRight size={20} />
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleCreate}
+                                    disabled={!name.trim() || isSubmitting}
+                                    className="px-10 py-4 bg-black text-white rounded-2xl font-bold hover:bg-gray-800 disabled:opacity-50 transition-all flex items-center gap-3 shadow-[0_10px_30px_rgb(0,0,0,0.1)] hover:-translate-y-1 active:translate-y-0"
+                                >
+                                    {isSubmitting ? 'Creating...' : 'Create Project'}
+                                    {!isSubmitting && <Rocket size={20} />}
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             </motion.div>

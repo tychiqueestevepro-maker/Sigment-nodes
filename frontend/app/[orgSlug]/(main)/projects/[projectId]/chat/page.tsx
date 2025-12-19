@@ -67,7 +67,7 @@ function MessageInput({ onSend }: MessageInputProps) {
     };
 
     const handleSubmit = async () => {
-        if (!content.trim() && attachments.length === 0) return;
+        if ((!content.trim() && attachments.length === 0) || isUploading) return;
 
         setIsUploading(true);
         try {
@@ -89,9 +89,9 @@ function MessageInput({ onSend }: MessageInputProps) {
                     uploadedFiles.push({ url: result.url, type: result.content_type, name: result.filename });
                 }
 
-                onSend(content, uploadedFiles);
+                await onSend(content, uploadedFiles);
             } else {
-                onSend(content);
+                await onSend(content);
             }
 
             setContent('');

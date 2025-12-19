@@ -90,13 +90,34 @@ def get_user_projects(
                     if not last_read or (msg_created and msg_created > last_read):
                         has_unread = True
                 
+                # Fetch members with user details for avatars
+                members_resp = supabase.table("project_members")\
+                    .select("id, user_id, project_id, users(first_name, last_name, avatar_url)")\
+                    .eq("project_id", pid)\
+                    .limit(3)\
+                    .execute()
+                
+                members = []
+                if members_resp.data:
+                    for m in members_resp.data:
+                        user_data = m.get("users", {})
+                        members.append({
+                            "id": m.get("id"),
+                            "user_id": m.get("user_id"),
+                            "project_id": m.get("project_id"),
+                            "first_name": user_data.get("first_name"),
+                            "last_name": user_data.get("last_name"),
+                            "avatar_url": user_data.get("avatar_url")
+                        })
+                
                 return Project(
                     **project_data,
                     member_count=m_count,
                     item_count=i_count,
                     is_lead=is_lead,
                     has_unread=has_unread,
-                    organization_id=current_user.organization_id
+                    organization_id=current_user.organization_id,
+                    members=members
                 )
             except Exception as e:
                 logger.error(f"Error processing project {item.get('project_id')}: {e}")
@@ -119,7 +140,7 @@ def get_user_projects(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("", response_model=UUID)
+@router.post("", response_model=Project)
 def create_project(
     payload: ProjectCreate,
     current_user: CurrentUser = Depends(get_current_user)
@@ -141,34 +162,38 @@ def create_project(
         
         project_id = project_resp.data[0]["id"]
         
-        # Add creator as lead
+        # Determine lead
+        lead_id = payload.lead_id or current_user.id
+        
+        # Add lead
         supabase.table("project_members").insert({
             "project_id": str(project_id),
-            "user_id": str(current_user.id),
+            "user_id": str(lead_id),
             "role": "lead"
         }).execute()
         
         # Add other members
-        # Add other members
-        if payload.member_ids:
-            # Filter out creator to avoid duplicate key error
-            members_to_add = [mid for mid in payload.member_ids if str(mid) != str(current_user.id)]
-            
-            if members_to_add:
-                members_data = [
-                    {
-                        "project_id": str(project_id),
-                        "user_id": str(member_id),
-                        "role": "member"
-                    }
-                    for member_id in members_to_add
-                ]
-                supabase.table("project_members").insert(members_data).execute()
+        all_member_ids = set(payload.member_ids)
+        all_member_ids.add(current_user.id) # Creator is always a member
+        
+        # Members to add as regular members (everyone except the lead)
+        members_to_add = [mid for mid in all_member_ids if str(mid) != str(lead_id)]
+        
+        if members_to_add:
+            members_data = [
+                {
+                    "project_id": str(project_id),
+                    "user_id": str(member_id),
+                    "role": "member"
+                }
+                for member_id in members_to_add
+            ]
+            supabase.table("project_members").insert(members_data).execute()
         
         # Create welcome message
         try:
             # Get project lead info
-            lead_user = supabase.table("users").select("first_name, last_name, email").eq("id", str(current_user.id)).single().execute()
+            lead_user = supabase.table("users").select("first_name, last_name, email").eq("id", str(lead_id)).single().execute()
             lead_name = f"{lead_user.data.get('first_name', '')} {lead_user.data.get('last_name', '')}".strip() or lead_user.data.get('email', 'Unknown')
             
             # Get team members info
@@ -201,7 +226,17 @@ def create_project(
         except Exception as e:
             logger.error(f"Failed to post welcome message: {e}")
         
-        return project_id
+        # Fetch the complete project to return
+        project_data = supabase.table("projects").select("*").eq("id", str(project_id)).single().execute()
+        member_count = supabase.table("project_members").select("id", count="exact").eq("project_id", str(project_id)).execute().count or 0
+        
+        return Project(
+            **project_data.data,
+            member_count=member_count,
+            item_count=0,
+            is_lead=True,  # Creator is always lead
+            has_unread=False
+        )
         
     except HTTPException:
         raise

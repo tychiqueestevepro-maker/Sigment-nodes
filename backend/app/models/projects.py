@@ -17,6 +17,7 @@ class ProjectBase(BaseModel):
 
 class ProjectCreate(ProjectBase):
     member_ids: List[UUID] = []
+    lead_id: Optional[UUID] = None
 
 
 class ProjectUpdate(BaseModel):
@@ -24,6 +25,17 @@ class ProjectUpdate(BaseModel):
     description: Optional[str] = None
     color: Optional[str] = None
     status: Optional[str] = None
+
+
+
+class SimpleProjectMember(BaseModel):
+    """Simplified member model for project lists"""
+    id: Optional[UUID] = None
+    user_id: Optional[UUID] = None
+    project_id: Optional[UUID] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    avatar_url: Optional[str] = None
 
 
 class Project(ProjectBase):
@@ -39,6 +51,7 @@ class Project(ProjectBase):
     item_count: int = 0
     is_lead: bool = False
     has_unread: bool = False
+    members: List[SimpleProjectMember] = []
 
 
 # --- Member Models ---

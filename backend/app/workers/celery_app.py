@@ -32,5 +32,23 @@ celery_app.conf.update(
     task_track_started=True,
     task_time_limit=300,  # 5 minutes
     task_soft_time_limit=240,  # 4 minutes
+    
+    # HARDENING FOR HIGH CONCURRENCY
+    task_acks_late=True,  # Ensure tasks are only acknowledged after successful execution
+    worker_prefetch_multiplier=1,  # Prevent worker from hoarding tasks (better load balancing)
+    task_reject_on_worker_lost=True,  # Re-queue task if worker crashes
+    broker_pool_limit=10,  # Limit broker connections
+    
+    # Redis specific settings
+    broker_transport_options={
+        'visibility_timeout': 3600,  # 1 hour
+        'max_connections': 20, # Limit Redis connections
+    },
+    
+    # Dead Letter Queue Strategy (Routing failed tasks)
+    task_routes={
+        # Route logic could be expanded here
+        '*': {'queue': 'default'},
+    }
 )
 

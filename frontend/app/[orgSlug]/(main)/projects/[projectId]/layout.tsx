@@ -6,7 +6,7 @@ import { usePathname, useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Eye, MessageCircle, Wrench, Clock, MoreVertical, ArrowLeft,
-    Crown, CheckCircle2, Edit3, Users, UserPlus, LogOut, Trash2, X, UserMinus
+    Crown, CheckCircle2, Edit3, Users, UserPlus, LogOut, Trash2, X, UserMinus, ChevronRight
 } from 'lucide-react';
 import { ProjectProvider, useProject, ProjectMember, Project } from './ProjectContext';
 import { MemberPicker } from '@/components/shared/MemberPicker';
@@ -234,6 +234,13 @@ function ProjectHeader() {
     const [showAddMemberModal, setShowAddMemberModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
 
+    const changeStatus = async (newStatus: string) => {
+        if (!project) return;
+        console.log('🔄 Changing status to:', newStatus);
+        await updateProject(project.name, project.description || '', project.color, newStatus);
+        console.log('✅ Status changed, project should refresh');
+    };
+
     if (!project) {
         // Loading skeleton
         return (
@@ -280,9 +287,21 @@ function ProjectHeader() {
                             <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-600 text-xs font-bold tracking-wider uppercase">
                                 Project
                             </span>
-                            <span className="flex items-center gap-1 text-green-600 text-xs font-bold bg-green-50 px-2 py-1 rounded-full">
-                                <CheckCircle2 size={12} /> Active
-                            </span>
+                            {project.status === 'active' && (
+                                <span className="flex items-center gap-1 text-green-600 text-xs font-bold bg-green-50 px-2 py-1 rounded-full">
+                                    <CheckCircle2 size={12} /> Active
+                                </span>
+                            )}
+                            {project.status === 'archived' && (
+                                <span className="flex items-center gap-1 text-yellow-600 text-xs font-bold bg-yellow-50 px-2 py-1 rounded-full">
+                                    <Clock size={12} /> Archived
+                                </span>
+                            )}
+                            {project.status === 'completed' && (
+                                <span className="flex items-center gap-1 text-gray-600 text-xs font-bold bg-gray-100 px-2 py-1 rounded-full">
+                                    <CheckCircle2 size={12} /> Completed
+                                </span>
+                            )}
                         </div>
                         <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight flex items-center gap-2">
                             {project.name}
@@ -306,8 +325,8 @@ function ProjectHeader() {
                                         key={tab.key}
                                         href={href}
                                         className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${isActive
-                                                ? 'bg-white text-black shadow-sm'
-                                                : 'text-gray-500 hover:text-gray-900'
+                                            ? 'bg-white text-black shadow-sm'
+                                            : 'text-gray-500 hover:text-gray-900'
                                             }`}
                                     >
                                         <Icon size={14} />
@@ -329,7 +348,7 @@ function ProjectHeader() {
                                 <>
                                     <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
                                     <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-20">
-                                        {isCreator && (
+                                        {project.is_lead && (
                                             <button
                                                 onClick={() => {
                                                     setShowMenu(false);
@@ -354,7 +373,50 @@ function ProjectHeader() {
                                                 <UserPlus size={16} /> Add Member
                                             </button>
                                         )}
-                                        {!isCreator && (
+                                        {project.is_lead && (
+                                            <div className="relative group">
+                                                <div className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer">
+                                                    <div className="flex items-center gap-3">
+                                                        <CheckCircle2 size={16} /> Change Status
+                                                    </div>
+                                                    <ChevronRight size={14} />
+                                                </div>
+                                                {/* Status submenu */}
+                                                <div className="absolute left-full top-0 ml-1 w-36 bg-white rounded-lg shadow-lg border border-gray-100 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+                                                    <button
+                                                        onClick={() => {
+                                                            changeStatus('active');
+                                                            setShowMenu(false);
+                                                        }}
+                                                        className="w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-green-50 flex items-center gap-2"
+                                                    >
+                                                        <div className="w-2 h-2 rounded-full bg-green-500" />
+                                                        Active
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            changeStatus('archived');
+                                                            setShowMenu(false);
+                                                        }}
+                                                        className="w-full text-left px-4 py-2 text-sm text-yellow-600 hover:bg-yellow-50 flex items-center gap-2"
+                                                    >
+                                                        <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                                                        Archived
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            changeStatus('completed');
+                                                            setShowMenu(false);
+                                                        }}
+                                                        className="w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-2"
+                                                    >
+                                                        <div className="w-2 h-2 rounded-full bg-gray-500" />
+                                                        Completed
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {!project.is_lead && (
                                             <button
                                                 onClick={() => { leaveProject(); setShowMenu(false); }}
                                                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50"

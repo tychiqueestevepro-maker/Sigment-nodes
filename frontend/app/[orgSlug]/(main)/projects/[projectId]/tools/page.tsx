@@ -20,38 +20,118 @@ const getLogoUrl = (url: string) => {
     }
 };
 
+// --- Category Normalization ---
+// Maps database categories to simplified connection suggestion categories
+function normalizeCategory(category: string): string {
+    const mapping: Record<string, string> = {
+        'Software Engineering': 'Engineering',
+        'Engineering': 'Engineering',
+        'Cloud & Infrastructure': 'Cloud',
+        'Cloud': 'Cloud',
+        'Data & Analytics': 'Data',
+        'Data': 'Data',
+        'Product & UX': 'Product',
+        'Product': 'Product',
+        'Automation & AI': 'AI',
+        'AI': 'AI',
+        'Sales': 'Sales',
+        'Marketing': 'Marketing',
+        'Project & Operations': 'Project',
+        'Project': 'Project',
+        'Collaboration': 'Collab',
+        'Collab': 'Collab',
+        'Operations': 'Project', // Operations maps to Project
+        'Other': 'Other'
+    };
+    return mapping[category] || 'Other';
+}
+
+// --- Connection Suggestions by Category ---
+const connectionSuggestions: Record<string, Record<string, string[]>> = {
+    // DEPUIS: ENGINEERING (Cursor, GitHub, Jira...)
+    Engineering: {
+        Engineering: ["Commit & Push", "Create Pull Request", "Sync Branch"],
+        Cloud: ["Trigger Auto-Deploy", "Sync Env Variables", "Rollback Version"],
+        Project: ["Update Issue Status", "Link Commit to Ticket", "Log Work Time"],
+        Collab: ["Request Code Review", "Notify Deployment", "Send Error Alert"],
+        AI: ["Generate Unit Tests", "Explain Code", "Refactor Function"],
+    },
+
+    // DEPUIS: CLOUD (AWS, Vercel...)
+    Cloud: {
+        Collab: ["Alert on Failure", "Notify Success", "Daily Cost Report"],
+        Data: ["Stream Logs", "Export Metrics", "Archive Backups"],
+        Engineering: ["Trigger Rebuild", "Update Config", "Clone Environment"],
+    },
+
+    // DEPUIS: PRODUCT & UX (Figma, Miro...)
+    Product: {
+        Engineering: ["Copy CSS/Tailwind", "Export Assets", "Sync Design Tokens"],
+        Project: ["Create Tasks from Design", "Embed Prototype", "Request Review"],
+        Collab: ["Notify Team Updates", "Share Feedback", "Brainstorm Session"],
+    },
+
+    // DEPUIS: SALES (HubSpot, Salesforce...)
+    Sales: {
+        Sales: ["Sync Leads", "Enroll in Sequence", "Merge Duplicates"],
+        Marketing: ["Add to Campaign", "Update Lead Score", "Create Audience"],
+        Data: ["Log Revenue", "Update LTV", "Sync Subscription"],
+        Collab: ["Notify Won Deal", "Alert High Value Lead", "Weekly Report"],
+        Project: ["Handover to Onboarding", "Create Client Project", "Attach Contract"],
+    },
+
+    // DEPUIS: MARKETING (Ads, Analytics...)
+    Marketing: {
+        Sales: ["Create New Lead", "Qualify Prospect", "Update Source Info"],
+        Data: ["Aggregate Traffic", "Analyze Funnel", "Export ROI Data"],
+        Collab: ["Send Campaign Stats", "Alert Budget Hit", "Share Creative"],
+    },
+
+    // DEPUIS: AUTOMATION & AI (OpenAI, Zapier...)
+    AI: {
+        Engineering: ["Write Documentation", "Debug Error", "Scaffold Component"],
+        Collab: ["Summarize Thread", "Draft Response", "Translate Content"],
+        Data: ["Clean Data", "Analyze Sentiment", "Categorize Feedback"],
+        Sales: ["Personalize Email", "Research Prospect", "Score Lead"],
+    },
+
+    // DEPUIS: PROJECT (Linear, Jira...)
+    Project: {
+        Collab: ["Notify Status Change", "Daily Standup Digest", "Ping Assignee"],
+        Engineering: ["Create Branch", "Generate Release Notes", "Block Deploy"],
+        Product: ["Request Design Update", "Link to Specs", "Mark as Ready"],
+    },
+
+    // DEPUIS: DATA (Snowflake, Airtable...)
+    Data: {
+        Collab: ["Send Dashboard PDF", "Alert Anomaly", "Morning Metrics"],
+        Sales: ["Enrich Contact Info", "Sync Usage Data", "Flag Churn Risk"],
+        AI: ["Train Model", "Find Patterns", "Predict Trend"],
+    },
+
+    // DEPUIS: COLLAB (Slack, Teams...)
+    Collab: {
+        Project: ["Create Task from Message", "Update Status", "Log Discussion"],
+        Engineering: ["Deploy on Command", "Alert on Error", "Code Review Reminder"],
+        Sales: ["Log Customer Feedback", "Schedule Follow-up", "Share Deal Update"],
+    }
+};
+
 // --- Smart Suggestions Logic ---
 function getSmartSuggestions(source: ProjectTool, target: ProjectTool): string[] {
-    const sCat = source.category || '';
-    const tCat = target.category || '';
-    const suggestions: string[] = [];
+    // Normalize categories from database format to suggestion format
+    const sourceCat = normalizeCategory(source.category || '');
+    const targetCat = normalizeCategory(target.category || '');
 
-    // Generic defaults
-    suggestions.push('Integrates with');
+    // Get suggestions from the mapping
+    const suggestions = connectionSuggestions[sourceCat]?.[targetCat] || [];
 
-    // Rule-based suggestions
-    if (sCat.includes('Engineering') && tCat.includes('Engineering')) {
-        suggestions.push('Deploys to', 'Builds', 'Monitors');
-    }
-    if (sCat.includes('Design') && tCat.includes('Engineering')) {
-        suggestions.push('Handoff to', 'Assets for');
-    }
-    if (sCat.includes('Sales') && tCat.includes('Marketing')) {
-        suggestions.push('Syncs leads to', 'Notifies');
-    }
-    if (sCat.includes('Marketing') && tCat.includes('Sales')) {
-        suggestions.push('Sends MQLs to', 'Updates contacts in');
-    }
-    if (sCat.includes('Data') && tCat.includes('Analytics')) {
-        suggestions.push('Streams to', 'ETL to', 'Visualizes data from');
+    // If no specific suggestions found, return generic defaults
+    if (suggestions.length === 0) {
+        return ['Integrates with', 'Sends data to', 'Triggers'];
     }
 
-    // Fallback if specific rules don't match well
-    if (suggestions.length === 1) {
-        suggestions.push('Sends data to', 'Triggers');
-    }
-
-    return suggestions.slice(0, 3);
+    return suggestions;
 }
 
 export default function ProjectToolsPage() {
@@ -63,6 +143,7 @@ export default function ProjectToolsPage() {
         deleteConnection,
         updateConnection,
         createConnection,
+        isLoadingConnections,
         apiClient,
         project
     } = useProject();
@@ -92,6 +173,9 @@ export default function ProjectToolsPage() {
     const [customLabel, setCustomLabel] = useState('');
     const [extendChainId, setExtendChainId] = useState<string | null>(null); // Chain ID to extend when using + button
 
+    // Loading states to prevent spam clicks on all actions
+    const [loadingActions, setLoadingActions] = useState<Record<string, boolean>>({});
+
     // Selection State
     const [selectedToolNode, setSelectedToolNode] = useState<{ id: string; toolName: string; x: number; y: number; chainId?: string; applicationId?: string; toolData?: ProjectTool } | null>(null);
 
@@ -103,6 +187,27 @@ export default function ProjectToolsPage() {
     const [newComment, setNewComment] = useState('');
     const [isPostingComment, setIsPostingComment] = useState(false);
     const [expandedSidebar, setExpandedSidebar] = useState(false);
+
+    // Calculate tools occupied in the current chain (if extending)
+    const existingChainToolIds = useMemo(() => {
+        if (!extendChainId) return new Set<string>();
+
+        // Find all connections in this chain
+        const chainConns = connections.filter(c => (c.chain_id || c.id) === extendChainId);
+        const ids = new Set<string>();
+
+        chainConns.forEach(c => {
+            ids.add(c.source_tool_id); // This is application_id
+            ids.add(c.target_tool_id);
+        });
+
+        // Also add the currently selected source if available (as it's the anchor)
+        if (connectionSource) {
+            ids.add(connectionSource.application_id || connectionSource.id);
+        }
+
+        return ids;
+    }, [extendChainId, connections, connectionSource]);
 
     // Initialize canvas with tools that have connections
     useEffect(() => {
@@ -227,6 +332,7 @@ export default function ProjectToolsPage() {
 
     // --- Computed Graph Data (with visual duplication per chain) ---
     const { graphNodes, graphEdges, chainNodePositions } = useMemo(() => {
+        console.log('🔗 Building graph - connections:', connections.length, 'tools:', projectTools.length);
         if (connections.length === 0) {
             return { graphNodes: [], graphEdges: [], chainNodePositions: {} };
         }
@@ -269,6 +375,12 @@ export default function ProjectToolsPage() {
         const positions: Record<string, { x: number; y: number }> = {};
         let rowIndex = 0;
 
+        // Calculate dynamic vertical spacing to fit all chains in view
+        const totalChains = chainMap.size;
+        const availableHeight = 92; // Leave only 8% margin (5% top, 3% bottom) to fit up to 6 rows
+        const spacingY = totalChains > 1 ? availableHeight / (totalChains - 1) : 0;
+        const startY = 5; // Reduced from 10 to 5
+
         chainMap.forEach((chainConnections, chainId) => {
             // Get all app IDs in this chain
             const appIds = new Set<string>();
@@ -309,7 +421,7 @@ export default function ProjectToolsPage() {
 
                 const nodeId = `${tool.id}_${chainId}`; // Unique ID per chain
                 const x = startX + (colIndex * Math.min(spacingX, 25));
-                const y = 25 + (rowIndex * 30);
+                const y = startY + (rowIndex * spacingY);
 
                 nodes.push({
                     id: nodeId,
@@ -343,6 +455,7 @@ export default function ProjectToolsPage() {
             rowIndex++;
         });
 
+        console.log('✅ Graph built - nodes:', nodes.length, 'edges:', edges.length);
         return { graphNodes: nodes, graphEdges: edges, chainNodePositions: positions };
     }, [connections, projectTools]);
 
@@ -483,7 +596,8 @@ export default function ProjectToolsPage() {
     };
 
     const handleCreateConnection = async () => {
-        if (!connectionSource || !connectionTarget) return;
+        if (!connectionSource || !connectionTarget || loadingActions['createConnection']) return;
+
         const labelToUse = customLabel.trim() || connectionLabel;
         if (!labelToUse) {
             toast.error('Please add a label');
@@ -513,6 +627,7 @@ export default function ProjectToolsPage() {
             return newSet;
         });
 
+        setLoadingActions(prev => ({ ...prev, createConnection: true }));
         try {
             await createConnection(
                 sourceAppId,
@@ -529,46 +644,98 @@ export default function ProjectToolsPage() {
             setExtendChainId(null); // Reset chain id
         } catch (error) {
             // Toast handled in context
+        } finally {
+            setLoadingActions(prev => ({ ...prev, createConnection: false }));
         }
     };
 
     const handleDeleteConnection = async (connectionId: string) => {
+        if (loadingActions[`deleteConnection-${connectionId}`]) return;
+
         // Find the connection to get source and target IDs
         const conn = connections.find(c => c.id === connectionId);
         if (!conn) return;
 
-        // Delete the connection
-        await deleteConnection(connectionId);
+        setLoadingActions(prev => ({ ...prev, [`deleteConnection-${connectionId}`]: true }));
+        try {
+            // Delete the connection
+            await deleteConnection(connectionId);
 
-        // Check if source or target tools have any remaining connections
-        const sourceAppId = conn.source_tool_id;
-        const targetAppId = conn.target_tool_id;
+            // Check if source or target tools have any remaining connections
+            const sourceAppId = conn.source_tool_id;
+            const targetAppId = conn.target_tool_id;
 
-        const remainingConnections = connections.filter(c => c.id !== connectionId);
+            const remainingConnections = connections.filter(c => c.id !== connectionId);
 
-        const sourceHasConnections = remainingConnections.some(
-            c => c.source_tool_id === sourceAppId || c.target_tool_id === sourceAppId
-        );
-        const targetHasConnections = remainingConnections.some(
-            c => c.source_tool_id === targetAppId || c.target_tool_id === targetAppId
-        );
+            const sourceHasConnections = remainingConnections.some(
+                c => c.source_tool_id === sourceAppId || c.target_tool_id === sourceAppId
+            );
+            const targetHasConnections = remainingConnections.some(
+                c => c.source_tool_id === targetAppId || c.target_tool_id === targetAppId
+            );
 
-        // Remove tools from canvas if they have no connections
-        setToolsOnCanvas(prev => {
-            const newSet = new Set(prev);
+            // Remove tools from canvas if they have no connections
+            setToolsOnCanvas(prev => {
+                const newSet = new Set(prev);
 
-            if (!sourceHasConnections) {
-                const sourceTool = projectTools.find(t => t.application_id === sourceAppId);
-                if (sourceTool) newSet.delete(sourceTool.id);
+                if (!sourceHasConnections) {
+                    const sourceTool = projectTools.find(t => t.application_id === sourceAppId);
+                    if (sourceTool) newSet.delete(sourceTool.id);
+                }
+
+                if (!targetHasConnections) {
+                    const targetTool = projectTools.find(t => t.application_id === targetAppId);
+                    if (targetTool) newSet.delete(targetTool.id);
+                }
+
+                return newSet;
+            });
+        } catch (error) {
+            // Toast handled in context
+        } finally {
+            setLoadingActions(prev => ({ ...prev, [`deleteConnection-${connectionId}`]: false }));
+        }
+    };
+
+    const handleToggleConnection = async (connectionId: string, currentStatus: boolean) => {
+        if (loadingActions[`toggleConnection-${connectionId}`]) return;
+
+        setLoadingActions(prev => ({ ...prev, [`toggleConnection-${connectionId}`]: true }));
+        try {
+            await updateConnection(connectionId, { is_active: !currentStatus });
+        } catch (error) {
+            // Toast handled in context
+        } finally {
+            setLoadingActions(prev => ({ ...prev, [`toggleConnection-${connectionId}`]: false }));
+        }
+    };
+
+    const handleRemoveToolFromChain = async (toolNodeId: string, chainId: string, applicationId: string) => {
+        if (loadingActions[`removeToolFromChain-${toolNodeId}`]) return;
+
+        if (!confirm(`Remove this tool from this chain? This will delete all its connections in this chain.`)) return;
+
+        setLoadingActions(prev => ({ ...prev, [`removeToolFromChain-${toolNodeId}`]: true }));
+        try {
+            // Find all connections in this chain that involve this tool
+            const connectionsToDelete = connections.filter(c =>
+                (c.chain_id || c.id) === chainId &&
+                (c.source_tool_id === applicationId || c.target_tool_id === applicationId)
+            );
+
+            // Delete all these connections
+            for (const conn of connectionsToDelete) {
+                await deleteConnection(conn.id);
             }
 
-            if (!targetHasConnections) {
-                const targetTool = projectTools.find(t => t.application_id === targetAppId);
-                if (targetTool) newSet.delete(targetTool.id);
-            }
-
-            return newSet;
-        });
+            // Close the panel after removal
+            setSelectedToolNode(null);
+            toast.success('Tool removed from this chain');
+        } catch (error) {
+            toast.error('Failed to remove tool from chain');
+        } finally {
+            setLoadingActions(prev => ({ ...prev, [`removeToolFromChain-${toolNodeId}`]: false }));
+        }
     };
 
     // Load comments when a node is selected
@@ -594,6 +761,8 @@ export default function ProjectToolsPage() {
 
     // Post a new comment
     const handlePostComment = async () => {
+        if (loadingActions['postComment']) return;
+
         if (!newComment.trim() || !selectedToolNode?.chainId || !selectedToolNode?.applicationId || !projectId) {
             console.log('Missing data:', {
                 comment: newComment.trim(),
@@ -612,6 +781,7 @@ export default function ProjectToolsPage() {
         });
 
         setIsPostingComment(true);
+        setLoadingActions(prev => ({ ...prev, postComment: true }));
         try {
             const newCommentData = await apiClient.post<{ id: string; content: string; user_name: string; user_avatar?: string; created_at: string }>(`/applications/projects/${projectId}/chain-comments`, {
                 chain_id: selectedToolNode.chainId,
@@ -627,17 +797,35 @@ export default function ProjectToolsPage() {
             toast.error('Failed to post comment');
         } finally {
             setIsPostingComment(false);
+            setLoadingActions(prev => ({ ...prev, postComment: false }));
         }
     };
 
     // Delete a comment
     const handleDeleteComment = async (commentId: string) => {
+        if (loadingActions[`deleteComment-${commentId}`]) return;
+
+        setLoadingActions(prev => ({ ...prev, [`deleteComment-${commentId}`]: true }));
         try {
             await apiClient.delete(`/applications/projects/${projectId}/chain-comments/${commentId}`);
             setChainComments(prev => prev.filter(c => c.id !== commentId));
             toast.success('Comment deleted');
         } catch (error) {
             toast.error('Failed to delete comment');
+        } finally {
+            setLoadingActions(prev => ({ ...prev, [`deleteComment-${commentId}`]: false }));
+        }
+    };
+
+    // Helper to protect tool deletion from spam clicks
+    const handleDeleteTool = async (toolId: string, toolName: string) => {
+        if (loadingActions[`deleteTool-${toolId}`]) return;
+
+        setLoadingActions(prev => ({ ...prev, [`deleteTool-${toolId}`]: true }));
+        try {
+            await deleteProjectTool(toolId, toolName);
+        } finally {
+            setLoadingActions(prev => ({ ...prev, [`deleteTool-${toolId}`]: false }));
         }
     };
 
@@ -685,10 +873,38 @@ export default function ProjectToolsPage() {
             {/* VIEW: STACK */}
             {toolsSubTab === 'stack' && (
                 <div className="flex-1 overflow-y-auto px-8 pb-10 pt-6 animate-in slide-in-from-left-4 duration-300">
-                    {/* Loading State */}
-                    {isLoadingTools && (
-                        <div className="flex items-center justify-center py-20">
-                            <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                    {/* Loading State - show skeleton loaders */}
+                    {isLoadingTools && projectTools.length === 0 && (
+                        <div>
+                            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <span className="w-2 h-2 bg-gray-300 rounded-full animate-pulse"></span>
+                                <div className="h-3 w-20 bg-gray-200 rounded animate-pulse"></div>
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                {[1, 2, 3, 4, 5, 6].map((i) => (
+                                    <div key={i} className="relative flex flex-col bg-white border border-gray-200 rounded-xl overflow-hidden animate-pulse">
+                                        {/* Header skeleton */}
+                                        <div className="p-4 flex items-start justify-between border-b border-gray-100">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-12 h-12 rounded-xl bg-gray-200"></div>
+                                                <div>
+                                                    <div className="h-4 w-24 bg-gray-200 rounded mb-2"></div>
+                                                    <div className="h-3 w-16 bg-gray-100 rounded"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {/* Footer skeleton */}
+                                        <div className="px-4 py-3 flex items-center gap-2">
+                                            <div className="h-2 w-12 bg-gray-100 rounded"></div>
+                                            <div className="w-6 h-6 rounded-full bg-gray-200"></div>
+                                            <div className="h-px flex-1 bg-gray-100"></div>
+                                            <div className="h-2 w-16 bg-gray-100 rounded"></div>
+                                        </div>
+                                        {/* Status bar skeleton */}
+                                        <div className="h-1 w-full bg-gray-200"></div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
 
@@ -710,8 +926,8 @@ export default function ProjectToolsPage() {
                         </div>
                     )}
 
-                    {/* Active Tools */}
-                    {!isLoadingTools && projectTools.filter(t => t.status === 'active').length > 0 && (
+                    {/* Active Tools - show even if loading (for background refresh) */}
+                    {projectTools.filter(t => t.status === 'active').length > 0 && (
                         <div>
                             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
                                 <span className="w-2 h-2 bg-green-500 rounded-full"></span>
@@ -721,11 +937,16 @@ export default function ProjectToolsPage() {
                                 {projectTools.filter(t => t.status === 'active').map(tool => (
                                     <div key={tool.id} className="relative flex flex-col bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 group">
                                         <button
-                                            onClick={() => deleteProjectTool(tool.id, tool.name)}
-                                            className="absolute top-2 right-2 p-1.5 rounded-full bg-white border border-gray-200 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all z-10"
+                                            onClick={() => handleDeleteTool(tool.id, tool.name)}
+                                            disabled={loadingActions[`deleteTool-${tool.id}`]}
+                                            className="absolute top-2 right-2 p-1.5 rounded-full bg-white border border-gray-200 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all z-10 disabled:opacity-50 disabled:cursor-not-allowed"
                                             title="Remove from project"
                                         >
-                                            <Trash2 size={14} />
+                                            {loadingActions[`deleteTool-${tool.id}`] ? (
+                                                <Loader2 size={14} className="animate-spin text-gray-400" />
+                                            ) : (
+                                                <Trash2 size={14} />
+                                            )}
                                         </button>
 
                                         <div className="p-4 flex items-start justify-between border-b border-gray-100 bg-gray-50/30">
@@ -779,11 +1000,16 @@ export default function ProjectToolsPage() {
                                 {projectTools.filter(t => t.status === 'planned').map(tool => (
                                     <div key={tool.id} className="relative flex flex-col bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 opacity-70 hover:opacity-100 group">
                                         <button
-                                            onClick={() => deleteProjectTool(tool.id, tool.name)}
-                                            className="absolute top-2 right-2 p-1.5 rounded-full bg-white border border-gray-200 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all z-10"
+                                            onClick={() => handleDeleteTool(tool.id, tool.name)}
+                                            disabled={loadingActions[`deleteTool-${tool.id}`]}
+                                            className="absolute top-2 right-2 p-1.5 rounded-full bg-white border border-gray-200 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all z-10 disabled:opacity-50 disabled:cursor-not-allowed"
                                             title="Remove from project"
                                         >
-                                            <Trash2 size={14} />
+                                            {loadingActions[`deleteTool-${tool.id}`] ? (
+                                                <Loader2 size={14} className="animate-spin text-gray-400" />
+                                            ) : (
+                                                <Trash2 size={14} />
+                                            )}
                                         </button>
 
                                         <div className="p-4 flex items-start justify-between border-b border-gray-100 bg-gray-50/30">
@@ -836,6 +1062,36 @@ export default function ProjectToolsPage() {
                         className="absolute inset-0 opacity-10 pointer-events-none"
                         style={{ backgroundImage: 'radial-gradient(#94a3b8 1px, transparent 1px)', backgroundSize: '20px 20px' }}
                     ></div>
+
+                    {/* Loading skeleton for connections */}
+                    {isLoadingConnections && connections.length === 0 && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="relative w-full max-w-4xl h-96">
+                                {/* Skeleton nodes */}
+                                {[
+                                    { x: '20%', y: '40%' },
+                                    { x: '50%', y: '40%' },
+                                    { x: '80%', y: '40%' }
+                                ].map((pos, i) => (
+                                    <div
+                                        key={i}
+                                        className="absolute w-20 h-20 -ml-10 -mt-10 rounded-2xl bg-gray-200 border-2 border-gray-300 animate-pulse"
+                                        style={{ left: pos.x, top: pos.y }}
+                                    >
+                                        <div className="w-full h-full flex flex-col items-center justify-center p-2">
+                                            <div className="w-10 h-10 bg-gray-300 rounded-lg mb-1"></div>
+                                            <div className="w-14 h-2 bg-gray-300 rounded"></div>
+                                        </div>
+                                    </div>
+                                ))}
+                                {/* Skeleton connections */}
+                                <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                                    <line x1="20%" y1="40%" x2="50%" y2="40%" stroke="#d1d5db" strokeWidth="2" strokeDasharray="5,5" className="animate-pulse" />
+                                    <line x1="50%" y1="40%" x2="80%" y2="40%" stroke="#d1d5db" strokeWidth="2" strokeDasharray="5,5" className="animate-pulse" />
+                                </svg>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Canvas viewport */}
                     <div
@@ -926,54 +1182,66 @@ export default function ProjectToolsPage() {
 
 
 
-                                            {/* Add connection button (extends THIS chain) */}
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setConnectionSource(tool || null);
-                                                    setConnectionTarget(null);
-                                                    setConnectionLabel('');
-                                                    setCustomLabel('');
-                                                    setExtendChainId(node.chainId); // Extend THIS specific chain
-                                                    setShowConnectionModal(true);
-                                                }}
-                                                className="absolute -bottom-2 -right-2 w-6 h-6 rounded-full bg-black text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-110 shadow-lg z-20"
-                                                title={`Extend chain from ${node.toolName}`}
-                                            >
-                                                <Plus size={14} />
-                                            </button>
 
-                                            {/* Remove from canvas button */}
+
+
+                                            {/* Add connection button (extends THIS chain) - only on terminal nodes */}
+                                            {(() => {
+                                                // Check if this node is terminal in its chain (no outgoing connections)
+                                                const toolAppId = tool?.application_id;
+                                                const isTerminal = !connections.some(conn =>
+                                                    (conn.chain_id || conn.id) === node.chainId &&
+                                                    conn.source_tool_id === toolAppId
+                                                );
+
+                                                if (!isTerminal) return null;
+
+                                                return (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setConnectionSource(tool || null);
+                                                            setConnectionTarget(null);
+                                                            setConnectionLabel('');
+                                                            setCustomLabel('');
+                                                            setExtendChainId(node.chainId); // Extend THIS specific chain
+                                                            setShowConnectionModal(true);
+                                                        }}
+                                                        className="absolute -bottom-2 -right-2 w-6 h-6 rounded-full bg-black text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-110 shadow-lg z-20"
+                                                        title={`Extend chain from ${node.toolName}`}
+                                                    >
+                                                        <Plus size={14} />
+                                                    </button>
+                                                );
+                                            })()}
+
+                                            {/* Remove from this chain button */}
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    if (tool) {
-                                                        // Delete all connections involving this tool
+                                                    if (tool && node.chainId) {
+                                                        // Delete ONLY connections in THIS chain involving this tool
                                                         const toolAppId = tool.application_id;
                                                         const connectionsToDelete = connections.filter(
-                                                            c => c.source_tool_id === toolAppId || c.target_tool_id === toolAppId
+                                                            c => (c.chain_id || c.id) === node.chainId &&
+                                                                (c.source_tool_id === toolAppId || c.target_tool_id === toolAppId)
                                                         );
 
-                                                        // Delete connections
+                                                        // Delete connections from this chain only
                                                         connectionsToDelete.forEach(conn => {
                                                             deleteConnection(conn.id);
                                                         });
 
-                                                        // Remove from canvas
-                                                        setToolsOnCanvas(prev => {
-                                                            const newSet = new Set(prev);
-                                                            newSet.delete(tool.id);
-                                                            return newSet;
-                                                        });
-
-                                                        // Close panel if this tool was selected
+                                                        // Only close panel if this specific node was selected
                                                         if (selectedToolNode?.id === node.id) {
                                                             setSelectedToolNode(null);
                                                         }
+
+                                                        toast.success(`Removed ${node.toolName} from this chain`);
                                                     }
                                                 }}
                                                 className="absolute -top-2 -left-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-110 hover:bg-red-600 shadow-lg z-20"
-                                                title={`Remove ${node.toolName} from canvas`}
+                                                title={`Remove ${node.toolName} from this chain only`}
                                             >
                                                 <X size={12} />
                                             </button>
@@ -1041,17 +1309,36 @@ export default function ProjectToolsPage() {
                                                                     <ArrowUpRight size={14} className="text-gray-400" />
                                                                     <span className="font-medium text-gray-900">{targetNode?.toolName || 'Unknown'}</span>
                                                                 </div>
-                                                                <div className="ml-6 text-xs text-gray-500 bg-white px-2 py-1 rounded border border-gray-200 inline-block">
-                                                                    {e.label || 'Connected'}
+                                                                <div className={`ml-6 text-xs px-2 py-1 rounded border inline-block ${e.active ? 'text-green-700 bg-green-50 border-green-200' : 'text-gray-500 bg-gray-50 border-gray-200'}`}>
+                                                                    {e.label || (e.active ? 'Active' : 'Inactive')}
                                                                 </div>
                                                             </div>
-                                                            <button
-                                                                onClick={(ev) => { ev.stopPropagation(); handleDeleteConnection(e.id); }}
-                                                                className="p-1.5 rounded-full text-gray-400 hover:bg-red-100 hover:text-red-600 transition-all ml-2"
-                                                                title="Delete connection"
-                                                            >
-                                                                <Trash2 size={14} />
-                                                            </button>
+                                                            <div className="flex items-center">
+                                                                <button
+                                                                    onClick={(ev) => { ev.stopPropagation(); handleToggleConnection(e.id, e.active); }}
+                                                                    disabled={loadingActions[`toggleConnection-${e.id}`]}
+                                                                    className={`p-1.5 rounded-full transition-all ml-1 disabled:opacity-50 disabled:cursor-not-allowed ${e.active ? 'text-green-600 hover:bg-green-100' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'}`}
+                                                                    title={e.active ? "Deactivate connection" : "Activate connection"}
+                                                                >
+                                                                    {loadingActions[`toggleConnection-${e.id}`] ? (
+                                                                        <Loader2 size={14} className="animate-spin" />
+                                                                    ) : (
+                                                                        <Power size={14} />
+                                                                    )}
+                                                                </button>
+                                                                <button
+                                                                    onClick={(ev) => { ev.stopPropagation(); handleDeleteConnection(e.id); }}
+                                                                    disabled={loadingActions[`deleteConnection-${e.id}`]}
+                                                                    className="p-1.5 rounded-full text-gray-400 hover:bg-red-100 hover:text-red-600 transition-all ml-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                    title="Delete connection"
+                                                                >
+                                                                    {loadingActions[`deleteConnection-${e.id}`] ? (
+                                                                        <Loader2 size={14} className="animate-spin" />
+                                                                    ) : (
+                                                                        <Trash2 size={14} />
+                                                                    )}
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     );
                                                 })}
@@ -1065,17 +1352,36 @@ export default function ProjectToolsPage() {
                                                                     <ArrowLeft size={14} className="text-gray-400" />
                                                                     <span className="font-medium text-gray-900">{sourceNode?.toolName || 'Unknown'}</span>
                                                                 </div>
-                                                                <div className="ml-6 text-xs text-gray-500 bg-white px-2 py-1 rounded border border-gray-200 inline-block">
-                                                                    {e.label || 'Connected'}
+                                                                <div className={`ml-6 text-xs px-2 py-1 rounded border inline-block ${e.active ? 'text-green-700 bg-green-50 border-green-200' : 'text-gray-500 bg-gray-50 border-gray-200'}`}>
+                                                                    {e.label || (e.active ? 'Active' : 'Inactive')}
                                                                 </div>
                                                             </div>
-                                                            <button
-                                                                onClick={(ev) => { ev.stopPropagation(); handleDeleteConnection(e.id); }}
-                                                                className="p-1.5 rounded-full text-gray-400 hover:bg-red-100 hover:text-red-600 transition-all ml-2"
-                                                                title="Delete connection"
-                                                            >
-                                                                <Trash2 size={14} />
-                                                            </button>
+                                                            <div className="flex items-center">
+                                                                <button
+                                                                    onClick={(ev) => { ev.stopPropagation(); handleToggleConnection(e.id, e.active); }}
+                                                                    disabled={loadingActions[`toggleConnection-${e.id}`]}
+                                                                    className={`p-1.5 rounded-full transition-all ml-1 disabled:opacity-50 disabled:cursor-not-allowed ${e.active ? 'text-green-600 hover:bg-green-100' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'}`}
+                                                                    title={e.active ? "Deactivate connection" : "Activate connection"}
+                                                                >
+                                                                    {loadingActions[`toggleConnection-${e.id}`] ? (
+                                                                        <Loader2 size={14} className="animate-spin" />
+                                                                    ) : (
+                                                                        <Power size={14} />
+                                                                    )}
+                                                                </button>
+                                                                <button
+                                                                    onClick={(ev) => { ev.stopPropagation(); handleDeleteConnection(e.id); }}
+                                                                    disabled={loadingActions[`deleteConnection-${e.id}`]}
+                                                                    className="p-1.5 rounded-full text-gray-400 hover:bg-red-100 hover:text-red-600 transition-all ml-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                    title="Delete connection"
+                                                                >
+                                                                    {loadingActions[`deleteConnection-${e.id}`] ? (
+                                                                        <Loader2 size={14} className="animate-spin" />
+                                                                    ) : (
+                                                                        <Trash2 size={14} />
+                                                                    )}
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     );
                                                 })}
@@ -1134,10 +1440,15 @@ export default function ProjectToolsPage() {
                                                                             </span>
                                                                             <button
                                                                                 onClick={() => handleDeleteComment(comment.id)}
-                                                                                className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-all"
+                                                                                disabled={loadingActions[`deleteComment-${comment.id}`]}
+                                                                                className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                                                                 title="Delete comment"
                                                                             >
-                                                                                <Trash2 size={12} />
+                                                                                {loadingActions[`deleteComment-${comment.id}`] ? (
+                                                                                    <Loader2 size={12} className="animate-spin" />
+                                                                                ) : (
+                                                                                    <Trash2 size={12} />
+                                                                                )}
                                                                             </button>
                                                                         </div>
                                                                     </div>
@@ -1194,6 +1505,7 @@ export default function ProjectToolsPage() {
                     libraryApps={libraryApps}
                     setLibraryApps={setLibraryApps}
                     libraryLoading={libraryLoading}
+                    projectTools={projectTools}
                 />
             )}
 
@@ -1234,27 +1546,45 @@ export default function ProjectToolsPage() {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">From (Source)</label>
                                     <div className="grid grid-cols-4 gap-2">
-                                        {projectTools.filter(t => t.status === 'active').map(tool => (
-                                            <button
-                                                key={tool.id}
-                                                onClick={() => { setConnectionSource(tool); setConnectionLabel(''); }}
-                                                disabled={connectionTarget?.id === tool.id}
-                                                className={`p-3 rounded-xl border-2 flex flex-col items-center gap-1 transition-all ${connectionSource?.id === tool.id
-                                                    ? 'border-blue-500 bg-blue-50'
-                                                    : connectionTarget?.id === tool.id
-                                                        ? 'border-gray-100 bg-gray-50 opacity-40 cursor-not-allowed'
-                                                        : 'border-gray-200 hover:border-gray-300'
-                                                    }`}
-                                            >
-                                                <img
-                                                    src={tool.logo_url || getLogoUrl(tool.website) || ''}
-                                                    alt={tool.name}
-                                                    className="w-8 h-8 object-contain"
-                                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                                />
-                                                <span className="text-[10px] font-medium text-gray-600 truncate w-full text-center">{tool.name}</span>
-                                            </button>
-                                        ))}
+                                        {projectTools.filter(t => t.status === 'active').map(tool => {
+                                            const isSelected = connectionSource?.id === tool.id;
+
+                                            // Should we restrict selection?
+                                            // If extending a chain (clicked +), ONLY the source tool can be the sender.
+                                            const isExtending = !!extendChainId;
+
+                                            let isDisabled = false;
+
+                                            if (isExtending) {
+                                                // Strict mode: disable everything except the currently selected source
+                                                isDisabled = !isSelected;
+                                            } else {
+                                                // Normal mode: disable only if it's already selected as target (can't link to self)
+                                                isDisabled = connectionTarget?.id === tool.id;
+                                            }
+
+                                            return (
+                                                <button
+                                                    key={tool.id}
+                                                    onClick={() => { setConnectionSource(tool); setConnectionLabel(''); }}
+                                                    disabled={isDisabled}
+                                                    className={`p-3 rounded-xl border-2 flex flex-col items-center gap-1 transition-all ${isSelected
+                                                        ? 'border-blue-500 bg-blue-50'
+                                                        : isDisabled
+                                                            ? 'border-gray-100 bg-gray-50 opacity-40 cursor-not-allowed'
+                                                            : 'border-gray-200 hover:border-gray-300'
+                                                        }`}
+                                                >
+                                                    <img
+                                                        src={tool.logo_url || getLogoUrl(tool.website) || ''}
+                                                        alt={tool.name}
+                                                        className="w-8 h-8 object-contain"
+                                                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                    />
+                                                    <span className="text-[10px] font-medium text-gray-600 truncate w-full text-center">{tool.name}</span>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
 
@@ -1282,7 +1612,10 @@ export default function ProjectToolsPage() {
                                                 conn.target_application_id === toolAppId
                                             ) : false;
                                             const isSameAsSource = connectionSource?.id === tool.id;
-                                            const isDisabled = isSameAsSource || isAlreadyConnected;
+                                            // Prevent connecting to any tool already in this chain
+                                            const isInChain = existingChainToolIds.has(toolAppId);
+
+                                            const isDisabled = isSameAsSource || isAlreadyConnected || isInChain;
 
                                             return (
                                                 <button
@@ -1351,11 +1684,20 @@ export default function ProjectToolsPage() {
                                 </button>
                                 <button
                                     onClick={handleCreateConnection}
-                                    disabled={!connectionSource || !connectionTarget || (!connectionLabel && !customLabel.trim())}
+                                    disabled={!connectionSource || !connectionTarget || (!connectionLabel && !customLabel.trim()) || loadingActions['createConnection']}
                                     className="flex-1 py-2.5 bg-gray-900 text-white font-medium rounded-xl hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                                 >
-                                    <Link2 size={16} />
-                                    Create Connection
+                                    {loadingActions['createConnection'] ? (
+                                        <>
+                                            <Loader2 size={16} className="animate-spin" />
+                                            Creating...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Link2 size={16} />
+                                            Create Connection
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </motion.div>

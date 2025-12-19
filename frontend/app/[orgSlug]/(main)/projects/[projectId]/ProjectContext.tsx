@@ -12,6 +12,7 @@ interface ApiClient {
     get<T>(url: string): Promise<T>;
     post<T>(url: string, body: any): Promise<T>;
     put<T>(url: string, body: any): Promise<T>;
+    patch<T>(url: string, body: any): Promise<T>;
     delete<T>(url: string): Promise<T>;
 }
 
@@ -161,7 +162,7 @@ interface ProjectContextType {
     leaveProject: () => Promise<void>;
 
     // Project actions
-    updateProject: (name: string, description: string, color: string) => Promise<void>;
+    updateProject: (name: string, description: string, color: string, status?: string) => Promise<void>;
     deleteProject: () => Promise<void>;
 
     // Item actions
@@ -222,8 +223,8 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingMessages, setIsLoadingMessages] = useState(true);
     const [isLoadingItems, setIsLoadingItems] = useState(true);
-    const [isLoadingTools, setIsLoadingTools] = useState(false);
-    const [isLoadingConnections, setIsLoadingConnections] = useState(false);
+    const [isLoadingTools, setIsLoadingTools] = useState(true);
+    const [isLoadingConnections, setIsLoadingConnections] = useState(true);
 
     // Refs for cleanup
     const isMountedRef = useRef(true);
@@ -232,10 +233,25 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
 
     const refreshProject = useCallback(async () => {
         if (!projectId) return;
+        const cacheKey = `cached_project_${projectId}`;
+
+        // Try cache first
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+            try {
+                const parsed = JSON.parse(cached);
+                setProject(parsed);
+                setIsLoading(false); // Show cached data immediately
+            } catch (e) {
+                console.error('Error parsing cached project', e);
+            }
+        }
+
         try {
             const data = await apiClient.get<Project>(`/projects/${projectId}`);
             if (isMountedRef.current) {
                 setProject(data);
+                localStorage.setItem(cacheKey, JSON.stringify(data));
             }
         } catch (error) {
             console.error('Error fetching project:', error);
@@ -356,7 +372,26 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
 
     const refreshTools = useCallback(async () => {
         if (!projectId) return;
-        setIsLoadingTools(true);
+        const cacheKey = `cached_tools_project_${projectId}`;
+
+        // Try cache first
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+            try {
+                const parsed = JSON.parse(cached);
+                if (Array.isArray(parsed)) {
+                    setProjectTools(parsed);
+                    setIsLoadingTools(false); // Show cached data immediately
+                }
+            } catch (e) {
+                console.error('Error parsing cached tools', e);
+            }
+        }
+
+        if (!cached) {
+            setIsLoadingTools(true);
+        }
+
         try {
             const tools = await apiClient.get<any[]>(`/applications/projects/${projectId}/tools`);
             const formattedTools = tools.map((tool: any) => ({
@@ -373,6 +408,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
             }));
             if (isMountedRef.current) {
                 setProjectTools(formattedTools);
+                localStorage.setItem(cacheKey, JSON.stringify(formattedTools));
             }
         } catch (error) {
             console.error('Error fetching tools:', error);
@@ -386,11 +422,31 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
 
     const refreshConnections = useCallback(async () => {
         if (!projectId) return;
-        setIsLoadingConnections(true);
+        const cacheKey = `cached_connections_project_${projectId}`;
+
+        // Try cache first
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+            try {
+                const parsed = JSON.parse(cached);
+                if (Array.isArray(parsed)) {
+                    setConnections(parsed);
+                    setIsLoadingConnections(false); // Show cached data immediately
+                }
+            } catch (e) {
+                console.error('Error parsing cached connections', e);
+            }
+        }
+
+        if (!cached) {
+            setIsLoadingConnections(true);
+        }
+
         try {
             const data = await apiClient.get<Connection[]>(`/applications/projects/${projectId}/connections`);
             if (isMountedRef.current) {
                 setConnections(data || []);
+                localStorage.setItem(cacheKey, JSON.stringify(data || []));
             }
         } catch (error) {
             console.error('Error fetching connections:', error);
@@ -465,10 +521,12 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
         }
     }, [projectId, apiClient, router, orgSlug]);
 
-    const updateProject = useCallback(async (name: string, description: string, color: string) => {
+    const updateProject = useCallback(async (name: string, description: string, color: string, status?: string) => {
         if (!projectId) return;
         try {
-            await apiClient.put(`/projects/${projectId}`, { name, description, color });
+            const payload: any = { name, description, color };
+            if (status) payload.status = status;
+            await apiClient.patch(`/projects/${projectId}`, payload);
             toast.success('Project updated');
             refreshProject();
         } catch (error: any) {
@@ -600,17 +658,21 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
         }
 
         if (projectId) {
-            // Load critical data first
-            Promise.all([
-                refreshProject(),
-                refreshMembers()
-            ]).finally(() => {
-                // Load non-critical data in background
-                refreshItems();
-                refreshMessages();
-                refreshTools();
-                refreshConnections();
-            });
+            // Load ALL data sequentially to avoid [Errno 35] on macOS
+            // Even 2 parallel calls can cause resource exhaustion on Mac
+            const loadData = async () => {
+                try {
+                    await refreshProject();
+                    await refreshMembers();
+                    await refreshItems();
+                    await refreshMessages();
+                    await refreshTools();
+                    await refreshConnections();
+                } catch (err) {
+                    console.error('Error loading project data:', err);
+                }
+            };
+            loadData();
 
             // Mark as read
             apiClient.post(`/projects/${projectId}/mark-read`, {}).catch(() => { });

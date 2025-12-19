@@ -3,20 +3,14 @@ Supabase client wrapper with connection pooling and timeout configuration
 """
 from supabase import create_client, Client
 from app.core.config import settings
-import httpx
+from loguru import logger
 
 
 def _create_configured_client() -> Client:
     """
-    Create a Supabase client with properly configured httpx limits.
-    This prevents [Errno 35] Resource temporarily unavailable errors
-    by configuring connection pooling and timeouts.
+    Create a Supabase client.
+    Simple configuration to ensure compatibility with supabase-py.
     """
-    # Note: supabase-py uses httpx internally but doesn't expose direct configuration.
-    # The best approach for now is to create the standard client.
-    # Connection limits are handled at the OS level and by httpx defaults.
-    
-    # Create client with standard configuration
     return create_client(
         settings.SUPABASE_URL,
         settings.SUPABASE_SERVICE_ROLE_KEY
@@ -38,7 +32,9 @@ class SupabaseClient:
     @classmethod
     def reset_client(cls):
         """Reset the client instance (useful if connection issues persist)"""
+        logger.warning("🔄 Resetting Supabase client due to potential resource issues")
         cls._instance = None
+        cls._instance = _create_configured_client()
 
 
 # Global instance
@@ -57,4 +53,3 @@ def get_fresh_supabase_client() -> Client:
     Use this for auth operations (signup/login) to avoid polluting the global client state.
     """
     return _create_configured_client()
-

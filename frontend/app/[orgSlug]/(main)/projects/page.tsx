@@ -56,6 +56,7 @@ export default function ProjectsListPage() {
 
     // Modal State
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [isCreating, setIsCreating] = useState(false); // Prevent spam clicks
 
     // Prevent multiple fetches
     const hasFetchedRef = useRef(false);
@@ -136,22 +137,35 @@ export default function ProjectsListPage() {
     }, [organization?.id, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // --- Actions ---
-    const handleCreateGroup = async (name: string, description: string, color: string, memberIds: string[]) => {
-        if (!organization?.id) return;
+    const handleCreateGroup = async (name: string, description: string, color: string, memberIds: string[], leadId?: string) => {
+        if (!organization?.id || isCreating) return;
+
+        setIsCreating(true);
         try {
             const newProject = await apiClient.post<Project>('/projects/', {
                 organization_id: organization.id,
                 name,
                 description,
-                color
+                color,
+                member_ids: memberIds,
+                lead_id: leadId
             });
 
-            // Just refresh list for now, members adding would be separate calls usually or handled by backend
+            console.log('🚀 Project created:', newProject);
+
+            // Close modal first
+            setShowCreateModal(false);
+
             toast.success('Project created successfully');
             fetchGroups();
 
             // Navigate to new project
-            router.push(`/${orgSlug}/projects/${newProject.id}/overview`);
+            if (newProject && newProject.id) {
+                router.push(`/${orgSlug}/projects/${newProject.id}/overview`);
+            } else {
+                console.error('❌ No project ID returned:', newProject);
+                toast.error('Project created but redirect failed');
+            }
         } catch (error: any) {
             toast.error(error.message || 'Failed to create project');
         }
@@ -167,8 +181,8 @@ export default function ProjectsListPage() {
             (group.description?.toLowerCase() || '').includes(searchQuery.toLowerCase());
         const matchesFilter =
             filter === 'all' ? true :
-                filter === 'my' ? (group.created_by === user?.id || group.is_lead) : // inferring membership if is_lead or created_by
-                    filter === 'active' ? group.status !== 'archived' : true;
+                filter === 'my' ? (group.created_by === user?.id || group.is_lead) :
+                    filter === 'active' ? group.status === 'active' : true;
 
         return matchesSearch && matchesFilter;
     });
@@ -210,18 +224,27 @@ export default function ProjectsListPage() {
                 <div className="flex items-center gap-3 w-full md:w-auto">
                     {/* Status Filter */}
                     <div className="flex bg-white rounded-xl shadow-sm p-1 border border-gray-100">
-                        {['all', 'my', 'active'].map((f) => (
-                            <button
-                                key={f}
-                                onClick={() => setFilter(f as any)}
-                                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === f
-                                    ? 'bg-gray-100 text-gray-900 shadow-sm'
-                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                                    }`}
-                            >
-                                {f.charAt(0).toUpperCase() + f.slice(1)}
-                            </button>
-                        ))}
+                        {['all', 'my', 'active']
+                            .filter(f => {
+                                // Hide 'my' filter for simple members
+                                if (f === 'my') {
+                                    const userRole = user?.role?.toUpperCase();
+                                    return userRole === 'OWNER' || userRole === 'BOARD';
+                                }
+                                return true;
+                            })
+                            .map((f) => (
+                                <button
+                                    key={f}
+                                    onClick={() => setFilter(f as any)}
+                                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === f
+                                        ? 'bg-gray-100 text-gray-900 shadow-sm'
+                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    {f.charAt(0).toUpperCase() + f.slice(1)}
+                                </button>
+                            ))}
                     </div>
 
                     {/* View Toggle */}
@@ -297,7 +320,24 @@ export default function ProjectsListPage() {
 
                                 <div className="flex items-center justify-between pt-4 border-t border-gray-50 mt-auto">
                                     <div className="flex -space-x-2">
-                                        {[1, 2, 3].slice(0, Math.min(3, group.member_count)).map((_, i) => (
+                                        {group.members?.slice(0, 3).map((member, i) => (
+                                            member.avatar_url ? (
+                                                <img
+                                                    key={member.id || i}
+                                                    src={member.avatar_url}
+                                                    alt={`${member.first_name || ''} ${member.last_name || ''}`}
+                                                    className="w-8 h-8 rounded-full border-2 border-white object-cover"
+                                                />
+                                            ) : (
+                                                <div
+                                                    key={member.id || i}
+                                                    className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 border-2 border-white flex items-center justify-center text-[10px] text-white font-bold"
+                                                >
+                                                    {(member.first_name?.[0] || '') + (member.last_name?.[0] || '')}
+                                                </div>
+                                            )
+                                        ))}
+                                        {!group.members && [1, 2, 3].slice(0, Math.min(3, group.member_count)).map((_, i) => (
                                             <div key={i} className="w-8 h-8 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center text-[10px] text-gray-500 font-bold">
                                                 ?
                                             </div>
@@ -309,7 +349,7 @@ export default function ProjectsListPage() {
                                         )}
                                     </div>
                                     <div className="flex items-center text-xs text-gray-400 font-medium bg-gray-50 px-3 py-1 rounded-full group-hover:bg-black group-hover:text-white transition-colors">
-                                        {group.item_count} items
+                                        {group.member_count} {group.member_count === 1 ? 'member' : 'members'}
                                     </div>
                                 </div>
                             </div>
@@ -341,10 +381,6 @@ export default function ProjectsListPage() {
                                 <div className="flex items-center gap-2">
                                     <Users size={16} />
                                     <span>{group.member_count}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <FolderOpen size={16} />
-                                    <span>{group.item_count}</span>
                                 </div>
                                 <div className="flex items-center gap-2 w-24 justify-end">
                                     <Clock size={16} />

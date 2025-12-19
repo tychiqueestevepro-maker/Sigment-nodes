@@ -13,7 +13,14 @@ from app.services.event_logger import log_note_event
 from app.models.note import UserContext
 
 
-@celery_app.task(name="process_note", bind=True, max_retries=3)
+@celery_app.task(
+    name="process_note", 
+    bind=True, 
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_kwargs={'max_retries': 5},
+    rate_limit='100/m'
+)
 def process_note_task(self, note_id: str):
     """
     Complete AI processing pipeline for a single note (Multi-Tenant):
@@ -248,8 +255,15 @@ def find_or_create_cluster(
     return cluster_response.data[0]["id"]
 
 
-@celery_app.task(name="generate_cluster_snapshot")
-def generate_cluster_snapshot_task(cluster_id: str):
+@celery_app.task(
+    name="generate_cluster_snapshot",
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_kwargs={'max_retries': 3},
+    rate_limit='50/m'
+)
+def generate_cluster_snapshot_task(self, cluster_id: str):
     """
     Generate a new snapshot for a cluster (for time-lapse feature)
     MULTI-TENANT: Snapshots include organization_id
@@ -367,7 +381,14 @@ def reprocess_cluster_on_moderation_task(note_id: str, cluster_id: str):
 # TASK: Publish Note to Social Feed
 # ============================================
 
-@celery_app.task(name="publish_note_to_feed", bind=True)
+@celery_app.task(
+    name="publish_note_to_feed",
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_kwargs={'max_retries': 3},
+    rate_limit='200/m'
+)
 def publish_note_to_feed_task(self, note_id: str):
     """
     Publie une note traitée dans le feed social
