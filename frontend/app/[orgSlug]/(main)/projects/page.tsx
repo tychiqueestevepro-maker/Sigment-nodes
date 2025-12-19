@@ -110,7 +110,7 @@ export default function ProjectsListPage() {
             if (cached) {
                 try {
                     const parsed = JSON.parse(cached);
-                    if (Array.isArray(parsed)) {
+                    if (Array.isArray(parsed) && parsed.length > 0) {
                         setGroups(parsed);
                         setIsLoading(false); // Show content immediately
                     }
@@ -120,6 +120,11 @@ export default function ProjectsListPage() {
             }
         }
     }, [user?.id, organization?.id]);
+
+    // Reset hasFetchedRef when org/user changes
+    useEffect(() => {
+        hasFetchedRef.current = false;
+    }, [organization?.id, user?.id]);
 
     useEffect(() => {
         if (organization?.id && user?.id && !hasFetchedRef.current) {
@@ -134,7 +139,7 @@ export default function ProjectsListPage() {
         } else if (!organization?.id || !user?.id) {
             setIsLoading(false);
         }
-    }, [organization?.id, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [organization?.id, user?.id, fetchGroups]);
 
     // --- Actions ---
     const handleCreateGroup = async (name: string, description: string, color: string, memberIds: string[], leadId?: string) => {
@@ -266,10 +271,29 @@ export default function ProjectsListPage() {
             </div>
 
             {/* Content */}
-            {isLoading ? (
-                <div className="flex-1 flex flex-col items-center justify-center opacity-50">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mb-4"></div>
-                    <p className="text-gray-500 animate-pulse">Loading workspace...</p>
+            {isLoading && groups.length === 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-10">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                        <div key={i} className="bg-white border border-gray-200 rounded-2xl p-6 animate-pulse">
+                            <div className="flex items-start gap-4 mb-4">
+                                <div className="w-12 h-12 bg-gray-200 rounded-xl"></div>
+                                <div className="flex-1">
+                                    <div className="h-4 w-32 bg-gray-200 rounded mb-2"></div>
+                                    <div className="h-3 w-48 bg-gray-100 rounded"></div>
+                                </div>
+                            </div>
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 bg-gray-200 rounded-full"></div>
+                                    <div className="h-2 w-20 bg-gray-100 rounded"></div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 bg-gray-200 rounded-full"></div>
+                                    <div className="h-2 w-24 bg-gray-100 rounded"></div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             ) : filteredGroups.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-center py-20 bg-gray-50/50 rounded-3xl border border-dashed border-gray-200">
