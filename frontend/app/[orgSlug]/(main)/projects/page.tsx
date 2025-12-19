@@ -229,27 +229,18 @@ export default function ProjectsListPage() {
                 <div className="flex items-center gap-3 w-full md:w-auto">
                     {/* Status Filter */}
                     <div className="flex bg-white rounded-xl shadow-sm p-1 border border-gray-100">
-                        {['all', 'my', 'active']
-                            .filter(f => {
-                                // Hide 'my' filter for simple members
-                                if (f === 'my') {
-                                    const userRole = user?.role?.toUpperCase();
-                                    return userRole === 'OWNER' || userRole === 'BOARD';
-                                }
-                                return true;
-                            })
-                            .map((f) => (
-                                <button
-                                    key={f}
-                                    onClick={() => setFilter(f as any)}
-                                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === f
-                                        ? 'bg-gray-100 text-gray-900 shadow-sm'
-                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                                        }`}
-                                >
-                                    {f.charAt(0).toUpperCase() + f.slice(1)}
-                                </button>
-                            ))}
+                        {['all', 'active'].map((f) => (
+                            <button
+                                key={f}
+                                onClick={() => setFilter(f as any)}
+                                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === f
+                                    ? 'bg-gray-100 text-gray-900 shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                                    }`}
+                            >
+                                {f.charAt(0).toUpperCase() + f.slice(1)}
+                            </button>
+                        ))}
                     </div>
 
                     {/* View Toggle */}
