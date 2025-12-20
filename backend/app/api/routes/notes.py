@@ -214,6 +214,16 @@ def update_note(
                 actor_id=str(current_user.id),
                 organization_id=str(current_user.organization_id)
             )
+        elif update.status == "review":
+            background_tasks.add_task(
+                log_note_event,
+                note_id=str(note_id),
+                event_type="reviewing",
+                title="In Review",
+                description="Your idea is now in review",
+                actor_id=str(current_user.id),
+                organization_id=str(current_user.organization_id)
+            )
         elif update.status == "refused":
             background_tasks.add_task(
                 log_note_event,
@@ -231,6 +241,16 @@ def update_note(
                 event_type="approval",
                 title="Idea Approved",
                 description="This idea has been approved for implementation",
+                actor_id=str(current_user.id),
+                organization_id=str(current_user.organization_id)
+            )
+        elif update.status == "archived":
+            background_tasks.add_task(
+                log_note_event,
+                note_id=str(note_id),
+                event_type="archived",
+                title="Idea Archived",
+                description="This idea has been archived for future reference",
                 actor_id=str(current_user.id),
                 organization_id=str(current_user.organization_id)
             )

@@ -161,13 +161,36 @@ function TrackPageContent() {
                 ? 'Archived'
                 : 'Validation Board';
 
-        const validationDate = ['review', 'approved', 'refused', 'archived'].includes(selectedNote.status_raw)
-            ? (selectedNote.status_raw === 'refused'
-                ? 'Closed'
-                : selectedNote.status_raw === 'archived'
-                    ? 'Archived'
-                    : 'In Progress')
-            : 'Pending';
+        // Get validation date from timeline events
+        let validationDate = 'Pending';
+
+        if (['review', 'approved', 'refused', 'archived'].includes(selectedNote.status_raw)) {
+            // Try to find the most recent relevant event
+            const relevantEvents = timelineEvents.filter((evt: any) => {
+                const eventType = evt.event_type?.toLowerCase();
+                return eventType === 'reviewing' ||
+                    eventType === 'approval' ||
+                    eventType === 'refusal' ||
+                    eventType === 'archived';
+            });
+
+            if (relevantEvents.length > 0) {
+                // Get the most recent event
+                const latestEvent = relevantEvents[relevantEvents.length - 1];
+                validationDate = formatDate(latestEvent.created_at);
+            } else {
+                // Fallback to processed_date or current status labels
+                if (selectedNote.processed_date) {
+                    validationDate = formatDate(selectedNote.processed_date);
+                } else {
+                    validationDate = selectedNote.status_raw === 'refused'
+                        ? 'Closed'
+                        : selectedNote.status_raw === 'archived'
+                            ? 'Archived'
+                            : 'In Progress';
+                }
+            }
+        }
 
         // Build stages array - conditionally include Fusion only if 2+ notes are fused
         const allStages = [
@@ -232,7 +255,7 @@ function TrackPageContent() {
                 }
             ]
         };
-    }, [selectedNote]);
+    }, [selectedNote, timelineEvents]);
 
     const [activeStage, setActiveStage] = useState('submission');
 
