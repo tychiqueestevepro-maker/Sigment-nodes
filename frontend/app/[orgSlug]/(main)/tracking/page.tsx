@@ -16,7 +16,8 @@ import {
     Loader,
     AlertCircle,
     CheckCircle,
-    XCircle
+    XCircle,
+    Archive
 } from 'lucide-react';
 import { api, apiClient } from '@/lib/api';
 import { useApiClient } from '@/hooks/useApiClient';
@@ -45,6 +46,7 @@ function getStatusConfig(status: string): { icon: any; color: string; bgColor: s
         'In Review': { icon: AlertCircle, color: 'text-orange-600', bgColor: 'bg-orange-100' },
         'Approved': { icon: CheckCircle2, color: 'text-green-700', bgColor: 'bg-green-200' },
         'Refused': { icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-100' },
+        'Archived': { icon: Archive, color: 'text-gray-600', bgColor: 'bg-gray-100' },
     };
     return statusMap[status] || { icon: Clock, color: 'text-gray-600', bgColor: 'bg-gray-100' };
 }
@@ -145,7 +147,7 @@ function TrackPageContent() {
         if (hasFusion && (selectedNote.status_raw === 'processing' || selectedNote.status_raw === 'processed')) {
             currentStageId = 'fusion';
         }
-        if (selectedNote.status_raw === 'review' || selectedNote.status_raw === 'approved' || selectedNote.status_raw === 'refused') {
+        if (['review', 'approved', 'refused', 'archived'].includes(selectedNote.status_raw)) {
             currentStageId = 'validation';
         }
         if (selectedNote.status_raw === 'approved') {
@@ -153,9 +155,18 @@ function TrackPageContent() {
         }
 
         // Validation Board label changes based on status
-        const validationLabel = selectedNote.status_raw === 'refused' ? 'Idea Closed' : 'Validation Board';
-        const validationDate = ['review', 'approved', 'refused'].includes(selectedNote.status_raw)
-            ? (selectedNote.status_raw === 'refused' ? 'Closed' : 'In Progress')
+        const validationLabel = selectedNote.status_raw === 'refused'
+            ? 'Idea Closed'
+            : selectedNote.status_raw === 'archived'
+                ? 'Archived'
+                : 'Validation Board';
+
+        const validationDate = ['review', 'approved', 'refused', 'archived'].includes(selectedNote.status_raw)
+            ? (selectedNote.status_raw === 'refused'
+                ? 'Closed'
+                : selectedNote.status_raw === 'archived'
+                    ? 'Archived'
+                    : 'In Progress')
             : 'Pending';
 
         // Build stages array - conditionally include Fusion only if 2+ notes are fused
@@ -171,14 +182,14 @@ function TrackPageContent() {
                 id: 'fusion',
                 label: 'Fusion',
                 date: selectedNote.processed_date ? processedDate : 'Pending',
-                status: ['processing', 'processed', 'review', 'approved', 'refused'].includes(selectedNote.status_raw) ? 'completed' : 'pending',
+                status: ['processing', 'processed', 'review', 'approved', 'refused', 'archived'].includes(selectedNote.status_raw) ? 'completed' : 'pending',
                 icon: Users
             }] : []),
             {
                 id: 'validation',
                 label: validationLabel,
                 date: validationDate,
-                status: ['review', 'approved', 'refused'].includes(selectedNote.status_raw) ? 'current' : 'pending',
+                status: ['review', 'approved', 'refused', 'archived'].includes(selectedNote.status_raw) ? 'current' : 'pending',
                 icon: CheckCircle2
             },
             {
@@ -394,9 +405,17 @@ function TrackPageContent() {
                                             ? 'text-red-600 bg-red-50 border-red-200'
                                             : noteData.status_raw === 'approved'
                                                 ? 'text-green-600 bg-green-50 border-green-200'
-                                                : 'text-orange-600 bg-orange-50 border-orange-200'
+                                                : noteData.status_raw === 'archived'
+                                                    ? 'text-gray-600 bg-gray-50 border-gray-200'
+                                                    : 'text-orange-600 bg-orange-50 border-orange-200'
                                             }`}>
-                                            {noteData.status_raw === 'refused' ? 'Refused' : noteData.status_raw === 'approved' ? 'Approved' : 'In Review'}
+                                            {noteData.status_raw === 'refused'
+                                                ? 'Refused'
+                                                : noteData.status_raw === 'approved'
+                                                    ? 'Approved'
+                                                    : noteData.status_raw === 'archived'
+                                                        ? 'Archived'
+                                                        : 'In Review'}
                                         </span>
                                     </div>
                                     <p className="text-sm text-gray-700 leading-relaxed">
@@ -404,7 +423,9 @@ function TrackPageContent() {
                                             ? 'This idea was not selected for implementation at this time.'
                                             : noteData.status_raw === 'approved'
                                                 ? 'Your idea has been approved and is moving forward!'
-                                                : 'The note is currently being reviewed by the executive team.'}
+                                                : noteData.status_raw === 'archived'
+                                                    ? 'This idea has been archived for future reference.'
+                                                    : 'The note is currently being reviewed by the executive team.'}
                                     </p>
                                 </div>
 

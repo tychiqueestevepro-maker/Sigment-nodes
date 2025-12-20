@@ -361,7 +361,7 @@ def get_user_notes(
             clusters(id, title, pillar_id, note_count, pillars(id, name))
             """
         ).eq("user_id", user_id).eq("organization_id", str(current_user.organization_id)).in_(
-            "status", ["processed", "review", "approved", "refused"]
+            "status", ["processed", "review", "approved", "refused", "archived"]
         )
             
         response = query.order("created_at", desc=True).execute()
@@ -383,7 +383,8 @@ def get_user_notes(
                 "processed": "Processed",
                 "review": "In Review",
                 "approved": "Approved",
-                "refused": "Refused"
+                "refused": "Refused",
+                "archived": "Archived"
             }.get(status, status.capitalize())
             
             # TITLE: Use AI-generated title_clarified as primary title
