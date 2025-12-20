@@ -75,12 +75,61 @@ export default function HomePage() {
         expires_in_hours?: number;
     } | null>(null);
     const [editingPostId, setEditingPostId] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
     const queryClient = useQueryClient();
     const api = useApiClient();
     const { user } = useUser();
 
     const { items: feedItems, isLoading, error } = useFeed();
+
+    // Filter feed items based on search query
+    const filteredFeedItems = React.useMemo(() => {
+        if (!searchQuery.trim()) return feedItems;
+
+        const query = searchQuery.toLowerCase();
+        return feedItems.filter((item) => {
+            // Search in author name and post content
+            if (item.type === 'POST') {
+                const userInfo = (item as any).user_info || {};
+                const firstName = userInfo.first_name?.toLowerCase() || '';
+                const lastName = userInfo.last_name?.toLowerCase() || '';
+                const fullName = `${firstName} ${lastName}`.trim();
+                const email = userInfo.email?.toLowerCase() || '';
+
+                // Check author name
+                if (firstName.includes(query) || lastName.includes(query) || fullName.includes(query) || email.includes(query)) {
+                    return true;
+                }
+
+                // Check post content
+                const content = (item as any).content?.toLowerCase() || '';
+                if (content.includes(query)) {
+                    return true;
+                }
+            }
+
+            // Search in note title and content
+            if (item.type === 'NOTE') {
+                const title = (item as any).title?.toLowerCase() || '';
+                const summary = (item as any).summary?.toLowerCase() || '';
+                if (title.includes(query) || summary.includes(query)) {
+                    return true;
+                }
+            }
+
+            // Search in cluster title and summary
+            if (item.type === 'CLUSTER') {
+                const title = (item as any).title?.toLowerCase() || '';
+                const summary = (item as any).summary?.toLowerCase() || '';
+                if (title.includes(query) || summary.includes(query)) {
+                    return true;
+                }
+            }
+
+            return false;
+        });
+    }, [feedItems, searchQuery]);
 
     const { organizationId } = useOrganization();
 
@@ -493,17 +542,27 @@ export default function HomePage() {
                         </div>
                     ) : (
                         <div className="space-y-6">
-                            {feedItems.map((item) => (
+                            {searchQuery && (
+                                <div className="text-sm text-gray-500 px-2">
+                                    {filteredFeedItems.length} result{filteredFeedItems.length !== 1 ? 's' : ''} for "{searchQuery}"
+                                </div>
+                            )}
+
+                            {filteredFeedItems.map((item) => (
                                 <FeedItemRenderer key={item.id} item={item} />
                             ))}
 
-                            {(!feedItems || feedItems.length === 0) && (
+                            {filteredFeedItems.length === 0 && (
                                 <div className="text-center py-12 bg-white rounded-xl border border-gray-200 shadow-sm">
                                     <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                         <Layers className="text-gray-400" size={32} />
                                     </div>
-                                    <h3 className="text-lg font-medium text-gray-900">Your feed is empty</h3>
-                                    <p className="text-gray-500 mt-1">Start by creating notes or clusters.</p>
+                                    <h3 className="text-lg font-medium text-gray-900">
+                                        {searchQuery ? 'No results found' : 'Your feed is empty'}
+                                    </h3>
+                                    <p className="text-gray-500 mt-1">
+                                        {searchQuery ? `No items match "${searchQuery}"` : 'Start by creating notes or clusters.'}
+                                    </p>
                                 </div>
                             )}
                         </div>
@@ -527,9 +586,20 @@ export default function HomePage() {
                         <Search size={18} className="text-gray-400" />
                         <input
                             type="text"
-                            placeholder="Search ideas, tags..."
+                            placeholder="Search posts, ideas, members..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
                             className="bg-transparent border-none focus:ring-0 text-sm w-full placeholder-gray-400 outline-none"
                         />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                                title="Clear search"
+                            >
+                                <X size={14} className="text-gray-400" />
+                            </button>
+                        )}
                     </div>
 
                     {/* Galaxy Folders */}
