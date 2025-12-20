@@ -3,13 +3,16 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
-import { Heart, MessageCircle, Share2, MoreHorizontal, X } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, X, Trash2 } from 'lucide-react';
 import { PostItem } from '@/types/feed';
 import { Poll } from '@/types/poll';
 import { CommentSection } from '@/components/feed/comments';
 import { PollCard } from '@/components/feed/poll';
 import { SharePostModal } from '@/components/feed/share';
 import { useApiClient } from '@/hooks/useApiClient';
+import toast from 'react-hot-toast';
+import { useQueryClient } from '@tanstack/react-query';
+import { useUser } from '@/contexts/UserContext';
 
 interface PostCardProps {
     item: PostItem;
@@ -30,6 +33,8 @@ export const PostCard: React.FC<PostCardProps> = ({ item }) => {
     const params = useParams();
     const orgSlug = params.orgSlug as string;
     const apiClient = useApiClient();
+    const queryClient = useQueryClient();
+    const { user } = useUser();
     const [showComments, setShowComments] = useState(false);
     const [isLiked, setIsLiked] = useState(item.is_liked || false);
     const [likesCount, setLikesCount] = useState(item.likes_count || 0);
@@ -38,6 +43,8 @@ export const PostCard: React.FC<PostCardProps> = ({ item }) => {
     const [poll, setPoll] = useState<Poll | null>(null);
     const [loadingPoll, setLoadingPoll] = useState(false);
     const [showShareModal, setShowShareModal] = useState(false);
+    const [showMenu, setShowMenu] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Use embedded poll_data from feed (no extra request needed)
     // Fallback to API call only if poll_data is not available
@@ -152,6 +159,28 @@ export const PostCard: React.FC<PostCardProps> = ({ item }) => {
         e.stopPropagation();
     };
 
+    const handleDelete = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        if (!confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+            return;
+        }
+
+        setIsDeleting(true);
+        try {
+            await apiClient.delete(`/feed/posts/${item.id}`);
+            toast.success('Post deleted successfully');
+            // Invalidate feed query to refresh the list
+            queryClient.invalidateQueries({ queryKey: ['unifiedFeed'] });
+            setShowMenu(false);
+        } catch (error) {
+            console.error('Error deleting post:', error);
+            toast.error('Failed to delete post');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
     return (
         <div
             onClick={handleCardClick}
@@ -186,13 +215,45 @@ export const PostCard: React.FC<PostCardProps> = ({ item }) => {
                         </div>
                     </div>
 
-                    {/* More Menu */}
-                    <button
-                        onClick={handleStopPropagation}
-                        className="text-gray-400 hover:text-gray-600 transition-colors p-1"
-                    >
-                        <MoreHorizontal size={18} />
-                    </button>
+                    {/* More Menu - For own posts or OWNER/BOARD members */}
+                    {(item.is_mine || user?.role?.toUpperCase() === 'OWNER' || user?.role?.toUpperCase() === 'BOARD') && (
+                        <div className="relative">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowMenu(!showMenu);
+                                }}
+                                className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+                            >
+                                <MoreHorizontal size={18} />
+                            </button>
+
+                            {/* Dropdown Menu */}
+                            {showMenu && (
+                                <>
+                                    {/* Backdrop to close menu */}
+                                    <div
+                                        className="fixed inset-0 z-10"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowMenu(false);
+                                        }}
+                                    />
+                                    {/* Menu content */}
+                                    <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                                        <button
+                                            onClick={handleDelete}
+                                            disabled={isDeleting}
+                                            className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <Trash2 size={16} />
+                                            {isDeleting ? 'Deleting...' : 'Delete post'}
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Content */}

@@ -76,6 +76,7 @@ export default function HomePage() {
     } | null>(null);
     const [editingPostId, setEditingPostId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [selectedPillar, setSelectedPillar] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const queryClient = useQueryClient();
     const api = useApiClient();
@@ -83,12 +84,23 @@ export default function HomePage() {
 
     const { items: feedItems, isLoading, error } = useFeed();
 
-    // Filter feed items based on search query
+    // Filter feed items based on search query and selected pillar
     const filteredFeedItems = React.useMemo(() => {
-        if (!searchQuery.trim()) return feedItems;
+        let items = feedItems;
+
+        // First filter by pillar if one is selected
+        if (selectedPillar) {
+            items = items.filter((item) => {
+                const pillarId = (item as any).pillar_id;
+                return pillarId === selectedPillar;
+            });
+        }
+
+        // Then filter by search query if one exists
+        if (!searchQuery.trim()) return items;
 
         const query = searchQuery.toLowerCase();
-        return feedItems.filter((item) => {
+        return items.filter((item) => {
             // Search in author name and post content
             if (item.type === 'POST') {
                 const userInfo = (item as any).user_info || {};
@@ -129,7 +141,7 @@ export default function HomePage() {
 
             return false;
         });
-    }, [feedItems, searchQuery]);
+    }, [feedItems, searchQuery, selectedPillar]);
 
     const { organizationId } = useOrganization();
 
@@ -365,7 +377,22 @@ export default function HomePage() {
                 <div className="max-w-2xl mx-auto py-8 px-4">
                     {/* Header */}
                     <div className="flex items-center justify-between mb-8 sticky top-0 bg-gray-50/95 backdrop-blur-sm z-10 py-2">
-                        <h2 className="text-xl font-extrabold text-gray-900">Home Feed</h2>
+                        <div className="flex items-center gap-3">
+                            <h2 className="text-xl font-extrabold text-gray-900">Home Feed</h2>
+                            {selectedPillar && (
+                                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-full px-3 py-1 shadow-sm">
+                                    <span className="text-sm font-medium text-gray-700">
+                                        {galaxyFolders.find(f => f.id === selectedPillar)?.name}
+                                    </span>
+                                    <button
+                                        onClick={() => setSelectedPillar(null)}
+                                        className="hover:bg-gray-100 rounded-full p-0.5 transition-colors"
+                                    >
+                                        <X size={14} className="text-gray-500" />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                         <div className="p-2 bg-white rounded-full border border-gray-200 shadow-sm cursor-pointer hover:bg-gray-100">
                             <SparklesIcon />
                         </div>
@@ -610,28 +637,41 @@ export default function HomePage() {
                             </h3>
                         </div>
                         <div className="space-y-4">
-                            {galaxyFolders.map((folder, idx) => (
-                                <div
-                                    key={idx}
-                                    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl cursor-pointer transition-colors group"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${folder.color} relative`}>
-                                            <Folder size={20} fill="currentColor" className="opacity-20 absolute" />
-                                            <Folder size={20} className="z-10" />
-                                        </div>
-                                        <div>
-                                            <div className="font-bold text-gray-900 text-sm group-hover:text-black transition-colors">
-                                                {folder.name}
+                            {galaxyFolders.map((folder, idx) => {
+                                const isSelected = selectedPillar === folder.id;
+                                return (
+                                    <div
+                                        key={idx}
+                                        onClick={() => {
+                                            // Toggle: if already selected, deselect (show all), otherwise select this folder
+                                            setSelectedPillar(isSelected ? null : folder.id);
+                                        }}
+                                        className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all ${isSelected
+                                            ? 'bg-gray-100 shadow-sm'
+                                            : 'hover:bg-gray-50'
+                                            } group`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${folder.color} relative ${isSelected ? 'scale-110' : ''
+                                                } transition-transform`}>
+                                                <Folder size={20} fill="currentColor" className="opacity-20 absolute" />
+                                                <Folder size={20} className="z-10" />
                                             </div>
-                                            <div className="text-xs text-gray-400">{folder.count} nodes</div>
+                                            <div>
+                                                <div className={`font-bold text-sm transition-colors ${isSelected ? 'text-black' : 'text-gray-900 group-hover:text-black'
+                                                    }`}>
+                                                    {folder.name}
+                                                </div>
+                                                <div className="text-xs text-gray-400">{folder.count} nodes</div>
+                                            </div>
+                                        </div>
+                                        <div className={`transition-transform ${isSelected ? 'rotate-90' : ''}`}>
+                                            <ChevronRight size={16} className={`transition-colors ${isSelected ? 'text-gray-600' : 'text-gray-300 group-hover:text-gray-600'
+                                                }`} />
                                         </div>
                                     </div>
-                                    <button className="p-2 text-gray-300 group-hover:text-gray-600 transition-colors">
-                                        <ChevronRight size={16} />
-                                    </button>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
