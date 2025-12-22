@@ -6,7 +6,7 @@ from loguru import logger
 from app.services.supabase_client import supabase
 
 
-async def log_note_event(
+def log_note_event(
     note_id: str,
     event_type: str,
     title: str,

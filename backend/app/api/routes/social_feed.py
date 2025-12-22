@@ -375,7 +375,6 @@ def update_post(
 # ============================================
 
 @router.get("/", response_model=FeedResponse)
-@router.get("/", response_model=FeedResponse)
 def get_social_feed(
     limit: int = Query(default=20, ge=1, le=100),
     last_seen_score: Optional[float] = Query(default=None, description="Cursor pagination: last virality_score seen"),
@@ -435,7 +434,6 @@ def get_social_feed(
 # ENDPOINT 3: Get Feed by Tag
 # ============================================
 
-@router.get("/tag/{tag_name}", response_model=FeedResponse)
 @router.get("/tag/{tag_name}", response_model=FeedResponse)
 def get_feed_by_tag(
     tag_name: str,

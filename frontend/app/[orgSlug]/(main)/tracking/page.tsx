@@ -113,10 +113,12 @@ function TrackPageContent() {
             }));
         },
         enabled: !!userId,
+        staleTime: 0, // Always refetch to get latest data
+        refetchOnWindowFocus: true,
     });
 
     // Fetch timeline events for selected note
-    const { data: timelineEvents = [] } = useQuery<any[]>({
+    const { data: timelineEvents = [], refetch: refetchTimeline } = useQuery<any[]>({
         queryKey: ['note-timeline', selectedNote?.id],
         queryFn: async () => {
             if (!selectedNote?.id) return [];
@@ -128,6 +130,8 @@ function TrackPageContent() {
             }
         },
         enabled: !!selectedNote?.id,
+        staleTime: 0, // Always refetch to get latest timeline events
+        refetchOnWindowFocus: true,
     });
 
     // Compute note data from selected note (real data)

@@ -7,11 +7,11 @@ from loguru import logger
 from app.services.supabase_client import get_supabase
 from app.services.ai_service import ai_service
 from app.api.dependencies import CurrentUser, get_current_user
+from app.services.event_logger import log_note_event
 
 router = APIRouter()
 
 
-@router.get("/galaxy")
 @router.get("/galaxy")
 def get_galaxy_view(
     current_user: CurrentUser = Depends(get_current_user),
@@ -861,6 +861,16 @@ async def archive_note(note_id: str, current_user: CurrentUser = Depends(get_cur
             logger.error(f"❌ Failed to archive note {note_id}")
             raise HTTPException(status_code=500, detail="Failed to archive note")
         
+        # Log the archive event to timeline
+        log_note_event(
+            note_id=note_id,
+            event_type="archived",
+            title="Idea Archived",
+            description="This idea has been archived for future reference",
+            actor_id=str(current_user.id),
+            organization_id=organization_id
+        )
+        
         logger.info(f"✅ Note {note_id} archived by user {current_user.id}")
         
         return {
@@ -906,6 +916,16 @@ async def unarchive_note(note_id: str, current_user: CurrentUser = Depends(get_c
         if not update_response.data:
             logger.error(f"❌ Failed to unarchive note {note_id}")
             raise HTTPException(status_code=500, detail="Failed to unarchive note")
+        
+        # Log the restore event to timeline
+        log_note_event(
+            note_id=note_id,
+            event_type="reviewing",
+            title="Restored to Review",
+            description="This idea has been restored from archive and is back in review",
+            actor_id=str(current_user.id),
+            organization_id=organization_id
+        )
         
         logger.info(f"✅ Note {note_id} unarchived by user {current_user.id}")
         

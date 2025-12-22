@@ -15,7 +15,6 @@ from app.api.dependencies import CurrentUser, get_current_user, require_board_or
 router = APIRouter()
 
 @router.get("/", response_model=List[NoteResponse])
-@router.get("/", response_model=List[NoteResponse])
 def get_notes(
     current_user: CurrentUser = Depends(get_current_user),
     limit: int = 50,
@@ -42,7 +41,6 @@ def get_notes(
 
 
 
-@router.post("/", response_model=NoteResponse)
 @router.post("/", response_model=NoteResponse)
 def create_note(
     note: NoteCreate,
@@ -90,7 +88,6 @@ def create_note(
 
 
 @router.post("/sync", response_model=List[NoteResponse])
-@router.post("/sync", response_model=List[NoteResponse])
 def sync_notes(
     payload: NoteSync,
     current_user: CurrentUser = Depends(get_current_user)
@@ -126,7 +123,6 @@ def sync_notes(
 
 
 @router.get("/{note_id}", response_model=NoteResponse)
-@router.get("/{note_id}", response_model=NoteResponse)
 def get_note(
     note_id: UUID,
     current_user: CurrentUser = Depends(get_current_user)
@@ -157,7 +153,6 @@ def get_note(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.patch("/{note_id}", response_model=NoteResponse)
 @router.patch("/{note_id}", response_model=NoteResponse)
 def update_note(
     note_id: UUID, 
@@ -274,7 +269,6 @@ def update_note(
 
 
 @router.get("/{note_id}/timeline", response_model=List[NoteEvent])
-@router.get("/{note_id}/timeline", response_model=List[NoteEvent])
 def get_note_timeline(
     note_id: UUID,
     current_user: CurrentUser = Depends(get_current_user)
@@ -313,7 +307,6 @@ def get_note_timeline(
 
 
 @router.delete("/{note_id}")
-@router.delete("/{note_id}")
 def delete_note(
     note_id: UUID,
     current_user: CurrentUser = Depends(require_board_or_owner)
@@ -346,7 +339,6 @@ def delete_note(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/user/{user_id}")
 @router.get("/user/{user_id}")
 def get_user_notes(
     user_id: str,

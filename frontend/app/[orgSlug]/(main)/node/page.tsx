@@ -285,7 +285,7 @@ function NodePageContent() {
                                 value={text}
                                 onChange={(e) => setText(e.target.value)}
                                 placeholder="Capture your thought node..."
-                                className="w-full bg-transparent border-none text-center text-gray-800 text-2xl font-medium placeholder-gray-300 focus:ring-0 resize-none outline-none overflow-hidden leading-relaxed transition-all duration-500"
+                                className="w-full bg-transparent border-none text-center text-gray-800 text-2xl font-medium placeholder-gray-300 focus:ring-0 focus:border-transparent focus:outline-none resize-none outline-none overflow-hidden leading-relaxed transition-all duration-500"
                                 rows={1}
                                 style={{ minHeight: '60px' }}
                                 onMouseDown={(e) => e.stopPropagation()} // Prevent dragging when clicking textarea
